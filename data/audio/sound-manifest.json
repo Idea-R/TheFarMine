@@ -1,0 +1,400 @@
+{
+  "version": 1,
+  "globals": {
+    "buses": {
+      "masterDb": 0,
+      "musicDb": -4,
+      "sfxDb": 0,
+      "ambientDb": -15,
+      "uiDb": -6
+    },
+    "categoryDefaults": {
+      "music": {
+        "maxInstances": 4
+      },
+      "sfx": {
+        "maxInstances": 16
+      },
+      "ambient": {
+        "maxInstances": 12
+      },
+      "ui": {
+        "maxInstances": 8
+      }
+    },
+    "decoding": {
+      "formatHints": [
+        "ogg",
+        "mp3"
+      ],
+      "streamLoopsLargerThanBytes": 1400000
+    }
+  },
+  "entries": [
+    {
+      "id": "ambient.cavern.base.loopA",
+      "category": "ambient",
+      "file": "ambient/cavern_base_loopA.ogg",
+      "bus": "ambient",
+      "loop": true,
+      "volume": 0.28,
+      "priority": 3,
+      "polyphonyKey": "ambient.cavern.base",
+      "maxInstances": 1,
+      "spatial": false,
+      "tags": [
+        "biome",
+        "bed"
+      ]
+    },
+    {
+      "id": "ambient.cavern.crystal.loopA",
+      "category": "ambient",
+      "file": "ambient/cavern_crystal_loopA.ogg",
+      "bus": "ambient",
+      "loop": true,
+      "volume": 0.22,
+      "priority": 3,
+      "polyphonyKey": "ambient.cavern.crystal",
+      "maxInstances": 1,
+      "spatial": false,
+      "tags": [
+        "biome",
+        "crystal"
+      ]
+    },
+    {
+      "id": "ambient.prop.lamp.hiss.loop",
+      "category": "ambient",
+      "file": "ambient/prop_lamp_hiss_loop.ogg",
+      "bus": "ambient",
+      "loop": true,
+      "volume": 0.12,
+      "priority": 3,
+      "polyphonyKey": "ambient.prop.lamp.hiss",
+      "maxInstances": 6,
+      "spatial": true,
+      "tags": [
+        "prop",
+        "lamp"
+      ]
+    },
+    {
+      "id": "ambient.tavern.loopA",
+      "category": "ambient",
+      "file": "ambient/tavern_loopA.ogg",
+      "bus": "ambient",
+      "loop": true,
+      "volume": 0.3,
+      "priority": 3,
+      "polyphonyKey": "ambient.tavern",
+      "maxInstances": 1,
+      "spatial": false,
+      "tags": [
+        "hub"
+      ]
+    },
+    {
+      "id": "sfx.mining.pick.swing",
+      "category": "sfx",
+      "file": "sfx/mining/pick_swing.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.9,
+      "priority": 2,
+      "polyphonyKey": null,
+      "maxInstances": 8,
+      "spatial": true,
+      "tags": [
+        "mining",
+        "swing"
+      ]
+    },
+    {
+      "id": "sfx.mining.pick.hitRock",
+      "category": "sfx",
+      "file": "sfx/mining/pick_hit_rock.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 1.0,
+      "priority": 2,
+      "polyphonyKey": "sfx.mining.hit.rock",
+      "maxInstances": 6,
+      "spatial": true,
+      "tags": [
+        "mining",
+        "rock"
+      ]
+    },
+    {
+      "id": "sfx.mining.pick.hitOre",
+      "category": "sfx",
+      "file": "sfx/mining/pick_hit_ore.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 1.0,
+      "priority": 2,
+      "polyphonyKey": "sfx.mining.hit.ore",
+      "maxInstances": 6,
+      "spatial": true,
+      "tags": [
+        "mining",
+        "ore"
+      ]
+    },
+    {
+      "id": "sfx.mining.break.stone",
+      "category": "sfx",
+      "file": "sfx/mining/break_stone.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 1.0,
+      "priority": 1,
+      "polyphonyKey": "sfx.mining.break",
+      "maxInstances": 4,
+      "spatial": true,
+      "tags": [
+        "mining",
+        "break"
+      ]
+    },
+    {
+      "id": "sfx.mining.drill.spinUp",
+      "category": "sfx",
+      "file": "sfx/mining/drill_spin_up.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.95,
+      "priority": 2,
+      "polyphonyKey": "sfx.mining.drill.state",
+      "maxInstances": 2,
+      "spatial": true,
+      "tags": [
+        "mining",
+        "drill"
+      ]
+    },
+    {
+      "id": "sfx.mining.drill.bite",
+      "category": "sfx",
+      "file": "sfx/mining/drill_bite_loop.ogg",
+      "bus": "sfx",
+      "loop": true,
+      "volume": 0.9,
+      "priority": 2,
+      "polyphonyKey": "sfx.mining.drill.state",
+      "maxInstances": 1,
+      "spatial": true,
+      "tags": [
+        "mining",
+        "drill"
+      ]
+    },
+    {
+      "id": "sfx.mining.drill.coolDown",
+      "category": "sfx",
+      "file": "sfx/mining/drill_cool_down.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.9,
+      "priority": 2,
+      "polyphonyKey": "sfx.mining.drill.state",
+      "maxInstances": 2,
+      "spatial": true,
+      "tags": [
+        "mining",
+        "drill"
+      ]
+    },
+    {
+      "id": "sfx.combat.telegraph.swing",
+      "category": "sfx",
+      "file": "sfx/combat/telegraph_swing.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.85,
+      "priority": 1,
+      "polyphonyKey": "sfx.combat.telegraph",
+      "maxInstances": 4,
+      "spatial": true,
+      "tags": [
+        "combat",
+        "telegraph"
+      ]
+    },
+    {
+      "id": "sfx.combat.hit.light",
+      "category": "sfx",
+      "file": "sfx/combat/hit_light.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 1.0,
+      "priority": 1,
+      "polyphonyKey": "sfx.combat.hit",
+      "maxInstances": 6,
+      "spatial": true,
+      "tags": [
+        "combat",
+        "hit"
+      ]
+    },
+    {
+      "id": "sfx.combat.block",
+      "category": "sfx",
+      "file": "sfx/combat/block.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.95,
+      "priority": 1,
+      "polyphonyKey": "sfx.combat.block",
+      "maxInstances": 4,
+      "spatial": true,
+      "tags": [
+        "combat",
+        "block"
+      ]
+    },
+    {
+      "id": "sfx.combat.poiseBreak",
+      "category": "sfx",
+      "file": "sfx/combat/poise_break.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 1.0,
+      "priority": 0,
+      "polyphonyKey": "sfx.combat.poiseBreak",
+      "maxInstances": 2,
+      "spatial": true,
+      "tags": [
+        "combat",
+        "poise"
+      ]
+    },
+    {
+      "id": "music.explore.base.loopA",
+      "category": "music",
+      "file": "music/explore_base_loopA.ogg",
+      "bus": "music",
+      "loop": true,
+      "volume": 0.63,
+      "priority": 2,
+      "polyphonyKey": "music.explore.base",
+      "maxInstances": 1,
+      "spatial": false,
+      "tags": [
+        "music",
+        "explore"
+      ]
+    },
+    {
+      "id": "music.explore.sparkle.loopB",
+      "category": "music",
+      "file": "music/explore_sparkle_loopB.ogg",
+      "bus": "music",
+      "loop": true,
+      "volume": 0.6,
+      "priority": 2,
+      "polyphonyKey": "music.explore.sparkle",
+      "maxInstances": 1,
+      "spatial": false,
+      "tags": [
+        "music",
+        "overlay"
+      ]
+    },
+    {
+      "id": "music.combat.overlay.perc.loopA",
+      "category": "music",
+      "file": "music/combat_overlay_perc_loopA.ogg",
+      "bus": "music",
+      "loop": true,
+      "volume": 0.62,
+      "priority": 1,
+      "polyphonyKey": "music.combat.overlay",
+      "maxInstances": 1,
+      "spatial": false,
+      "tags": [
+        "music",
+        "combat",
+        "overlay"
+      ]
+    },
+    {
+      "id": "music.stinger.enterCombat",
+      "category": "music",
+      "file": "music/stinger_enter_combat.ogg",
+      "bus": "music",
+      "loop": false,
+      "volume": 0.68,
+      "priority": 1,
+      "polyphonyKey": "music.stinger.enter",
+      "maxInstances": 1,
+      "spatial": false,
+      "tags": [
+        "music",
+        "stinger"
+      ]
+    },
+    {
+      "id": "music.stinger.exitCombat",
+      "category": "music",
+      "file": "music/stinger_exit_combat.ogg",
+      "bus": "music",
+      "loop": false,
+      "volume": 0.64,
+      "priority": 1,
+      "polyphonyKey": "music.stinger.exit",
+      "maxInstances": 1,
+      "spatial": false,
+      "tags": [
+        "music",
+        "stinger"
+      ]
+    },
+    {
+      "id": "ui.confirm",
+      "category": "ui",
+      "file": "ui/confirm.ogg",
+      "bus": "ui",
+      "loop": false,
+      "volume": 0.6,
+      "priority": 1,
+      "polyphonyKey": "ui.core",
+      "maxInstances": 4,
+      "spatial": false,
+      "tags": [
+        "ui"
+      ]
+    },
+    {
+      "id": "ui.cancel",
+      "category": "ui",
+      "file": "ui/cancel.ogg",
+      "bus": "ui",
+      "loop": false,
+      "volume": 0.6,
+      "priority": 1,
+      "polyphonyKey": "ui.core",
+      "maxInstances": 4,
+      "spatial": false,
+      "tags": [
+        "ui"
+      ]
+    },
+    {
+      "id": "ui.notif",
+      "category": "ui",
+      "file": "ui/notif.ogg",
+      "bus": "ui",
+      "loop": false,
+      "volume": 0.6,
+      "priority": 1,
+      "polyphonyKey": "ui.core",
+      "maxInstances": 4,
+      "spatial": false,
+      "tags": [
+        "ui"
+      ]
+    }
+  ]
+}
