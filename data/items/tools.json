@@ -1,0 +1,101 @@
+[
+  {
+    "id": "tool.pick.t1.basic",
+    "name": "Basic Pickaxe",
+    "tier": 1,
+    "stationRequired": "workbench",
+    "stats": {
+      "miningPower": 3,
+      "miningSpeed": 6,
+      "swingIntervalMs": 520,
+      "staminaCost": 12,
+      "durabilityMax": 120,
+      "durabilityPerSwing": 1
+    },
+    "allowedTiles": [
+      "floor",
+      "rock",
+      "rock.ore"
+    ],
+    "ui": {
+      "iconKey": "icon.tool.pick.t1",
+      "colorToken": "terrain.ore.copper"
+    },
+    "audio": {
+      "swing": "sfx.mining.pick.swing",
+      "hitRock": "sfx.mining.pick.hitRock",
+      "hitOre": "sfx.mining.pick.hitOre",
+      "loop": null
+    },
+    "notes": [
+      "Entry tool; can crack copper seams slowly.",
+      "Respect stamina rhythm at 520 ms swings."
+    ]
+  },
+  {
+    "id": "tool.pick.t2.reinforced",
+    "name": "Reinforced Pickaxe",
+    "tier": 2,
+    "stationRequired": "forge",
+    "stats": {
+      "miningPower": 5,
+      "miningSpeed": 10,
+      "swingIntervalMs": 480,
+      "staminaCost": 12,
+      "durabilityMax": 180,
+      "durabilityPerSwing": 1
+    },
+    "allowedTiles": [
+      "floor",
+      "rock",
+      "rock.ore"
+    ],
+    "ui": {
+      "iconKey": "icon.tool.pick.t2",
+      "colorToken": "terrain.ore.iron"
+    },
+    "audio": {
+      "swing": "sfx.mining.pick.swing",
+      "hitRock": "sfx.mining.pick.hitRock",
+      "hitOre": "sfx.mining.pick.hitOre",
+      "loop": null
+    },
+    "notes": [
+      "Comfortably bites into iron seams.",
+      "Faster cadence; same stamina spend per swing."
+    ]
+  },
+  {
+    "id": "tool.drill.t3.steam",
+    "name": "Steam Drill",
+    "tier": 3,
+    "stationRequired": "steam_workshop",
+    "stats": {
+      "miningPower": 7,
+      "miningSpeed": 22,
+      "swingIntervalMs": 140,
+      "staminaCost": 6,
+      "durabilityMax": 220,
+      "durabilityPerSwing": 1
+    },
+    "allowedTiles": [
+      "floor",
+      "rock",
+      "rock.ore"
+    ],
+    "ui": {
+      "iconKey": "icon.tool.drill.t3",
+      "colorToken": "mapping.lighting.crystalCool"
+    },
+    "audio": {
+      "swing": "sfx.mining.drill.spinUp",
+      "hitRock": "sfx.mining.drill.bite",
+      "hitOre": "sfx.mining.drill.bite",
+      "loop": "sfx.mining.drill.bite"
+    },
+    "notes": [
+      "Pulse-driven bite at 140 ms; intended for short bursts.",
+      "Assembly gated by core.steam in MVP (no runtime fuel)."
+    ]
+  }
+]
