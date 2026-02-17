@@ -1,245 +1,353 @@
 # Visual Style Guide — Brass, Stone, and Crystal Light (Sprint 1)
 
-Provenance: owner @brightforge (Visual Systems — Master Crystalsmith)
+Provenance
+- Owner: @brightforge (Visual Systems — Master Crystalsmith)
+- Version: Sprint 1, authoritative for pixel art and lighting integration
 
-Cross-references (read these alongside, hammer to anvil):
-- docs/core-systems/ecs-architecture.md (§Renderable.tintToken, Collider sizes)
-- docs/world-generation/cave-gen-algorithm.md (§Tiles 16×16, lighting tokens)
-- docs/combat-systems/combat-design.md (§Three-wide law, telegraph colors)
-- docs/audio-systems/music-direction.md (§Sync cues mention)
-- data/visual/color-palette.json (token-only)
-- data/combat/*.json (collider/hitbox fairness)
-- data/world/room-templates.json (zClearance >=3)
-
-
-## 1) Art Direction Pillars (One-pager)
-
-- Steampunk dwarven utility: everything looks built for work first, ornament second. Rivets you can count, joints that look serviceable, wear that tells use.
-- Brass hardware + crystal lumens: warm brass frames and fixtures, cool crystal light accents. Metal reads weighty; crystal reads lively.
-- Readable silhouettes in three-wide lanes: every actor and prop must read cleanly within 48 px corridors at 3×–4× display scale.
-- Restrained speculars: no plastic shine. Brass gets tight highlights; iron stays matte; crystals get discreet facet glints.
-- Token-driven lighting and palettes: all color from data/visual/color-palette.json, referenced by tokens only. No raw hex. No per-asset freelancing.
-- Animation as micro-story: each loop communicates intent and timing (windup, commit, recovery), built to sync with audio cues.
-- Consistency over flourish: effects and telegraphs use approved tokens and blends, never hijack UI channels.
+Cross-References
+- data/visual/color-palette.json (all tokens)
+- docs/visual-systems/ui-framework.md (§HUD & tokens)
+- docs/combat-systems/combat-design.md (§Telegraphs & timings)
+- docs/world-generation/cave-gen-algorithm.md (§Tiles, lanes, lamps)
+- data/core/component-schemas.json (Renderable.tintToken)
+- Planned source: src/ui/theme-loader.js
 
 
-## 2) Pixel Grid & Resolution
 
-- Authoritative tile size: 16×16 px per grid cell (matches cave-gen).
-- Authoring scale: paint at 1×. In-engine display scale: integral 3× or 4× recommended.
-- Camera and lanes:
-  - Corridors and combat lanes are 3 tiles (48 px) wide per docs/combat-systems/combat-design.md (Three-wide law).
-  - Maintain clear negative space around actor silhouettes within lanes; avoid silhouette breaches into adjacent lanes unless clearly telegraphed.
-- Motion and sampling:
-  - Art: no subpixel painting (align all edges to 1 px grid).
-  - Engine: may move entities at subpixel precision; renderer must sample sprites pixel-perfect (nearest-neighbor, no linear filtering) and snap final composited output to the scaled pixel grid.
-- Parallax/depth layers (logical, not an exhaustive engine enum):
-  - Background (BG): distant rock planes and deep props; apply depth tint via mapping.depthTint.l0.
-  - Midground (MG): traversable terrain tiles, props flush with lanes.
-  - Actors (ACT): characters, interactive pickups.
-  - Foreground VFX (FX): dust, sparks, close overlays that should sit above actors but below HUD.
-  - HUD (UI): interface panels and gauges.
-- Layering rule of thumb: BG < MG < ACT < FX < UI. Do not place gameplay-relevant telegraphs above HUD.
+## 1) Art Direction North Star
 
+Steampunk dwarven utility. Brass rims, oiled steel, soot—function first. We are underground: rock and dirt dominate, with crystal illumination as a cool secondary light. The brass is worn, the steel is scratched, and the dirt is honest.
 
-## 3) Color & Materials (Token-Only)
+Crystal light complements, never overwhelms. No modern bloom, no foggy glare. Let pixels do the talking: clusters and bands define form; material reads via edge control and spec accents. Telegraphs are clear, disciplined, and unambiguous.
 
-Use tokens from data/visual/color-palette.json exclusively. If a token is missing, request addition; do not introduce hex.
+Every pixel earns its keep. Lane legibility is sacred; gameplay silhouettes triumph over texture indulgence. Doors, lamps, and UI frames carry brass accents; combat clarity carries the scene.
 
-- Brass frames/trim:
-  - ui.frame.brass (HUD frames, brass props, sconces, hinges)
-- Warm lamp light:
-  - mapping.lighting.lampWarm
-- Crystal glow (cool):
-  - mapping.lighting.crystalCool
-- Terrain base/shadows:
-  - terrain.rock.base
-  - terrain.rock.shadow
-  - terrain.floor.dirt
-- Ores:
-  - terrain.ore.copper
-  - terrain.ore.iron
-  - terrain.ore.quartz
-- Characters:
-  - characters.player.tint
-  - characters.goblin.tint
-  - characters.burrower.tint
-- UI text/gauges:
-  - ui.text.primary
-  - ui.text.numbers
-  - ui.text.warning
-  - ui.gauges.healthFill
-  - ui.gauges.staminaFill
-- Effects:
-  - effects.hitFlash
-  - effects.poiseBreakFlash
-  - effects.sparkRock
-  - effects.sparkOre
-
-Material notes (practical craft):
-- Brass vs copper: brass elements (frames, fixtures) get ui.frame.brass with small, hard spec hits; copper ore studs use terrain.ore.copper, read redder and slightly duller, with broader, softer highlights.
-- Iron vs rock: iron (terrain.ore.iron) renders matte with minimal highlight; separate from terrain.rock.shadow by value, not by outline.
-- Quartz: base with terrain.ore.quartz; add specular hint using sparse 1 px dither/sparkle; rim and bloom accents use mapping.lighting.crystalCool at low opacity on facets. Keep sparkle density low to avoid noise.
+Do / Don’t
+- Do keep material bands tight and readable at 3× scale; emphasize edge bevels.
+- Do use token-only colors from data/visual/color-palette.json; no raw hex in art or notes.
+- Do preserve the three-wide corridor law; maintain floor vs wall splits at a glance.
+- Don’t apply high-contrast dithering to UI elements; reserve micro-dither for terrain texturing sparingly.
+- Don’t reuse combat telegraph tokens for UI fills or icons.
+- Don’t apply modern bloom or softening filters; nearest-neighbor only.
 
 
-## 4) Lighting & Shading Rules (2D Pixel Lighting)
 
-- Primary lighting: baked/tinted pixels in the sprite/tiles; do not rely on dynamic normal maps in Sprint 1. Use simple additive or overlay passes for lamps and crystals.
-- Lamps:
-  - Soft radial vignette using mapping.lighting.lampWarm.
-  - Falloff in 3–4 rings (concentric steps of 1 px or 2 px thickness as needed at 1×).
-  - Inner ring additive strength: cap at 60% to avoid bloom blowout and preserve palette discipline.
-- Crystal shimmer:
-  - Use mapping.lighting.crystalCool on facet rims and 1–2 px bloom pips.
-  - Prefer overlay/screen blends; keep pulses brief (1–2 frames) to suggest life without UI confusion.
-- Depth tint:
-  - Apply mapping.depthTint.l0 to BG planes and distant props to reduce apparent saturation/contrast (~−10–15% “feel”). Implementation via a single-pass multiply/overlay using the depth tint token.
-- Telegraph overlays:
-  - mapping.telegraph.emerge.amber rendered with screen/add at 35–55% alpha depending on urgency (see docs/combat-systems/combat-design.md).
-  - Never reuse telegraph tokens for UI fills or persistent HUD elements.
+## 2) Pixel Grid, Tile Size, and Scale
+
+- Base tile size: 16×16 px. All world tiles, props, and collision baselines derive from this unit.
+- Render scale: target 3× (fallback 4×). Use nearest-neighbor; disable smoothing everywhere.
+- Camera and UI:
+  - World: lock to integer pixels. Snap camera and sprite positions to full pixels to eliminate shimmer.
+  - HUD: render in a separate Phaser scene/layer; token-only colors; do not inherit world tints.
+- Safe outlines policy:
+  - Avoid interior anti-aliasing inside sprite silhouettes; reserve subpixel flashes solely for VFX sparkles.
+  - No pure black; deepest accents use terrain.rock.shadow.
+  - Feet of characters snap to 16 px vertical grid alignment.
 
 
-## 5) Character Proportions & Silhouette
 
-- Baseline sprite boxes (authored areas):
-  - Player: 16×16 authored; functional silhouette centered to fit a 12×12 Collider (see docs/core-systems/ecs-architecture.md §Collider sizes). Head:body:legs ≈ 3:6:7 px vertical proportions. Tools (pick/drill) may extend 4–6 px outside the box during attacks; ensure separate hit/hurt volumes in data/combat/*.json.
-  - Goblin / Burrower: 16×16 authored; keep body occupancy ≈12×12 to honor lane margins and maintain fair dodging windows.
-- Readability:
-  - Use a dark edge only where contact or self-shadow warrants it; avoid full black outline. Let lampWarm/crystalCool provide ambient rims when near sources.
-  - Keep negative space under arms and between legs during motion readable at 3× scale.
-- Pivots and feet:
-  - Pivot should sit at foot centerline to stabilize ground contact. Keep toe and heel frames consistent across animations.
+## 3) Tilesets & Materials (Terrain tokens)
 
+Terrain material tokens and usage
+- terrain.rock.base / terrain.rock.shadow / terrain.rock.highlight
+  - Use for walls, occluders, and cliff faces.
+  - Target luma deltas: shadow ~25–30% darker than base; highlight ~15–20% brighter than base.
+  - Keep highlight bands thin; prioritize bevel edges over noisy textures.
+- terrain.floor.dirt / terrain.floor.dirtShadow
+  - Walkable floors; must separate from walls at 3× scale.
+  - Avoid micro-contrast and heavy speckling; maintain confident planes for movement readability.
+- terrain.ore.copper / terrain.ore.iron / terrain.ore.quartz
+  - Ore veins as accents and pickups; used in tile deco and VFX sparks.
+  - Keep vein pixels chunky and directional; 1–2 px glints with material-appropriate highlights.
 
-## 6) Animation Standards (Frame Counts & Timings)
+Tile readability
+- Lane edges beveled (subtle chamfer) to signal walkable boundaries.
+- Ensure strong separation at 3×: if a floor tile meets a wall tile, a single-pixel value step and hue bias must read at screen speed.
 
-Author at 1×. Engine may time-scale but must preserve frame order. Respect audio sync cues (docs/audio-systems/music-direction.md).
-
-- Idle:
-  - 4 frames, 140 ms per frame. Subtle beard sway, lamp blink, or idle tool jiggle.
-- Walk:
-  - 6 frames, 90 ms per frame. Emit footfall events on contact frames for audio sync.
-- Mine (T1/T2 picks):
-  - 6 frames total — windup 2, strike 1, follow-through 2, recover 1.
-  - Total duration target: ~520 ms (T1) / ~480 ms (T2).
-  - Impact key on strike frame; spawn spark VFX on that frame only.
-- Drill (T3):
-  - Spin-up 4 frames loop; bite 2-frame pulse loop at ~140 ms pulses; cool-down 3 frames.
-- Dodge:
-  - 6 frames, 220 ms total; 1–2 px smear lines allowed in mid frames to sell speed (keep within 16×16 authoring box).
-- Hit-react:
-  - 2–3 frames with hit-stop compatibility; engine may freeze on impact frame for 22–46 ms as per combat-design.
-- Enemy telegraphs:
-  - Each attack has a distinct windup pose. Ensure the emerge halo telegraph appears ≥520 ms prior to burst/hit for burrowers and similar emergence attacks.
-- Sprite naming (atlas guidance):
-  - {entity}/{action}_f{01..NN}.png (e.g., player/walk_f01.png). Keep zero-padded indices for deterministic packing.
+Autotile guidance (MVP-lite)
+- Walls: use 3-state edges—inner, outer, corner.
+  - Inner: flush interior edges; minimal highlight.
+  - Outer: exposed edge with a highlight band on light-facing side.
+  - Corner: combined highlight/occlusion; prefer L-shaped single-pixel contour over noisy joins.
+- Do not rely on transparent overlays; commit edges in the tile graphics with token-only colors.
 
 
-## 7) Terrain & Props Style
 
-- Tiles (16×16):
-  - Floor and rock each require 3–4 subtle alternates to break patterns. Vary crack direction, pebble clusters, and lichen chips; avoid high-contrast noise.
-  - Embed ore studs using terrain.ore.* tokens; distribute at sub-tile scales that still read at 3×.
-- Corridors:
-  - Beveled wall edges facing lanes to visually enforce the 3-wide rule. Avoid single-pixel spikes and “porcupine” noise at boundaries.
-- Lamps:
-  - Brass sconce body with a glass/lens specular accent; keep spec tight and restrained. Pair visually with audio ambient.prop.lamp.hiss.loop by adding a tiny animated shimmer (2-frame subtle glint is sufficient).
-- Crystals:
-  - Cluster shapes in 8–12 px groups with 3–5 principal facets. Provide a sparkle mask (1 px markers within the 16×16) for VFX placement; do not exceed 3 sparkle points per tile.
-- Clearance:
-  - Respect data/world/room-templates.json zClearance >=3 when placing tall props; nothing in BG/MG may visually collide with ACT silhouettes within the 3-tile lanes.
+## 4) Lanes & Three-Wide Law (Visual affordances)
+
+- Corridors default to three tiles wide. Maintain unbroken floor read across center lane.
+- Belly the center tile gently for natural tunnels when the room template allows; never pinch below three-world-tiles clear width in visuals.
+- Door arches: 3×1 portals. Brass framing via ui.frame.brass appears only in props/decals layered over base tiles; never bake brass frames into floor/wall base tiles.
+- Keep decorative insertions off the lane core. Place clutter and decals to side lanes or walls.
 
 
-## 8) Effects & Feedback
 
-- Hit flashes:
-  - Apply effects.hitFlash additively to the victim sprite for 1–2 frames at impact; for poise break, layer effects.poiseBreakFlash stronger (+ brief screen shake per combat).
-- Mining sparks:
-  - Rock: effects.sparkRock with 2–3 particles, 80–120 ms life.
-  - Ore: effects.sparkOre brighter, briefer (50–90 ms), fewer but sharper particles.
-- Break debris:
-  - 2–3 chip sprites each for rock and ore variants. Gravity drift with mild horizontal variance; lifetime ~300–450 ms; fade last 80 ms.
-- Damage numbers (MVP-lite):
-  - Use ui.text.numbers; 1 px drop-contrast shadow using ui.panel.bg behind glyphs. Float upward 8–12 px over 300–420 ms.
+## 5) Character & Enemy Proportions
 
+Collider and canvas
+- ECS collider baseline: 12×12 body.
+- Sprite canvas:
+  - Player: 16×20–24 canvas. Feet lock to the 16 px grid. Maintain headroom in three-wide lanes.
+  - Allow extra vertical head pixels for arcs and weapon swing readability.
 
-## 9) Telegraph Visuals
+Enemies (lane-safe)
+- Goblin Grunt: wiry; 16×18–20. Forward blade reach visible; keep hitboxes lane-safe (no bleed into walls at 3×).
+- Cave Burrower: low profile; 16×16–18. Forward-biased snap/jaw arc; body mostly below centerline when moving.
 
-- Arc swings:
-  - Thin amber arc 2–3 px thick using mapping.telegraph.emerge.amber.
-  - Render above actors (FX) but below HUD. Arc tip should align with strike frame timing.
-- Ground halo (burrower):
-  - Dithered ring with inner crack hints. Fade-in 200–240 ms, hold through windup, then hard clear at hit frame. Use screen/add blend; never exceed 55% alpha equivalent.
+Silhouette rules
+- Readable at 3×. No pure black outlines—use terrain.rock.shadow for deepest accents and interior cuts.
+- Reserve highlights for metal edges and blades; cloth and leather stay matte with controlled banding.
 
 
-## 10) UI Visual Sync & Iconography Notes
 
-- HUD frames:
-  - Use ui.frame.brass for decorative frames; panels use ui.panel.bg. Maintain simple bevel/pixel trim consistent with brass hardware elsewhere.
-- Icons:
-  - Size in multiples of 16×16 or 24×24 px depending on slot spec in ui-framework.md. Keep silhouettes bold; avoid micro-line detail <1 px at 1×.
-- Gauges:
-  - Health uses ui.gauges.healthFill; stamina uses ui.gauges.staminaFill. Ensure shapes differ (e.g., solid bar vs segmented chevrons) for accessibility.
-- Fonts:
-  - See ui-framework.md for full selection; ensure ui.text.primary, ui.text.warning are used per state and maintain contrast over ui.panel.bg.
+## 6) Animation Specs & Frame Counts (MVP)
+
+Global timing
+- Reference: 60 FPS (16.67 ms per frame). See Appendix A for ms ↔ frames cheat sheet.
+- Mark strike frames explicitly in filenames or X-annotations for engineering sync.
+
+Player
+- Idle: 4 frames @ ~120 ms each; subtle breathing. No camera jitter.
+- Walk: 6 frames @ ~80 ms; align footfalls for SFX and dust puffs.
+- Light attack: 6–7 frames total mapped to combat spec
+  - Windup 240 ms ≈ 14–15 frames
+  - Active 80 ms ≈ 5 frames
+  - Recovery 320 ms ≈ 19 frames
+  - Mark the strike frame index (e.g., atk_light_f04) as the first active frame.
+- Dodge: 8 frames over 320 ms; i-frames centered in first 220 ms; minimal body stretch.
+- Block: Raise 3 frames (120 ms total), then hold loop of 2 frames with subtle stance shift.
+
+Mining
+- Pick swing: 5–6 frames.
+  - swingIntervalMs per tool: T1 520 ms; T2 480 ms.
+  - Strike around frame 3 (70–90 ms after start) for SFX and hit-check sync.
+- Drill: 3-state
+  - spinUp: 4 frames.
+  - bite loop: 3–4 frames pulsing at ~140 ms cadence.
+  - coolDown: 3 frames with spin decel.
+
+Enemies (example timings; align with enemy JSONs)
+- Goblin slash_sweep: windup ~25 frames, active ~6, recovery ~29.
+- Goblin stab_jab: windup ~17 frames, active ~5, recovery ~25.
+- Burrower emerge_burst: windup ~37 frames with ground halo, active ~7, recovery ~31.
+
+Hit-stop visual cue
+- On Hit event: freeze involved actors per combat spec and overlay effects.hitFlash for ~120 ms fade. Do not modify sprite alpha; apply an overlay sprite using token tint.
 
 
-## 11) ECS Alignment & Engine Notes
 
-- Renderable:
-  - Use Renderable.tintToken for any runtime tinting. Do not bake non-palette tints into sprites. Layer assignment must place sprites according to BG/MG/ACT/FX/UI stack.
-- Collider:
-  - Default actor Collider fits within 12×12 px centered in 16×16 sprite box unless specified otherwise. Ensure visual silhouette does not routinely exceed collider except during intentional attack frames.
-- Combat fairness:
-  - Hitboxes/hurtboxes defined in data/combat/*.json must align with readable silhouettes; no “invisible reach.” Telegraph color tokens must match mapping.telegraph.* definitions.
-- Lighting tokens:
-  - Runtime light decals and overlays must reference mapping.lighting.* tokens (see cave-gen for token placement hints).
-- Subpixel:
-  - Transform can hold subpixel positions; Renderer must snap draw to the scaled pixel grid to avoid shimmer.
+## 7) Effects & Telegraphs
 
+Telegraph tokens (never for UI fills)
+- mapping.telegraph.emerge.amber — ground halo; additive or screen at low alpha.
+- mapping.telegraph.arc.amber — swing arcs; 1–2 px wide at 1×.
 
-## 12) Accessibility & Contrast
+VFX tokens
+- effects.hitFlash — brief full-sprite overlay on hits.
+- effects.poiseBreakFlash — stronger, slightly longer flash for guard/poise breaks.
+- effects.sparkRock — neutral rock impact sparks; use on pick misses or burrower exits.
+- effects.sparkOre — brighter ore impact sparks; use when striking ore tiles.
+- effects.debris.dust — light dust burst for footsteps and soft impacts.
+- effects.debris.chipRock — small chips for rock hits.
+- effects.debris.chipOre — small, brighter chips for ore hits.
 
-- Text:
-  - Ensure ui.text.primary over ui.panel.bg meets strong contrast. Avoid busy backgrounds under text; add 1 px shadow or plate where needed.
-- Gauges:
-  - Health vs stamina must be distinguishable at a glance by both color and form (solid vs segmented, distinct end-cap shapes).
-- Colorblind safety:
-  - Never encode critical states solely in hue. Add iconography, patterning (e.g., chevrons/dots), or blink cadence differences for warnings and telegraphs.
+Telegraph readability policy
+- Never use mapping.lighting.crystalCool for telegraph halos.
+- Arcs at 1–2 px (1×) expand proportionally at 3×; avoid jagged diagonals via consistent 1:1 and 2:1 stair steps.
+- Ground halo rings fade outward with token steps, not semi-transparent pixels. Engine applies blend and alpha; assets remain opaque.
 
 
-## 13) Export & Pipeline Notes
 
-- Atlas packing:
-  - Pack to power-of-two textures (e.g., 1024×1024 or 2048×2048) with 2–4 px padding between frames to prevent bleed at 3×–4×.
-  - Maintain deterministic order: directory name, then filename ascending by frame index.
-- Frame edges:
-  - Trim transparent bounds but keep consistent pivot metadata (feet center). Do not crop action frames beyond intended 16×16 authored region if it would alter pivot.
-- Alpha:
-  - Disable premultiplied alpha on export; engine expects straight alpha and will handle blend modes explicitly.
-- Filtering:
-  - Nearest-neighbor only. Disable mipmaps. Ensure sprite sampling lands on integer boundaries at the chosen scale.
-- Naming:
-  - {entity}/{action}_f{01..NN}.png for raster; ensure folder names match entity IDs used by ECS/Animator binding.
-- Source control hygiene:
-  - Store only final PNGs (and optional minimal metadata); no embedded hex or palette overrides within assets.
+## 8) Lighting & Tints
+
+Primary light sources
+- mapping.lighting.lampWarm — door lamps and brass accents; warm key light.
+- mapping.lighting.crystalCool — biome crystals; cool fill.
+
+Phaser blending guidance
+- Use additive for mapping.lighting.lampWarm at ~0.6 strength; clamp to avoid clipping on ui.frame.brass and characters.metal.brass.
+- Use screen or light additive for mapping.lighting.crystalCool at ~0.4–0.5 strength.
+- Avoid per-pixel softness; use crisp sprites tinted via tokens with engine blend.
+
+Depth tinting
+- mapping.depthTint.l0 / mapping.depthTint.l1 — optional vignette layers for minimap and far background planes. Apply as full-screen quads in the world scene behind props.
+
+Token-only contract
+- Never hardcode hex. Use Renderable.tintToken (data/core/component-schemas.json). The engine resolves hex via ThemeLoader.
+
+
+
+## 9) UI Icon & Atlas Conventions (coordination)
+
+- Icon sizes: 16×16 and 24×24 px.
+- Naming: ui/icon.{domain}.{name}_{size}.png (e.g., ui/icon.tools.pick_16.png).
+- Tools map to data/items/tools.json via ui.iconKey.
+- Icon drop shadow: 1 px using ui.panel.bg on the lower-right to lift from panel surface.
+- 9-slice frames for brass rails/windows:
+  - Use ui.frame.brass corners and edges.
+  - Pack atlases to power-of-two sheets. Nearest-neighbor sampling; no extraneous padding beyond 1 px gutters.
+- Text and glyphs use ui.text.primary and ui.text.secondary only; no embedded raster text in icons.
+
+
+
+## 10) Palette Consumption & ThemeLoader Contract
+
+All colors must originate from data/visual/color-palette.json tokens. No raw hex in art, JSON, or comments.
+
+Planned ThemeLoader API (src/ui/theme-loader.js)
+- init(paletteJson)
+  - Loads token → color map once at boot. Validates domains.
+- getColor(token): returns { hexString, int }
+  - Logs a single warning on unknown token and returns debug.mask.exclude.
+- getTextStyle(kind): returns Phaser-compatible text style using ui.* tokens (e.g., primary, secondary, disabled).
+- Example usage (pseudocode):
+  - const c = ThemeLoader.getColor('mapping.lighting.lampWarm').int; sprite.setTint(c);
+  - const style = ThemeLoader.getTextStyle('primary'); scene.add.text(x, y, label, style);
+
+Example token domains
+- UI: ui.text.primary, ui.text.secondary, ui.panel.bg, ui.frame.brass
+- Terrain: terrain.rock.base, terrain.rock.shadow, terrain.rock.highlight, terrain.floor.dirt, terrain.floor.dirtShadow, terrain.ore.copper, terrain.ore.iron, terrain.ore.quartz
+- Mapping: mapping.lighting.lampWarm, mapping.lighting.crystalCool, mapping.telegraph.emerge.amber, mapping.telegraph.arc.amber, mapping.depthTint.l0, mapping.depthTint.l1
+- Effects: effects.hitFlash, effects.poiseBreakFlash, effects.sparkRock, effects.sparkOre, effects.debris.dust, effects.debris.chipRock, effects.debris.chipOre
+- Characters: characters.metal.brass, characters.cloth.dark, characters.skin.dwarf (examples for material bands; do not invent new tokens without palette update)
+
+
+
+## 11) Rendering & Depth Ordering (Phaser 3)
+
+World depth layering order (low → high)
+- 0–99: floor and ground decals
+- 100–199: small props (ankle-high to knee)
+- 200–299: characters and enemies
+- 300–399: tall props (above waist)
+- 400–499: VFX telegraphs and transient effects
+- HUD/UI: separate scene or top display list; never interleave with world
+
+Rendering settings
+- PixelArt mode on; roundPixels true. No linear filtering or smoothing.
+- Snap sprite positions to integers. Weapon arcs align to pixel stairs; avoid subpixel rotations except for brief sparkle sprites.
+- Use sprite.setTint(ThemeLoader.getColor(token).int) exclusively. If multiple tints are needed, use layered sprites or pipelines, not per-vertex hacks.
+
+
+
+## 12) Accessibility & Readability
+
+- Contrast targets:
+  - ui.text.primary over ui.panel.bg ≥ 4.5:1
+  - ui.text.secondary over ui.panel.bg ≥ 3:1
+- Health vs stamina: do not rely on red/green alone. Combine hue separation with pattern redundancy:
+  - Health bar: solid fill band.
+  - Stamina bar: chevroned band (consistent diagonal rhythm).
+- Colorblind resilience:
+  - Avoid red/green exclusivity in critical telegraphs. Use shape language (arc, halo, icon) plus timing.
+  - State differences get unique silhouettes and motion cues, not just color.
+
+
+
+## 13) Export & File Guidelines
+
+- File format: PNG only. Opaque pixel policy: no fractional alpha in spritesheets or tiles.
+  - Softness is achieved by token step patterns; engine blends apply translucency in runtime, not in pixel art.
+- No embedded color profiles; preserve exact palette mapping.
+- Edges: keep alpha fully 0 or 255 in VFX cutouts where applicable; avoid semi-transparent fringe.
+- Spritesheets:
+  - Frames grid-aligned to 16×N cells.
+  - Frame naming uses zero-padded indices (e.g., idle_f01, idle_f02…).
+  - Loop seams tested at 3× scale for temporal and spatial continuity.
+- Before commit: run a token audit—verify all tints and UI styles reference tokens from data/visual/color-palette.json.
+
 
 
 ## 14) Acceptance & QA Checklist
 
-Before you stamp your maker’s mark, confirm:
+- Tiles and sprites adhere to 16×16 base; character feet snap to grid.
+- Corridors remain visually three tiles wide; no art intrusions into the center lane.
+- Telegraph tokens used correctly; never reused for UI fills.
+- Effects use effects.* tokens; hit-stop overlays respect effects.hitFlash durations.
+- Animations align to combat/mining timings and strike frame annotations are present.
+- All colors reference tokens in color-palette.json via Renderable.tintToken or ThemeLoader.
+- Atlases pack cleanly, power-of-two; assets read crisp at 3×–4×; no smoothing.
+- Depth ordering matches specified ranges; HUD isolated from world scene.
 
-- Tiles are 16×16; authored sprites align to 1 px grid; renderer shows 3×–4× with nearest-neighbor.
-- Corridors and actor silhouettes respect the Three-wide law (48 px lanes). No silhouette drift into neighboring lanes during neutral states.
-- Collider fits: player/enemy bodies occupy ≈12×12 within 16×16; attack extensions are intentional and defined in data/combat/*.json.
-- Telegraph overlays use mapping.telegraph.emerge.amber at 35–55% with screen/add and are readable ≥520 ms before impact when required.
-- Lighting uses tokens only: mapping.lighting.lampWarm, mapping.lighting.crystalCool, and depth tint via mapping.depthTint.l0. No improvised hues.
-- All colors, materials, and UI elements reference tokens that exist in data/visual/color-palette.json. Zero raw hex anywhere.
-- Brass, iron, copper, and quartz read as distinct materials per notes; speculars are restrained.
-- Animation counts and timings match this guide; footfalls and impacts emit sync cues per docs/audio-systems/music-direction.md. Hit-stop frames behave correctly.
-- Effects follow tokens and lifetimes; sparks and debris read cleanly at 3× with no over-noise.
-- Exported atlases are power-of-two, padded, with straight alpha; no filtering artifacts; pivots consistent.
-- Room templates respect zClearance >=3; BG/MG elements do not visually collide with ACT silhouettes.
-- UI gauges and text maintain strong contrast and accessibility; health vs stamina differentiated by color and form.
 
-If any item fails, return to the bench and refine. The mine’s dark, but with brass, stone, and crystal light set right, every strike will sing.
+
+## Appendices
+
+### A) Quick timing cheat sheet (ms ↔ frames at 60 FPS; 16.67 ms per frame)
+- 50 ms ≈ 3 fr
+- 66 ms ≈ 4 fr
+- 80 ms ≈ 5 fr
+- 100 ms ≈ 6 fr
+- 120 ms ≈ 7 fr
+- 160 ms ≈ 10 fr
+- 200 ms ≈ 12 fr
+- 240 ms ≈ 14–15 fr
+- 280 ms ≈ 17 fr
+- 320 ms ≈ 19 fr
+- 400 ms ≈ 24 fr
+- 480 ms ≈ 29 fr
+- 520 ms ≈ 31 fr
+Rule of thumb: frames ≈ round(ms / 16.67)
+
+### B) Example strike frame annotations
+
+Player Light Attack (7 frames total)
+- atk_light_f01–f03: Windup (f03 ends at ~240 ms)
+- atk_light_f04–f05: Active (Strike at f04; SFX and hit-check at f04 start)
+- atk_light_f06–f07: Recovery (~320 ms total recovery)
+
+Pick Swing (6 frames total; T1 520 ms)
+- pick_f01–f02: Raise
+- pick_f03: Strike (70–90 ms from start; align to hit and effects.sparkRock/Ore)
+- pick_f04–f06: Follow-through and settle
+
+File naming notes
+- Annotate strike frames in asset notes or a sidecar JSON for engineering (e.g., "strikeFrame": 4).
+
+### C) Token index used in this doc
+
+UI
+- ui.text.primary
+- ui.text.secondary
+- ui.panel.bg
+- ui.frame.brass
+
+Terrain
+- terrain.rock.base
+- terrain.rock.shadow
+- terrain.rock.highlight
+- terrain.floor.dirt
+- terrain.floor.dirtShadow
+- terrain.ore.copper
+- terrain.ore.iron
+- terrain.ore.quartz
+
+Mapping
+- mapping.lighting.lampWarm
+- mapping.lighting.crystalCool
+- mapping.telegraph.emerge.amber
+- mapping.telegraph.arc.amber
+- mapping.depthTint.l0
+- mapping.depthTint.l1
+
+Effects
+- effects.hitFlash
+- effects.poiseBreakFlash
+- effects.sparkRock
+- effects.sparkOre
+- effects.debris.dust
+- effects.debris.chipRock
+- effects.debris.chipOre
+
+Characters (examples for material bands)
+- characters.metal.brass
+- characters.cloth.dark
+- characters.skin.dwarf
+
+Debug and Fallback
+- debug.mask.exclude
+
+
+
+— Signed, Brightforge Crystalsmith
+Our brass holds true, our stones read clean, and our crystals light the way.
