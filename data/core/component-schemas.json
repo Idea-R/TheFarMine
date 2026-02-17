@@ -1,0 +1,498 @@
+{
+  "version": 1,
+  "components": [
+    {
+      "name": "Position",
+      "bit": 0,
+      "fields": [
+        {
+          "key": "x",
+          "type": "number",
+          "default": 0,
+          "min": -100000,
+          "max": 100000,
+          "required": true
+        },
+        {
+          "key": "y",
+          "type": "number",
+          "default": 0,
+          "min": -100000,
+          "max": 100000,
+          "required": true
+        },
+        {
+          "key": "layer",
+          "type": "int",
+          "default": 0,
+          "min": 0,
+          "max": 3,
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "Velocity",
+      "bit": 1,
+      "fields": [
+        {
+          "key": "vx",
+          "type": "number",
+          "default": 0,
+          "min": -2000,
+          "max": 2000,
+          "required": true
+        },
+        {
+          "key": "vy",
+          "type": "number",
+          "default": 0,
+          "min": -2000,
+          "max": 2000,
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "Attributes",
+      "bit": 2,
+      "fields": [
+        {
+          "key": "attackPower",
+          "type": "int",
+          "default": 0,
+          "min": 0,
+          "max": 999,
+          "required": true
+        },
+        {
+          "key": "defense",
+          "type": "int",
+          "default": 0,
+          "min": 0,
+          "max": 200,
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "bit": 3,
+      "fields": [
+        {
+          "key": "max",
+          "type": "int",
+          "default": 100,
+          "min": 1,
+          "max": 9999,
+          "required": true
+        },
+        {
+          "key": "value",
+          "type": "int",
+          "default": 100,
+          "min": 0,
+          "max": 9999,
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "Stamina",
+      "bit": 4,
+      "fields": [
+        {
+          "key": "max",
+          "type": "int",
+          "default": 100,
+          "min": 1,
+          "max": 9999,
+          "required": true
+        },
+        {
+          "key": "value",
+          "type": "int",
+          "default": 100,
+          "min": 0,
+          "max": 9999,
+          "required": true
+        },
+        {
+          "key": "regenPerSec",
+          "type": "number",
+          "default": 14,
+          "min": 0,
+          "max": 200,
+          "required": true
+        },
+        {
+          "key": "regenDelayAfterActionMs",
+          "type": "int",
+          "default": 600,
+          "min": 0,
+          "max": 5000,
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "Poise",
+      "bit": 5,
+      "fields": [
+        {
+          "key": "max",
+          "type": "int",
+          "default": 100,
+          "min": 1,
+          "max": 9999,
+          "required": true
+        },
+        {
+          "key": "value",
+          "type": "int",
+          "default": 100,
+          "min": 0,
+          "max": 9999,
+          "required": true
+        },
+        {
+          "key": "recoverPerSec",
+          "type": "number",
+          "default": 35,
+          "min": 0,
+          "max": 500,
+          "required": true
+        },
+        {
+          "key": "breakDurationMs",
+          "type": "int",
+          "default": 800,
+          "min": 0,
+          "max": 5000,
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "bit": 6,
+      "fields": [
+        {
+          "key": "capacity",
+          "type": "int",
+          "default": 20,
+          "min": 0,
+          "max": 200,
+          "required": true
+        },
+        {
+          "key": "slots",
+          "type": "object",
+          "default": {},
+          "min": null,
+          "max": null,
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Renderable",
+      "bit": 7,
+      "fields": [
+        {
+          "key": "spriteKey",
+          "type": "string",
+          "default": "",
+          "min": null,
+          "max": null,
+          "required": false
+        },
+        {
+          "key": "frame",
+          "type": "string",
+          "default": "",
+          "min": null,
+          "max": null,
+          "required": false
+        },
+        {
+          "key": "tintToken",
+          "type": "string",
+          "default": "",
+          "min": null,
+          "max": null,
+          "required": false
+        },
+        {
+          "key": "visible",
+          "type": "boolean",
+          "default": true,
+          "min": null,
+          "max": null,
+          "required": true
+        },
+        {
+          "key": "depth",
+          "type": "int",
+          "default": 0,
+          "min": -100,
+          "max": 100,
+          "required": true
+        },
+        {
+          "key": "scale",
+          "type": "number",
+          "default": 1,
+          "min": 0.1,
+          "max": 8,
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "Collider",
+      "bit": 8,
+      "fields": [
+        {
+          "key": "w",
+          "type": "int",
+          "default": 16,
+          "min": 0,
+          "max": 256,
+          "required": true
+        },
+        {
+          "key": "h",
+          "type": "int",
+          "default": 16,
+          "min": 0,
+          "max": 256,
+          "required": true
+        },
+        {
+          "key": "offsetX",
+          "type": "int",
+          "default": 0,
+          "min": -256,
+          "max": 256,
+          "required": true
+        },
+        {
+          "key": "offsetY",
+          "type": "int",
+          "default": 0,
+          "min": -256,
+          "max": 256,
+          "required": true
+        },
+        {
+          "key": "solid",
+          "type": "boolean",
+          "default": false,
+          "min": null,
+          "max": null,
+          "required": true
+        },
+        {
+          "key": "isTrigger",
+          "type": "boolean",
+          "default": false,
+          "min": null,
+          "max": null,
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "AI",
+      "bit": 9,
+      "fields": [
+        {
+          "key": "behavior",
+          "type": "string",
+          "default": "idle",
+          "min": null,
+          "max": null,
+          "required": true
+        },
+        {
+          "key": "state",
+          "type": "string",
+          "default": "idle",
+          "min": null,
+          "max": null,
+          "required": true
+        },
+        {
+          "key": "speedPxPerSec",
+          "type": "number",
+          "default": 48,
+          "min": 0,
+          "max": 600,
+          "required": false
+        },
+        {
+          "key": "attackCooldownMs",
+          "type": "int",
+          "default": 340,
+          "min": 0,
+          "max": 5000,
+          "required": false
+        },
+        {
+          "key": "preferOpenLane",
+          "type": "boolean",
+          "default": true,
+          "min": null,
+          "max": null,
+          "required": false
+        },
+        {
+          "key": "repositionOnMissMs",
+          "type": "int",
+          "default": 600,
+          "min": 0,
+          "max": 5000,
+          "required": false
+        },
+        {
+          "key": "targetId",
+          "type": "int",
+          "default": 0,
+          "min": 0,
+          "max": 2147483647,
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Player",
+      "bit": 10,
+      "fields": [
+        {
+          "key": "inputEnabled",
+          "type": "boolean",
+          "default": true,
+          "min": null,
+          "max": null,
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "Enemy",
+      "bit": 11,
+      "fields": [
+        {
+          "key": "kind",
+          "type": "string",
+          "default": "",
+          "min": null,
+          "max": null,
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Item",
+      "bit": 12,
+      "fields": [
+        {
+          "key": "qty",
+          "type": "int",
+          "default": 1,
+          "min": 0,
+          "max": 9999,
+          "required": true
+        },
+        {
+          "key": "stackable",
+          "type": "boolean",
+          "default": true,
+          "min": null,
+          "max": null,
+          "required": true
+        },
+        {
+          "key": "onGround",
+          "type": "boolean",
+          "default": true,
+          "min": null,
+          "max": null,
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "Tile",
+      "bit": 13,
+      "fields": [
+        {
+          "key": "tileType",
+          "type": "string",
+          "default": "rock",
+          "min": null,
+          "max": null,
+          "required": true
+        },
+        {
+          "key": "hardness",
+          "type": "int",
+          "default": 3,
+          "min": 0,
+          "max": 999,
+          "required": true
+        },
+        {
+          "key": "breakable",
+          "type": "boolean",
+          "default": true,
+          "min": null,
+          "max": null,
+          "required": true
+        },
+        {
+          "key": "oreType",
+          "type": "string",
+          "default": "",
+          "min": null,
+          "max": null,
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Projectile",
+      "bit": 14,
+      "fields": [
+        {
+          "key": "speedPxPerSec",
+          "type": "number",
+          "default": 120,
+          "min": 0,
+          "max": 2000,
+          "required": true
+        },
+        {
+          "key": "ttlMs",
+          "type": "int",
+          "default": 1500,
+          "min": 0,
+          "max": 60000,
+          "required": true
+        },
+        {
+          "key": "damage",
+          "type": "object",
+          "default": {
+            "base": 4,
+            "poiseDamage": 10
+          },
+          "min": null,
+          "max": null,
+          "required": true
+        }
+      ]
+    }
+  ]
+}
