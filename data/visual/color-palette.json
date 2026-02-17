@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "meta": {
+    "owner": "@brightforge",
+    "notes": "Token-only usage across docs; hex lives only here.",
+    "updated": "2026-02-17"
+  },
+  "tokens": {
+    "terrain.rock.base": "#4A5058",
+    "terrain.rock.shadow": "#2A2F35",
+    "terrain.rock.highlight": "#6B737C",
+    "terrain.floor.dirt": "#5E4A34",
+    "terrain.floor.dirtShadow": "#3E3123",
+    "terrain.ore.copper": "#C77631",
+    "terrain.ore.iron": "#7A868E",
+    "terrain.ore.quartz": "#DDEAF2",
+
+    "mapping.lighting.lampWarm": "#D7A34A",
+    "mapping.lighting.crystalCool": "#4FC5DE",
+    "mapping.depthTint.l0": "#0E1216",
+    "mapping.depthTint.l1": "#0A0E12",
+
+    "mapping.telegraph.emerge.amber": "#FFB21E",
+    "mapping.telegraph.arc.amber": "#FF9724",
+
+    "ui.frame.brass": "#B58B2B",
+    "ui.frame.brassShadow": "#6A5216",
+    "ui.panel.bg": "#1A1E22",
+    "ui.panel.edge": "#2A3036",
+    "ui.panel.shadow": "#0D0F12",
+
+    "ui.text.primary": "#E6EBF0",
+    "ui.text.secondary": "#9AA6B2",
+    "ui.text.numbers": "#9FE3D6",
+    "ui.text.warning": "#E25A3D",
+    "ui.text.inverted": "#F5F8FA",
+
+    "ui.gauges.healthFill": "#C23A3E",
+    "ui.gauges.healthBack": "#3B2325",
+    "ui.gauges.staminaFill": "#2FA779",
+    "ui.gauges.staminaBack": "#1B2A25",
+    "ui.gauges.armorFill": "#4E65C6",
+
+    "characters.player.tint": "#C7A868",
+    "characters.goblin.tint": "#7B9A3A",
+    "characters.burrower.tint": "#8B6E4D",
+
+    "effects.hitFlash": "#FFF1A8",
+    "effects.poiseBreakFlash": "#CFE6FF",
+    "effects.sparkRock": "#B8C0C8",
+    "effects.sparkOre": "#FFC766",
+    "effects.debris.rock": "#4F555D",
+    "effects.debris.ore": "#9B6B35",
+
+    "minimap.bg": "#0B0E12",
+    "minimap.room": "#64707A",
+    "minimap.corridor": "#505A63",
+    "minimap.player": "#36E0C6",
+    "minimap.enemy": "#E04545",
+    "minimap.ore": "#E4B34E",
+
+    "debug.mask.include": "#00FF6A",
+    "debug.mask.exclude": "#FF3DA3"
+  }
+}
