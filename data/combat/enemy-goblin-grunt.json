@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "id": "enemy.goblin.grunt",
+  "name": "Goblin Grunt",
+  "render": { "spriteKey": "goblin_grunt", "baseFrame": "idle_f01", "tintToken": "characters.goblin.tint", "scale": 1 },
+  "stats": {
+    "attributes": { "attackPower": 8, "defense": 0 },
+    "health": { "max": 120, "value": 120 },
+    "poise": { "max": 70, "value": 70, "recoverPerSec": 34, "breakDurationMs": 800 }
+  },
+  "movement": {
+    "speedPxPerSec": 48,
+    "chaseSpeedPxPerSec": 60,
+    "aggroRadiusPx": 100,
+    "deaggroRadiusPx": 160,
+    "leashRadiusPx": 220,
+    "idleWander": { "enabled": true, "radiusPx": 18, "pauseMs": { "min": 600, "max": 1100 } }
+  },
+  "ai": {
+    "behavior": "skirmisher",
+    "state": "idle",
+    "targetId": 0,
+    "attackCooldownMs": 340,
+    "preferOpenLane": true,
+    "attackWeights": { "slash_sweep": 0.55, "stab_jab": 0.45 },
+    "repositionOnMissMs": 600
+  },
+  "telegraphs": {
+    "colorToken": "mapping.telegraph.emerge.amber",
+    "groundHalo": false,
+    "arcOverlay": true
+  },
+  "attacks": [
+    {
+      "id": "slash_sweep",
+      "name": "Slash Sweep",
+      "kind": "melee",
+      "windupMs": 420,
+      "activeMs": 96,
+      "recoveryMs": 480,
+      "cooldownMs": 380,
+      "rangePx": 21,
+      "arcDeg": 110,
+      "hitbox": { "w": 20, "h": 14, "offsetX": 8, "offsetY": 0 },
+      "damage": { "base": 8, "poiseDamage": 16 },
+      "hitStopMs": { "attacker": 24, "victim": 44 },
+      "knockback": { "px": 16, "direction": "forward" },
+      "telegraph": { "useGlobalAudio": true, "visual": "arc" },
+      "notes": ["Wide arc; teaches block timing."]
+    },
+    {
+      "id": "stab_jab",
+      "name": "Stab Jab",
+      "kind": "melee",
+      "windupMs": 280,
+      "activeMs": 80,
+      "recoveryMs": 420,
+      "cooldownMs": 340,
+      "rangePx": 19,
+      "arcDeg": 70,
+      "hitbox": { "w": 16, "h": 12, "offsetX": 12, "offsetY": 0 },
+      "damage": { "base": 7, "poiseDamage": 14 },
+      "hitStopMs": { "attacker": 22, "victim": 42 },
+      "knockback": { "px": 12, "direction": "forward" },
+      "telegraph": { "useGlobalAudio": true, "visual": "arc" },
+      "notes": ["Fast poke; punishes greedy steps."]
+    }
+  ],
+  "collision": {
+    "body": { "w": 12, "h": 12, "offsetX": 0, "offsetY": 0 },
+    "hurtboxPadPx": 2
+  },
+  "audio": {
+    "onTelegraph": "sfx.combat.telegraph.swing",
+    "onHit": "sfx.combat.hit.light",
+    "onBlock": "sfx.combat.block",
+    "onPoiseBreak": "sfx.combat.poiseBreak"
+  },
+  "loot": {
+    "drops": [
+      { "itemId": "ore.copper", "qty": { "min": 1, "max": 2 }, "chance": 0.28 },
+      { "itemId": "shard.quartz", "qty": { "min": 1, "max": 1 }, "chance": 0.08 }
+    ]
+  },
+  "tuning": {
+    "targetTTKSeconds": 30,
+    "expectedPlayer": { "attackPower": 8, "defense": 0, "hitRate": 0.6 },
+    "laneLaw": { "threeWideRequired": true },
+    "blockTeachBias": 0.65
+  },
+  "notes": [
+    "Block the sweep, step in on recovery; jab punishes overreach.",
+    "Forward-biased hitboxes keep lanes safe; avoid wall clips.",
+    "Poise breaks briefly expose the goblin; commit after block."
+  ]
+}
