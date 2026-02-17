@@ -1,639 +1,676 @@
-# Procedural Cave Generation — The First Descent (Sprint 1)
+# Cave Generation — Lanes, Chambers, and the Singing Stone (Sprint 1)
 
-Provenance: owner @beta (World Generation — Deepdelver Caveborn). Cross-refs: data/world/room-templates.json (§6/§7 used), data/world/biome-crystal-caverns.json (this doc defines its schema and consumption), src/core/ecs-registry.js (§Tiles/ECS contracts), data/visual/color-palette.json (lighting tokens).
+Provenance: owner @beta (World Generation — Deepdelver Caveborn)
 
-I, Deepdelver Caveborn, etch this plan upon the slate: poetic in spirit, precise in edge. Follow it and a level shall bloom from the stone the same way, each time, per seed.
+Cross‑references:
+- data/world/biome-crystal-caverns.json
+- data/world/room-templates.json
+- docs/visual-systems/style-guide.md (§Tiles 16×16, lanes)
+- docs/combat-systems/combat-design.md (§Three‑wide law)
+- data/visual/color-palette.json (token‑only)
+- docs/technology-systems/crafting-design.md (§Hardness)
+- tools/ecs-registry.test.js (determinism hooks)
 
----
+In these depths we do not trust luck; we bind chance to seed and stone. What follows is the implementor’s lantern: precise steps, stable streams, and lanes wide enough for fair battle.
 
-## 1) Goals & MVP Constraints
+## 1) Goals & Constraints (MVP)
 
-- Fast: full generation under 20 ms for MVP map sizes.
-- Deterministic per-seed: identical output given same seed, dimensions, and biome.
-- 3‑wide corridor law: no traversable lane narrower than 3 tiles at any point.
-- Readable lanes: orthogonal corridors with beveled bends; no single-tile notches.
-- Spawn-safe cavern: guaranteed 5×5 clear floor patch, central to the first room.
-- Parse/consume JSON templates/configs: room-templates.json and biome-crystal-caverns.json.
-- Chunk-friendly for future: stable sub-stream RNGs and hashable coordinates for later streaming.
+Goals:
+- Enforce 3‑wide fair lanes (corridors) for combat readability.
+- Readable caverns with one dominant connected space.
+- Ore pockets placed along seams (floor–rock edges) in believable clusters.
+- Deterministic replays from a single seed across platforms.
+- Performance target: under 20 ms for a 96×64 tile map on a mid‑tier laptop.
 
-Non-goals (MVP):
-- Overhangs/vertical stacking.
-- Multi-layer crossings/bridges.
-- Dynamic reflow/adaptive re-routing after placement.
-- Fluids (water, lava).
+Non‑goals (MVP):
+- Multi‑biome stitching.
+- Dynamic cave collapse.
+- Wave Function Collapse (WFC). We use lightweight cellular automata + authored room template stamping.
 
----
+Output contract (MVP):
+- Tiles with Tile component fields: tileType, hardness, oreType (optional).
+- Props: lamps and crystal decor entities.
+- Spawn anchors for enemies.
+- Door tags (for corridor connections, AI/nav hints).
 
-## 2) Grid, Tiles, and Coordinate System
+## 2) Coordinate System & Tile Schema
 
-- Grid: integer cell lattice; each tile assumed 16×16 px in rendering. Logical generation strictly tile-based.
-- Map size (MVP default): 96×72 tiles (width×height). Parameterizable via inputs; must be ≥48×48 and multiples of 3 preferred.
-- Origin: world (0,0) at top-left tile. x increases rightward; y increases downward.
-- Room-local coordinates: templates authored with (0,0) at top-left of template grid; placement anchor at template’s local (0,0) mapping to world (X0,Y0).
-
-Tile states:
-- 'rock': solid background; non-traversable.
-- 'floor': traversable.
-- 'rock.ore': solid; non-traversable; carries oreType string id (e.g., "ore.copper").
-- Decoration overlays: separate prop entities (e.g., crystals, lamps) placed atop tiles; tile remains as above.
-
-ECS contract (see src/core/ecs-registry.js):
-- For each tile cell, instantiate ENTITY_TYPES.tile with components:
-  - Position { x:int, y:int, layer:int=0 }
-  - Tile { tileType:'rock'|'floor'|'rock.ore', oreType?:string }
-  - Collider { solid:boolean } where solid = (tileType !== 'floor')
-  - Renderable { depth:int=0, tintToken?:string }
-- Tint tokens for ambient/lighting are derived from biome.lighting and color-palette tokens (data/visual/color-palette.json). No raw hex in world gen.
-
----
+- Grid: 16×16 px tiles. Authoritative MVP size: width=96, height=64 (configurable).
+- Layers: single gameplay layer (layer 0) in Sprint 1.
+- Tile kinds used by generator:
+  - "rock"
+  - "floor"
+  - "rock.ore" (with oreType set)
+- Hardness resolution:
+  - floor.hardness from biome.tiles.floor.hardness
+  - rock.hardness from biome.tiles.rock.hardness
+  - ore hardness = biome.tiles.ore.baseHardness (optionally overridden per ore type in future; see §11)
 
 ## 3) Randomness & Determinism
 
 PRNG:
-- Use a 32-bit seedable PRNG (xorshift32 or equivalent) with unsigned 32-bit arithmetic.
-- Per-level seed = hash32(worldSeed, levelIndex). Derive named sub-streams to isolate phases:
-  - graphRng, placementRng, pathRng, caRng, oreRng, decorRng.
-- Sub-stream derivation: subSeed = hash32(levelSeed, stringHash("subname")).
+- Use a small, fast, seedable PRNG (xorshift32 or mulberry32). Reference implementation in §17.
+- Derive named sub‑streams by hashing the core seed with a phase label (e.g., "rooms", "corridors") or by advancing an independent PRNG initialized with seed XOR phaseHash.
 
-Hashing guidance (chunk-safe):
-- hash32(a,b) = splitmix32(a ^ (b + 0x9E3779B9) | 0), or a standard integer hash with avalanche.
-- For future chunking, when sampling noise/PRNG per coordinate, derive a coordinate-stable index: coordSeed = hash32(levelSeed, hash32(x, y)) and use as xorshift32 state for single-sample draws. Do not advance shared global RNG inside inner loops over coordinates.
+RNG streams (exclusive consumption per phase):
+- seed.core — entry; map‑level layout decisions and fallback picks.
+- seed.rooms — template selection and placement jitter.
+- seed.corridors — tunnel digger target selection and direction persistence noise.
+- seed.ore — ore seeding, ore type lottery, and cluster growth decisions.
+- seed.decor — crystal decor scatter and clustering.
+- seed.spawns — enemy anchor selection and weight lottery.
 
-Utility:
-- rand01(rng): returns float in [0,1). Use deterministic conversion: (rng.next() >>> 0) / 4294967296.
-- intRange(rng, lo, hi): inclusive range via modulo bias-safe method if needed, or accept small bias for non-critical ties.
+Stream usage rules:
+- Each phase consumes only its stream; no cross‑phase consumption.
+- When a phase must revisit a structure later (e.g., corridor lamps), use the same stream and deterministic traversal order.
 
----
+Iteration order:
+- Unless otherwise stated, iterate tiles in row‑major order, y outer ascending [0..height‑1], x inner ascending [0..width‑1]. This guarantees stable consumption across machines.
 
-## 4) High-Level Pipeline (Overview)
+## 4) Pipeline Overview (Phase Order)
 
-Ordered generation steps:
+- P0 Params: read biome, map size, entrance/exit intentions.
+- P1 Solid Mask Bootstrap: random fill of rock/floor with density p_init (e.g., 0.45 rock). Force a 1‑tile‑thick rock boundary.
+- P2 Cellular Automata (CA): run 2 iterations of 4/5 rule on 8‑neighbors. Clamp borders to rock. Output provisional floor/rock mask.
+- P3 Connectivity & Main Cavern Assurance: flood fill floors; keep largest component; convert isolated pockets to rock unless near planned room anchors; queue links where applicable.
+- P4 Room Stamping: place authored templates (tunnel, cavern, ore‑vein room) honoring min spacing, 3‑tile doorways, zClearance ≥3. Room floors carve over rock; store door anchors.
+- P5 Corridor Carving (3‑Wide Law): connect door anchors and major regions using a best‑first digger with direction persistence. Carve exactly 3‑wide lanes with beveled corners; ensure 1‑tile clearance from room walls except at doors.
+- P6 Lamp Placement: place lamps along corridors from biome.lighting.lamps (intervalTiles, atDoors). Emit props and tint hints.
+- P7 Ore Seeding: bias seeds to floor–rock edges with biome.oreSeeding (edgeBias, noise.octaves/scale/threshold). Grow 4‑neighborhood clusters within rock; clamp per‑ore min/max; preserve corridor clearance.
+- P8 Decoration Pass: scatter crystal decor in alcoves using biome.decoration (crystalOnAlcove, maxCrystals).
+- P9 Enemy Spawn Anchors: sample along corridors and cavern interiors using spawnRules.enemyWeights and minSeparationTiles.
+- P10 Finalization: stamp Tile components with hardness and oreType; emit props; derive minimap raster and navmask.
 
-1) Initialize grid to 'rock'.
-2) Build room graph (spawn cavern + 1–2 tunnels + 1 ore pocket for MVP) using template metadata and a simple spanning plan.
-3) Place rooms using templates (data/world/room-templates.json) with validation (door spans and rim seals).
-4) Carve 3‑wide corridors along graph edges (centerline L-path with single bend; bevel corners).
-5) Apply cellular automata smoothing pass to widen pockets and denoise edges (restricted to carved areas and masks).
-6) Seed ore veins along floor–rock interfaces per biome-crystal-caverns.json (ore rules, rates by adjacency/depth/noise).
-7) Place lighting/decoration per biome (lamps at door hubs, crystals in alcoves), emitting tokens only.
-8) Validate connectivity (doors reachable), enforce 3‑wide law, and spawn-safe checks. Produce issue manifest.
+## 5) Cellular Automata Details
 
----
+- Neighborhood: 8‑neighbors.
+- Rule per iteration:
+  - Count rockNeighbors in 8‑ring.
+  - Next is rock if:
+    - rockNeighbors ≥ 5, or
+    - rockNeighbors ≥ 4 and the current cell is rock.
+  - Else becomes/does floor.
+- Iterations: exactly 2 (MVP).
+- Borders: always rock (don’t update).
+- Performance:
+  - Maintain two uint8 buffers (current/next) where 1=rock, 0=floor.
+  - Precompute/pack neighbor occupancy into an 8‑bit mask per cell when counting to reduce memory traffic.
 
-## 5) Room Templates Consumption
+Tunables (exposed):
+- p_init: 0.42–0.48 (default 0.45).
+- iters: 2.
+- surviveThresh: 5.
+- birthThresh: 4.
 
-Source: data/world/room-templates.json
+## 6) Connectivity & Cleanup
 
-Expectations:
-- version == 1
-- Must contain at least these three ids:
-  - "room.spawn.cavern.s1" — primary spawn cavern with a labeled 5×5 spawn patch and 2–3 doors (EW/NS-aligned).
-  - "room.pocket.ore.s1" — small ore-preferred bulb with 1–2 doors.
-  - "room.tunnel.hub3.s1" — 3-door hub junction (T or Y shaped), pre-aligned to cardinal axes.
-- Grid legend:
-  - '#' = sealed rim/wall.
-  - '.' = interior floor.
-- Doors array semantics:
-  - doors: [{ x:int, y:int, dir:'N'|'S'|'E'|'W', span:int=3 }]
-  - Door spans are exactly 3 tiles wide, contiguous, aligned with dir, with interior immediately beyond door guaranteed floor.
-- Spawn patch:
-  - For "room.spawn.cavern.s1", spawnPatch: { x:int, y:int, w:int=5, h:int=5 } in local coords; this rectangle must be entirely '.' within the room interior.
+- Flood fill floors to identify connected components (use row‑major seed ordering with a queue).
+- Keep the largest component as the primary cavern.
+- Convert other floor components to rock, unless within R=6 tiles (Chebyshev or Manhattan ok; prefer Manhattan) of a planned room door/anchor. If preserved for proximity, queue a corridor link from the nearest of:
+  - The component’s centroid to the nearest corridor node or
+  - The nearest cell on the primary component’s boundary.
+- Notch culling:
+  - Any floor tile whose local 3×3 floor count < 3 becomes rock. This removes single‑tile notches that would breach 3‑wide fairness along lanes and room perimeters.
 
-Placement API (MVP):
-- Selection: choose by id or tags. For MVP determinism, no rotation or mirroring. Author templates in both EW/NS variants as needed.
-- Placement procedure:
-  - Given world placement anchor (X0,Y0), paste template '.' into grid (set to floor).
-  - Maintain border '#' as rock; only cut the door spans to allow corridor egress.
-  - Record door portals in world coords: (wx, wy, dir) for all tiles in the 3-wide door span, marking the portal center (middle of span) as the corridor centerline start/end for pathing.
-  - Ensure "rim seals": the outermost ring of the template remains rock except at door spans.
+## 7) Corridor Carving (3‑Wide Lane Spec)
 
-Validation upon placement:
-- No overlap: existing floors may overlap new floors only if both are same room instance; otherwise reject and re-place with different offsets.
-- Entire template must fit within world bounds.
+- Corridor width:
+  - Exactly 3 tiles in straight runs.
+  - Beveled corners (45° stair steps) to maintain apparent width ≥ 3 through turns.
+- Algorithm: multi‑source best‑first digger
+  - Sources: all door anchors (from stamped rooms) and main cavern centroid(s).
+  - Grid: 4‑connected movement; diagonals disallowed for path edges (prevents corner grazing).
+  - Cost: g(n) + h(n) with:
+    - h(n): Manhattan heuristic to targets.
+    - Turn penalty: +2.0 when direction changes relative to previous step.
+    - Prefer staying in existing floor to reduce carving into rock by applying a small bonus (e.g., −0.2 cost) to floor cells.
+  - Expansion halts when sources’ regions mutually connect and all door anchors are connected to the primary network (use union‑find or “connected set size” checks).
+- Lane mask carving:
+  - When stepping forward, clear a 3×1 stripe perpendicular to the forward direction centered on the path cell.
+  - At a 90° turn, carve a 3×2 elbow that overlaps both the incoming and outgoing stripes, removing single‑tile spikes.
+- Doorways:
+  - For each room door, stamp a 3‑tile‑wide doorway extending outward one tile beyond the template boundary (straight out along dir).
+  - Align corridor carving to meet this 3‑wide mouth.
+- Clearance enforcement:
+  - Maintain a 1‑tile rock buffer to room walls (except at doors). Implement by inflating room footprint by 1 when evaluating candidate path cells; those cells are disallowed for path centers.
+- Post‑carve polish:
+  - Remove orphan single‑tile rock spikes along corridor edges (scan 3×3 neighborhood; if a rock tile has ≥6 floor neighbors, flip to floor).
 
----
+## 8) Room Templates — Data Contract & Placement
 
-## 6) Corridor Carving (3‑Wide Law)
+File: data/world/room-templates.json
 
-Door portal representation:
-- A door portal is (x:int, y:int, dir:'N'|'S'|'E'|'W'), where (x,y) is the center tile of a 3-tile span flush with the room’s rim; dir faces outbound.
-- The 3 tiles of the span are collinear and orthogonal to dir; the template ensures the immediate interior strip is already '.'.
+Top‑level shape:
+- version: 1
+- rooms: array of RoomTemplate
 
-Pathfinding:
-- Use an orthogonal L-path (Manhattan) with a single bend. Compute two candidates:
-  - Horizontal-first then vertical.
-  - Vertical-first then horizontal.
-- Pick the candidate with fewer wall intrusions (i.e., number of centerline steps adjacent to room rims). On tie, use pathRng to decide.
-- Keep centerline at least 1 tile from non-room rock where feasible by offsetting the bend coordinate by ±1 if it keeps 3‑wide clearance inside bounds (bounded attempts=2).
+RoomTemplate fields:
+- id: string (e.g., "room.tunnel.t1", "room.cavern.t1", "room.ore_pocket.t1")
+- kind: "tunnel" | "cavern" | "ore_vein"
+- size: { w:int, h:int } (MVP ≤ 32×32)
+- grid: array<string> of length h, each string length w. Charset:
+  - "#": rock
+  - ".": floor
+  - "O": ore slot (preferred placement region; generator may still place ore)
+  - "D": door (must correspond to floor adjacency)
+- doors: array of { x:int, y:int, dir:"N"|"S"|"E"|"W" } — must match "D" tiles.
+- tags: string[] (e.g., ["spawn_preferred","ore_preferred"])
+- zClearance: int (MVP requires ≥3)
+- rotate: optional boolean (default true). If true, rotations 0/90/180/270 are permitted.
 
-Carve rule:
-- For each centerline step:
-  - If moving horizontally (dx≠0): carve a 3×1 swath centered vertically on the step tile: cells {(x, y-1), (x, y), (x, y+1)} set to floor.
-  - If moving vertically (dy≠0): carve a 1×3 swath centered horizontally: {(x-1, y), (x, y), (x+1, y)} set to floor.
-- Bevel corners to avoid pinches:
-  - At an L bend, also carve the diagonal shoulder to form a 2×2 bevel:
-    - For a turn right→down (E→S): additionally set floor at (x+1, y+1).
-    - For E→N: set (x+1, y-1). For W→S: set (x-1, y+1). For W→N: set (x-1, y-1).
-  - Apply a corner mask ensuring no 1-tile diagonal choke remains.
-- Collision fairness:
-  - After carving, scan the corridor band; if any internal notch exists (a single rock tile touching floor on 3 sides), flip it to floor.
-  - Maintain zClearance >= 3 everywhere along the corridor path.
+Validator rules:
+- Grid well‑formed: all rows equal length; only charset ["#",".","O","D"].
+- Doors:
+  - Every "D" in grid must have a matching entry in doors[] with identical (x,y).
+  - Door cells must be adjacent to floor on the room interior side.
+  - For any cardinal direction present among doors, at least one doorway must be 3‑tile aligned:
+    - A run of three consecutive "D" cells collinear and centered on the door normal, with dir consistent across the run.
+- zClearance ≥3.
+- Size bounds respected.
 
-Pseudocode (carving):
+Placement:
+- Candidate positions sampled by Poisson disk with radius in [8..14] scaled by template size (larger rooms push to 12–14).
+- Reject if:
+  - Any non‑door floor cell would extend beyond current rock bounds or exit map.
+  - Overlaps previously placed room footprints (inflate previous footprints by 1 tile to ensure clearance).
+- Rotation: test all allowed rotations; pick the first that passes constraints using rngRooms() to order candidates.
+- On successful placement:
+  - Stamp floors over rock; preserve rock where "#" remains.
+  - Record door anchors in world coords with dir applied post‑rotation.
+  - Store roomId on door records.
 
-```
-function carveCorridor(grid, startPortal, endPortal, pathRng):
-  pathA = buildLPath(startPortal.center, endPortal.center, first='H')
-  pathB = buildLPath(startPortal.center, endPortal.center, first='V')
-  scoreA = corridorScore(grid, pathA)
-  scoreB = corridorScore(grid, pathB)
-  path = (scoreA < scoreB) ? pathA : (scoreB < scoreA ? pathB : (pathRng.nextBit() ? pathA : pathB))
+## 9) Lamps & Lighting Pass
 
-  for step in path:
-    if step.dir in {E,W}:
-      carveFloor(grid, step.x, step.y-1)
-      carveFloor(grid, step.x, step.y)
-      carveFloor(grid, step.x, step.y+1)
-    else:
-      carveFloor(grid, step.x-1, step.y)
-      carveFloor(grid, step.x, step.y)
-      carveFloor(grid, step.x+1, step.y)
+From biome.lighting:
+- ambient token and lamps spec define visual tone and prop tint.
 
-    if isCorner(step.prevDir, step.dir):
-      dx = sign(step.x - step.prevX)
-      dy = sign(step.y - step.prevY)
-      carveFloor(grid, step.x + (dx==0? (step.dir==E?1:-1):dx), step.y + (dy==0? (step.dir==S?1:-1):dy)) // diagonal bevel
+Placement rules:
+- atDoors: if true, place 1 lamp centered 1–2 tiles outside each door along its outward normal. If a corridor immediately begins, place at 1 tile; else at 2 tiles, clamped to floor.
+- intervalTiles: along long corridors, starting from the nearest door on each corridor run, place a lamp every N tiles.
+- Spacing: never place a lamp within 4 tiles (Manhattan) of another lamp; skip or shift forward by +1 if conflict.
+- Emit props with:
+  - kind:"lamp"
+  - Renderable.tintToken = biome.lighting.lamps.token
+  - audioId = "ambient.prop.lamp.hiss.loop"
 
-  fixNotchesInBand(grid, bandMaskFrom(path))
-```
+## 10) Ore Seeding & Cluster Growth
 
-Masks:
-- Notch fix checks 3×3 neighborhood; any rock with ≥3 orthogonal floor neighbors inside the corridor band flips to floor.
-- Band mask: union of carved swaths plus 1-tile shoulder.
+Eligibility:
+- Seed candidates are floor–rock adjacency edges: rock tiles that have at least one 4‑neighbor floor tile.
+- Seed probability:
+  - p_edge = lerp(0.5, 1.0, edgeBias) when candidate is on an edge.
+  - p_open = 1 − edgeBias × 0.2 for interior rock (low chance).
+- Noise gate:
+  - Evaluate fbm‑style noise with biome.oreSeeding.noise.{octaves,scale,threshold}. Sample at world coords (x*scale, y*scale). Accept only if noise ≥ threshold.
 
----
-
-## 7) Cellular Automata Smoothing (Restricted)
-
-Scope:
-- Only within an influence mask: union of
-  - Room interior floors,
-  - Corridor bands and shoulders (1 tile beyond the 3‑wide),
-  - Optional alcove candidates touching cavern walls.
-- Never touch sealed rims (template border '#').
-
-Initial state:
-- open=1 for '.' (floor), wall=0 for '#' (rock or rock.ore treated as rock for CA).
-
-Rule set (MVP, 2 iterations):
-- For each cell c in mask:
-  - Count sum = neighbors3x3_open(c) including self if open.
-  - Promotion: if c is rock and sum >= 5 and c is adjacent (4-neighborhood) to any existing floor, set to floor.
-  - Demotion: if c is floor and sum <= 2 and c is within caverns-only (not in strict corridor core), revert to rock.
-- Clamp corridors:
-  - After each iteration, enforce 3‑wide minimum along corridor core: re-carve any eroded centerline swaths.
-
-Optional sprinkle (alcoves):
-- With caRng and limits (maxAlcoves ≤ biome.decoration.maxCrystals), randomly convert a rock cell adjacent to exactly 2 floor neighbors into a single-tile alcove along cavern walls. Tag for crystal placement.
-
-Pseudocode (smoothing):
-
-```
-function smoothCA(grid, mask, caRng, iterations=2):
-  for it in 1..iterations:
-    next = copyGridState(grid)
-    for each (x,y) in mask:
-      sum = sumOpen3x3(grid, x, y)
-      if isRock(grid,x,y) and sum >= 5 and hasFloorCardinal(grid,x,y):
-        next[x,y] = floor
-      else if isFloor(grid,x,y) and sum <= 2 and inCavernMask(x,y):
-        next[x,y] = rock
-    grid = next
-    enforceCorridorBands(grid)
-  sprinkleAlcoves(grid, mask, caRng)
-  return grid
-```
-
----
-
-## 8) Biome: Crystal Caverns Consumption & Schema
-
-Source file: data/world/biome-crystal-caverns.json
-
-Schema (version 1):
-
-```
-{
-  "version": 1,
-  "id": "biome.crystal.caverns",
-  "tiles": {
-    "floor": { "tileType": "floor", "hardness": int },
-    "rock":  { "tileType": "rock",  "hardness": int },
-    "ore": {
-      "baseHardness": int,
-      "oreTypes": [
-        { "id": "ore.copper" | "ore.iron" | "shard.quartz", "weight": number, "minCluster": int, "maxCluster": int }
-      ]
-    },
-    "decor": {
-      "crystal": { "chance": number, "cluster": { "min": int, "max": int } }
-    }
-  },
-  "lighting": {
-    "ambient": "mapping.lighting.crystalCool",
-    "lamps": { "token": "mapping.lighting.lampWarm", "intervalTiles": int, "atDoors": true }
-  },
-  "spawnRules": {
-    "enemyWeights": { "enemy.goblin.grunt": number, "enemy.cave.burrower": number },
-    "minSeparationTiles": int
-  },
-  "oreSeeding": {
-    "edgeBias": number,
-    "floorRockAdjacencyOnly": true,
-    "noise": { "octaves": int, "scale": number, "threshold": number }
-  },
-  "decoration": { "crystalOnAlcove": true, "maxCrystals": int }
-}
-```
-
-Field meanings and defaults (guidance):
-- version: must be 1.
-- tiles.floor.tileType: literal "floor"; hardness: 1–3 (tool interaction; non-functional here).
-- tiles.rock.tileType: literal "rock"; hardness: 2–5.
-- tiles.ore.baseHardness: 3–6; applied to all 'rock.ore' unless overridden by gameplay.
-- tiles.ore.oreTypes: weighted list; minCluster/maxCluster in tiles; ranges: min 2–5, max 6–14.
-  - Note: "shard.quartz" is normally used as decoration (props), not ore tiles, unless explicitly included here.
-- tiles.decor.crystal: chance 0.0–1.0 per alcove; cluster sizes 1–4 typical.
-- lighting.ambient: token key to data/visual/color-palette.json; drives Renderable.tintToken for tiles.
-- lighting.lamps.token: token key for lamp props; intervalTiles: 8–16 typical; atDoors: if true, place one lamp per doorway hub.
-- spawnRules.enemyWeights: relative weights; minSeparationTiles: 3–5 typical; used by separate spawn system (token-only here).
-- oreSeeding.edgeBias: 0.2–0.8; higher biases selection toward strong edges.
-- oreSeeding.floorRockAdjacencyOnly: if true, ores appear only along seams (required for MVP).
-- oreSeeding.noise: octaves 1–3; scale 8–24; threshold 0.5–0.7.
-- decoration.crystalOnAlcove: if true, fill alcoves with crystals; maxCrystals: global cap for the map (e.g., 24).
-
-Lighting tokens:
-- Only tokens are emitted by generator. Rendering pipeline maps tokens to actual colors via data/visual/color-palette.json. Do not embed hex/rgb values in world generation.
-
----
-
-## 9) Ore Vein Seeding Algorithm (Crystal Caverns)
-
-Edge detection (seams):
-- Collect floor cells that have at least two rock neighbors among N,S,E,W. These are seam edge candidates.
-
-Noise bias:
-- Sample 2D value-noise or fast Perlin with biome.noise.scale and octaves. Normalize to [0,1].
-- A seam cell qualifies as a seed if noise >= biome.noise.threshold and a secondary bias coin rand01(oreRng) < (1 - biome.oreSeeding.edgeBias) + adjacencyBoost.
-  - adjacencyBoost: +0.1 when near "orePreferred" templates (e.g., within 4 tiles of "room.pocket.ore.s1").
+Ore selection:
+- Weighted lottery over biome.tiles.ore.oreTypes (ids and weights).
+- Tile assignment on seed and cluster growth:
+  - Set tileType to "rock.ore"
+  - Set oreType to selected id.
+- Hardness:
+  - hardness = biome.tiles.ore.baseHardness (MVP; future per‑ore overrides allowed).
 
 Cluster growth:
-- Choose oreType via weighted lottery from tiles.ore.oreTypes (oreRng).
-- Sample cluster target size S in [minCluster, maxCluster].
-- Flood-fill from the seed using 4-neighborhood; expand preferentially along floor–rock boundaries and into rock cells adjacent to floor.
-- Stop when |cluster| == S or no candidates remain.
-- Mark chosen rock cells as 'rock.ore' with oreType; do not convert floor cells to ore.
+- BFS over 4‑neighbors from each accepted seed, within rock or rock.ore tiles.
+- Stop when cluster size hits per‑ore maxCluster (and not less than per‑ore minCluster; if undersized due to constraints, allow it to remain but prefer retries by seeding density rather than backtracking).
+- Corridor clearance:
+  - Maintain a buffer of 1 tile from corridor lanes (do not convert those rock tiles to ore).
+  - If a growth step would breach a lane (convert floor or violate buffer), skip that neighbor. If the cluster cannot grow at least to minCluster without breaching, allow a small cluster (MVP: do not delete the start).
+- Room interaction:
+  - Ore may embed in room rock, but never convert floor.
 
-Spacing rule:
-- Maintain a minimum Euclidean spacing R between cluster centers (e.g., R=6 tiles) to avoid crowding.
-- Never encroach upon corridor cores; maintain at least 2 tiles of rock buffer from the 3‑wide corridor band.
-- Prefer placement along cavern shoulders and in ore pocket bulbs by applying a lower noise threshold (e.g., -0.1) within 3 tiles of "orePreferred" rooms.
+## 11) Decoration Pass — Crystal Clusters
 
-Post-process:
-- Clamp global counts per ore type to soft caps (derived from map area and biome weights), thinning least significant peripheral tiles if exceeded.
-- Ensure "ore.iron" is rarer than "ore.copper": enforce weight/cluster count ratio or downsample iron clusters if necessary.
-- "shard.quartz" appears as decoration props unless explicitly included in oreTypes; do not place as 'rock.ore' otherwise.
+- If biome.decoration.crystalOnAlcove is true:
+  - Detect alcoves:
+    - Floor tiles with exactly 5 or 6 rock neighbors in the 8‑ring, or
+    - One‑tile indentations along a wall line (floor tiles with two opposite rock neighbors and at least 2 diagonal rocks).
+  - Place non‑blocking crystal props, up to biome.decoration.maxCrystals:
+    - Bias selection toward tiles within 6 of corridors (Manhattan), unless that would exceed maxCrystals by >25%.
+    - Maintain min spacing of 2 tiles between crystals.
 
----
+## 12) Enemy Spawn Anchors
 
-## 10) Spawn-Safe & Validation Passes
+- Inputs: spawnRules.enemyWeights (id→weight), minSeparationTiles (default 8; see §19).
+- Candidate sites:
+  - Corridor centers (the middle cell of the 3‑wide stripe) excluding within 6 tiles of doors.
+  - Cavern interiors: floor tiles in the largest component where the 8‑neighbor rock count is ≤3 (more open).
+- Sampling:
+  - Use rngSpawns() to reservoir‑sample candidates in row‑major order.
+  - Enforce minSeparationTiles by rejecting candidates within the radius of any accepted spawn.
+- Assignment:
+  - For each accepted anchor, pick enemyId using weighted lottery over enemyWeights.
+  - Normalize weights once at start; ensure deterministic order and consumption.
 
-Checks:
-- 5×5 spawn area (from spawnPatch) is all 'floor' and within bounds.
-- Connectivity: From spawn center, BFS over 'floor' to all door portal centers. All must be reachable.
-- 3‑wide law: For every row and column intersecting corridors/rooms, ensure minimal traversable width ≥3. Detect by scanning floor runs and verifying no 1-tile choke; re-carve if necessary or log a manifest issue if correction fails.
-- Ore counts respect biome caps; verify iron < copper in count or area; quartz props handled separately.
-- ECS preflight: All tiles mappable to ENTITY_TYPES.tile with correct Collider.solid; lighting tokens resolvable from palette.
-
-Manifest:
-- Compile issues: [{ code, severity, message, at:{x,y}?, extra? }]. Severity: info|warn|error. The generator returns this manifest for debug logs.
-
----
-
-## 11) Data → ECS Instantiation Contracts
+## 13) Output Data Structures (Engine Contract)
 
 Tiles:
-- For each cell:
-  - entity = spawn(ENTITY_TYPES.tile)
-  - Position { x, y, layer:0 }
-  - Tile { tileType, oreType? }
-  - Collider { solid: tileType !== 'floor' }
-  - Renderable { depth:0, tintToken: biome.lighting.ambient }
-- Note: Additional depth modulation or per-depth tints may be added by rendering/effects; generator sets only ambient token.
+- 2D or flat array of length width*height.
+- Each tile: { tileType: "rock"|"floor"|"rock.ore", hardness:int, oreType?:string }
 
-Decorations & lighting (props):
-- Lamps: spawn at door hubs and at intervalTiles along long corridors, using Renderable.tintToken = biome.lighting.lamps.token.
-- Crystals: spawn in alcoves or along designated decoration surfaces. Use prop ids and tokens only (no colors here).
-- Props are separate entities (ENTITY_TYPES.prop or similar), with Placement snapped to tile centers.
+Props:
+- Array of { kind:"lamp"|"crystal", position:{x:int,y:int}, tintToken:string, audioId?:string }
 
-All tokens must exist in data/visual/color-palette.json; missing tokens are logged in manifest.
+Spawns:
+- Array of { enemyId:string, x:int, y:int }
 
----
+Doors:
+- Array of { x:int, y:int, dir:"N"|"S"|"E"|"W", roomId:string }
 
-## 12) API Surface (Generator Module)
-
-Proposed JS module:
-
-- generateLevel({ seed:int, width:int, height:int, biomeId:string }): returns
-  - {
-      grid: TileCell[][],
-      rooms: RoomInstance[],
-      corridors: Path[],
-      ores: OreCluster[],
-      props: PropInstance[],
-      portals: DoorPortal[],
-      manifest: Issue[]
-    }
-
-Types:
-- TileCell:
-  - { x:int, y:int, tileType:'rock'|'floor'|'rock.ore', oreType?:string }
-- RoomInstance:
-  - { id:string, bounds:{ x:int, y:int, w:int, h:int }, doors: DoorPortal[], spawnPatch?:{ x:int, y:int, w:int, h:int }, tags?:string[] }
-- DoorPortal:
-  - { x:int, y:int, dir:'N'|'S'|'E'|'W', span:int=3, roomId:string }
-- Path:
-  - { from:DoorPortal, to:DoorPortal, centerline: {x:int,y:int}[], bandMask?:Bitset2D }
-- OreCluster:
-  - { oreType:string, tiles:{x:int,y:int}[], seed:{x:int,y:int} }
-- PropInstance:
-  - { id:string, x:int, y:int, tintToken?:string, tags?:string[] }
-- Issue:
-  - { code:string, severity:'info'|'warn'|'error', message:string, at?:{x:int,y:int}, extra?:any }
-
-Determinism contract:
-- Same inputs → same outputs byte-for-byte for grid/rooms/corridors/ores/props/portals.
-- Only manifest ordering and info-level messages may vary if non-critical; prefer stable ordering.
-
-Error handling:
-- Invalid biome/template version → throws with code 'E_SCHEMA_VERSION'.
-- Placement failure after N retries → returns manifest error 'E_PLACEMENT' and falls back to minimal straight tunnel plan if possible.
-- Token resolution failure → manifest warn 'W_TOKEN_MISSING'.
-
----
-
-## 13) Pseudocode Blocks
-
-placeRooms:
-
-```
-function placeRooms(grid, roomTemplates, graphRng, placementRng, width, height):
-  instances = []
-
-  // 1) Place spawn cavern near center-left
-  spawnTpl = getTemplateById("room.spawn.cavern.s1")
-  spawnX = max(2, floor(width * 0.2) - floor(spawnTpl.w/2))
-  spawnY = clamp(floor(height/2 - spawnTpl.h/2), 2, height - spawnTpl.h - 2)
-  placeTemplate(grid, spawnTpl, spawnX, spawnY)
-  rec = recordRoom(spawnTpl, spawnX, spawnY)
-  instances.push(rec)
-
-  // 2) Optionally place hub and ore pocket
-  hubTpl = getTemplateById("room.tunnel.hub3.s1")
-  oreTpl = getTemplateById("room.pocket.ore.s1")
-  // Simple offsets to the right; adjust Y with small jitter for variation
-  offY = intRange(placementRng, -4, 4)
-  hubX = clamp(spawnX + spawnTpl.w + 6, 2, width - hubTpl.w - 2)
-  hubY = clamp(spawnY + offY, 2, height - hubTpl.h - 2)
-  placeTemplateIfClear(grid, hubTpl, hubX, hubY) && instances.push(recordRoom(hubTpl, hubX, hubY))
-
-  oreX = clamp(hubX + hubTpl.w + 8, 2, width - oreTpl.w - 2)
-  oreY = clamp(hubY + intRange(placementRng, -6, 6), 2, height - oreTpl.h - 2)
-  placeTemplateIfClear(grid, oreTpl, oreX, oreY) && instances.push(recordRoom(oreTpl, oreX, oreY, tags:['orePreferred']))
-
-  return instances
-```
-
-carveCorridors:
-
-```
-function carveCorridors(grid, rooms, pathRng):
-  edges = planEdges(rooms) // connect spawn -> hub -> ore if present; else spawn->ore
-  paths = []
-  for e in edges:
-    s = pickDoorFacing(e.fromRoom, e.toRoom) // choose door portals with aligned dirs
-    t = pickDoorFacing(e.toRoom, e.fromRoom)
-    p = carveCorridor(grid, s, t, pathRng)
-    paths.push({ from:s, to:t, centerline:p.centerline })
-  return paths
-```
-
-smoothCA:
-
-```
-function buildMask(grid, rooms, paths):
-  mask = Bitset2D(width, height)
-  // Mark room interiors and corridor bands (+1 shoulder)
-  for r in rooms: markRoomMask(mask, r)
-  for p in paths: markBand(mask, p.centerline, shoulder=1)
-  return mask
-
-function smoothPhase(grid, rooms, paths, caRng):
-  mask = buildMask(grid, rooms, paths)
-  grid = smoothCA(grid, mask, caRng, iterations=2)
-  return grid
-```
-
-seedOres:
-
-```
-function seedOres(grid, biome, oreRng, rooms, paths):
-  seams = collectSeamCells(grid)
-  seeds = []
-  for c in seams:
-    n = sampleNoise(c.x, c.y, biome.oreSeeding.noise, oreRng) // deterministic if noise is hash-based
-    nearOrePref = nearTaggedRoom(c, rooms, tag='orePreferred', radius=4) ? 0.1 : 0.0
-    if n >= biome.oreSeeding.noise.threshold - nearOrePref:
-      if distanceToCorridor(c, paths) >= 2:
-        seeds.push(c)
-  clusters = []
-  spatial = buildSpatialHash(width, height, cell=8)
-  for s in seeds:
-    if tooCloseToExisting(s, clusters, R=6, spatial): continue
-    oreType = weightedPick(biome.tiles.ore.oreTypes, oreRng)
-    S = intRange(oreRng, oreType.minCluster, oreType.maxCluster)
-    tiles = growCluster(grid, s, S, oreRng)
-    if tiles.length >= 2:
-      markOre(grid, tiles, oreType.id)
-      clusters.push({ oreType:oreType.id, tiles, seed:{x:s.x, y:s.y} })
-      spatial.insert(s.x, s.y, clusters.length-1)
-  enforceOreCaps(clusters, biome, grid)
-  return clusters
-```
-
----
+Derived:
+- navmask: boolean walkable array (true for floor, false for rock/rock.ore).
+- minimap: token references per tile for color lookup (do not resolve colors here; see data/visual/color-palette.json).
 
 ## 14) Performance Notes
 
-- Target: <20 ms for 96×72 tiles on a mid-tier laptop.
-- Use typed arrays (Uint8Array) for grid state and masks; avoid object allocation in inner loops.
-- CA iterations ≤ 2; neighbor sums via rolling window if profiling justifies; otherwise 3×3 summation with precomputed strides.
-- Noise sampling bounded: cache gradients for Perlin or use hash-based value-noise with no allocations.
-- Corridor carving O(path length); masks updated in-place.
-- Minimize RNG calls; where possible, use deterministic tie-break rules.
+- Memory:
+  - Reuse two CA buffers (uint8).
+  - One flood fill buffer (uint16 component ids or int32 visited marks).
+  - Avoid dynamic allocations in inner loops; preallocate queues/vectors (ring buffers).
+- Complexity:
+  - CA O(N).
+  - Flood fill O(N).
+  - Corridor routing approximately O(E log V) but sparse on grid; constrained to a few sources.
+  - Ore and decor passes linear with small constants.
+- Target:
+  - < 20 ms at 96×64 on mid‑tier laptop JS runtime. Use typed arrays and inlined hot paths.
 
----
+## 15) Acceptance & QA
 
-## 15) Debugging & Visualization
-
-Optional debug layers (toggle via flags):
-- Door portals (draw 3-tile spans with direction arrows).
-- Corridor centerlines and carved bands.
-- Seam edges (floor cells with ≥2 rock cardinals).
-- CA masks (influence vs. rim seals).
-- Ore cluster seeds and extents.
-- Props (lamps/crystals) placement markers.
-- Print seed, sub-seeds, timings per phase.
-
----
-
-## 16) Testing & Acceptance Checklist
-
-- Room placement:
-  - No overlaps between distinct rooms.
-  - All doors on template rims; 3-tile spans properly aligned.
-- Corridors:
-  - 3‑wide throughout; beveled at bends; no single-tile notches.
-- Spawn:
-  - 5×5 area intact, floor, reachable to all door portals.
-- Ores:
-  - Seeded along floor–rock seams; maintain spacing; avoid corridor bands.
-  - Iron rarer than copper; quartz appears as props unless configured as ore.
-- ECS:
-  - Tiles instantiate with correct Position, Tile, Collider, Renderable (depth=0, layer=0).
-  - Lighting tokens resolve in color-palette.
 - Determinism:
-  - Replay with fixed seed yields identical grid and placements.
-- Manifest:
-  - Empty or only info-level notes under normal runs.
+  - Same seed → same layout and outputs across platforms.
+  - Test harness (tools/ecs-registry.test.js): generate a hash over:
+    - Counts of tileType categories and oreType distribution.
+    - Sorted list of door coordinates with dir and roomId.
+    - Corridor lamp positions.
+- 3‑Wide Law:
+  - Corridors exactly 3 tiles wide in straight runs; bevels present at turns; no single‑tile spikes.
+  - Room doorways at least 3‑wide where doors exist.
+- Biome conformance:
+  - Tile hardness matches biome values.
+  - Tokens (tint, minimap) resolve via palette; generator outputs only token ids.
+  - Lamps placed per interval and atDoors flags.
+- Ore:
+  - Clusters respect per‑type min/max.
+  - Do not intrude into lanes or their 1‑tile clearance.
+  - Relative rarity matches weights (e.g., quartz rarer than copper/iron).
+- JSON sanity:
+  - room-templates.json validates against schema‑lite; malformed templates rejected with actionable errors.
+  - Biome JSON assumed valid (pre‑validated).
 
----
+## 16) Pseudocode Annex
 
-## 17) Future Extensions (Notes Only)
+Note: All loops are row‑major y→x. rngCore(), rngRooms(), rngCorridors(), rngOre(), rngDecor(), rngSpawns() are independent seeded streams.
 
-- WFC-driven room variants and organic corridors beyond L-paths.
-- Dynamic lamp frequency based on path length and branching factor.
-- Multi-entrance caverns and cyclic graphs.
-- Biome mixing and transitions.
-- Abyssal chasms with bridges and edge-rails.
-
----
-
-## Appendix A: Template Placement Details (Rim Seals and Doors)
-
-- When pasting a template:
-  - For each cell:
-    - '.' → set to floor unless already floor (idempotent).
-    - '#' → leave as rock; do not allow CA to erode border '#' (mark as rim).
-  - For each door in doors[]:
-    - If dir == 'E' or 'W': The door span occupies three tiles vertically centered at (x,y) extending along y; verify all three are on the template rim; set to floor.
-    - If dir == 'N' or 'S': Span occupies three tiles horizontally centered at (x,y) along x; set to floor.
-  - Record portals: center tile (x,y) with dir; span=3.
-
----
-
-## Appendix B: PRNG and Hashing Reference
-
-xorshift32:
-
-```
-function XorShift32(seed):
-  state = seed >>> 0
-  function next():
-    x = state
-    x ^= (x << 13) >>> 0
-    x ^= (x >>> 17) >>> 0
-    x ^= (x << 5) >>> 0
-    state = x >>> 0
-    return state
-  return { next, nextFloat: () => (next() >>> 0) / 4294967296, nextBit: () => (next() & 1) }
+PRNG (mulberry32 example):
+```js
+function makeMulberry32(seed) {
+  return function rng() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296; // [0,1)
+  };
+}
 ```
 
-splitmix-like hash:
+Phase P0–P2: Bootstrap + CA
+```js
+function genInitialMask(w,h, p_init, rngCore) {
+  const A = new Uint8Array(w*h); // 1=rock,0=floor
+  for (let y=0; y<h; y++) for (let x=0; x<w; x++) {
+    const i = y*w+x;
+    const border = (x===0||y===0||x===w-1||y===h-1);
+    A[i] = border ? 1 : (rngCore() < p_init ? 1 : 0);
+  }
+  return A;
+}
 
-```
-function hash32(a, b):
-  x = (a ^ 0x9E3779B9) + (b >>> 0) + 0x85EBCA6B
-  x = (x ^ (x >>> 16)) * 0x85EBCA6B >>> 0
-  x = (x ^ (x >>> 13)) * 0xC2B2AE35 >>> 0
-  x = x ^ (x >>> 16)
-  return x >>> 0
-
-function stringHash(s):
-  h = 2166136261
-  for each ch in s: h = (h ^ ch.charCodeAt(0)) * 16777619 >>> 0
-  return h >>> 0
-```
-
-Chunk-safe sample:
-
-```
-function coordRand(levelSeed, x, y, tag):
-  s = hash32(levelSeed, hash32((x<<16) ^ y, stringHash(tag)))
-  rng = XorShift32(s)
-  return rng.nextFloat()
-```
-
----
-
-## Appendix C: Corridor Corner Masks
-
-- Ensure corners carve a 2×2 to avoid diagonal snags:
-
-Patterns (F=floor, R=rock)
-- Turn E→S:
-  - Before:
-    (x,y): step
-    Carve: (x,y-1),(x,y),(x,y+1) and then (x+1,y),(x+1,y+1),(x,y+1)
-  - Guarantee (x+1,y+1)=F
-
-Apply equivalent symmetric patterns for other turn pairs.
-
----
-
-## 18) High-Level Generator Pseudocode (Orchestration)
-
-```
-function generateLevel({ seed, width=96, height=72, biomeId="biome.crystal.caverns" }):
-  levelSeed = hash32(seed, 1) // levelIndex=1 for Mine Level 1
-  graphRng  = XorShift32(hash32(levelSeed, stringHash("graph")))
-  placementRng = XorShift32(hash32(levelSeed, stringHash("place")))
-  pathRng   = XorShift32(hash32(levelSeed, stringHash("path")))
-  caRng     = XorShift32(hash32(levelSeed, stringHash("ca")))
-  oreRng    = XorShift32(hash32(levelSeed, stringHash("ore")))
-  decorRng  = XorShift32(hash32(levelSeed, stringHash("decor")))
-
-  biome = loadBiome(biomeId) // validate against §9 schema
-
-  grid = makeGrid(width, height, fill='rock')
-  rooms = placeRooms(grid, loadRoomTemplates(), graphRng, placementRng, width, height)
-  paths = carveCorridors(grid, rooms, pathRng)
-  grid  = smoothPhase(grid, rooms, paths, caRng)
-  ores  = seedOres(grid, biome, oreRng, rooms, paths)
-  props = placeProps(grid, rooms, paths, decorRng, biome) // lamps + crystals by tokens
-  portals = collectPortals(rooms)
-
-  manifest = validateAll(grid, rooms, paths, ores, biome, portals)
-  return { grid, rooms, corridors:paths, ores, props, portals, manifest }
+function stepCA(cur, nxt, w,h, survive=5, birth=4) {
+  const idx = (x,y)=>y*w+x;
+  for (let y=0; y<h; y++) for (let x=0; x<w; x++) {
+    const i = idx(x,y);
+    if (x===0||y===0||x===w-1||y===h-1) { nxt[i]=1; continue; }
+    let rn=0;
+    for (let dy=-1; dy<=1; dy++) for (let dx=-1; dx<=1; dx++) {
+      if (dx===0 && dy===0) continue;
+      rn += cur[idx(x+dx,y+dy)];
+    }
+    const wasRock = cur[i]===1;
+    nxt[i] = (rn>=survive || (rn>=birth && wasRock)) ? 1 : 0;
+  }
+}
 ```
 
-Place props (lighting/decoration summary):
+Phase P3: Connectivity & Cleanup
+```js
+function labelComponents(mask,w,h) {
+  const comp = new Int32Array(w*h).fill(-1);
+  const sizes = [];
+  const Qx = new Int32Array(w*h), Qy=new Int32Array(w*h);
+  let head=0, tail=0, cid=0;
+  const push=(x,y)=>{Qx[tail]=x; Qy[tail]=y; tail++;};
+  const pop=()=>({x:Qx[head],y:Qy[head],i:(Qy[head]*w+Qx[head++])});
+  for (let y=0; y<h; y++) for (let x=0; x<w; x++) {
+    const i=y*w+x;
+    if (mask[i]===0 && comp[i]===-1) {
+      let sz=0; head=tail=0; push(x,y); comp[i]=cid;
+      while (head<tail) {
+        const {x:cx,y:cy} = pop();
+        sz++;
+        const nbr=[[1,0],[-1,0],[0,1],[0,-1]];
+        for (const [dx,dy] of nbr) {
+          const nx=cx+dx, ny=cy+dy;
+          if (nx<=0||ny<=0||nx>=w-1||ny>=h-1) continue;
+          const ni=ny*w+nx;
+          if (mask[ni]===0 && comp[ni]===-1) { comp[ni]=cid; push(nx,ny); }
+        }
+      }
+      sizes[cid]=sz; cid++;
+    }
+  }
+  return {comp, sizes};
+}
+
+function cleanup(mask,w,h, roomsDoors, preserveR=6) {
+  const {comp, sizes} = labelComponents(mask,w,h);
+  let mainId=-1, best=0;
+  for (let id=0; id<sizes.length; id++) if (sizes[id]>best) {best=sizes[id]; mainId=id;}
+  // convert small comps to rock unless near a planned door/anchor
+  const doorPts = roomsDoors.map(d=>({x:d.x,y:d.y}));
+  for (let y=1; y<h-1; y++) for (let x=1; x<w-1; x++) {
+    const i=y*w+x;
+    if (mask[i]===0 && comp[i]!==mainId) {
+      let keep=false;
+      for (const p of doorPts) {
+        const dist = Math.abs(p.x-x)+Math.abs(p.y-y); // Manhattan
+        if (dist<=preserveR) { keep=true; break; }
+      }
+      if (!keep) mask[i]=1;
+    }
+  }
+  // notch culling
+  for (let y=1; y<h-1; y++) for (let x=1; x<w-1; x++) {
+    const i=y*w+x; if (mask[i]!==0) continue;
+    let floors=0;
+    for (let dy=-1; dy<=1; dy++) for (let dx=-1; dx<=1; dx++) {
+      if (mask[(y+dy)*w+(x+dx)]===0) floors++;
+    }
+    if (floors<3) mask[i]=1;
+  }
+}
+```
+
+Phase P4: Room Stamping (selection + placement)
+```js
+function placeRooms(mask,w,h, templates, rngRooms) {
+  const placed=[];
+  const occupancy = new Uint8Array(w*h); // inflated footprints
+  const candidates = poissonSampleCandidates(w,h, rngRooms); // returns ordered list
+  for (const tpl of shuffled(templates, rngRooms)) {
+    const rots = tpl.rotate!==false ? [0,1,2,3] : [0];
+    for (const r of rots) {
+      for (const c of candidates) {
+        const ok = canStamp(tpl, r, c.x, c.y, mask, occupancy, w,h);
+        if (!ok) continue;
+        stampRoom(tpl, r, c.x, c.y, mask, occupancy, placed);
+        break;
+      }
+    }
+  }
+  return placed; // includes door anchors world-space
+}
+```
+
+Phase P5: Corridor Carving
+```js
+function carveCorridors(mask,w,h, doors, mainCentroid, rngCorridors) {
+  const blocked = inflateRoomsAsBlocked(doors, mask, w,h); // 1-tile buffer
+  const goals = new Set(doors.map(d=>dAnchorId(d)).concat([cellId(mainCentroid)]));
+  const frontier = new MinHeap(); // keyed by f
+  const prev = new Int32Array(w*h).fill(-1);
+  const dirPrev = new Int8Array(w*h).fill(-1); // 0:N,1:E,2:S,3:W
+  // seed with all anchors
+  for (const a of goals) frontier.push({id:a, f:0, g:0, dir:-1});
+
+  const visited = new Uint8Array(w*h);
+  while (!frontier.isEmpty()) {
+    const cur = frontier.pop();
+    if (visited[cur.id]) continue;
+    visited[cur.id]=1;
+    // connect if cur touches another connected region (union-find omitted here)
+    for (const nb of neighbors4(cur.id,w,h)) {
+      if (blocked[nb]) continue;
+      const stepDir = stepDirection(cur.id, nb, w);
+      const turn = (cur.dir!==-1 && cur.dir!==stepDir) ? 2.0 : 0.0;
+      const terrainBonus = (isFloor(nb,mask)? -0.2 : 0.0);
+      const g = cur.g + 1 + turn + terrainBonus;
+      const hcost = heuristicToAny(nb, goals, w,h);
+      frontier.push({id:nb, f:g+hcost, g, dir:stepDir});
+      if (prev[nb]===-1) { prev[nb]=cur.id; dirPrev[nb]=stepDir; }
+    }
+  }
+  // Reconstruct and carve each path between anchors/main centroid
+  for (const path of extractConnectorPaths(prev, goals)) {
+    for (let k=1; k<path.length; k++) {
+      const id = path[k];
+      const dir = dirPrev[id];
+      carveStripe3(mask, id, dir, w,h); // clear 3-wide perpendicular
+      if (k>1 && dir!==dirPrev[path[k-1]]) carveElbow3x2(mask, id, dir, dirPrev[path[k-1]], w,h);
+    }
+  }
+}
+```
+
+Phase P6: Lamps
+```js
+function placeLamps(corridorCenters, doors, lampsSpec, rngDecor) {
+  const lamps=[];
+  if (lampsSpec.atDoors) {
+    for (const d of doors) {
+      const p = offsetFromDoor(d, 1); // or 2 if blocked
+      if (isFloorXY(p)) lamps.push({x:p.x,y:p.y});
+    }
+  }
+  // Along corridors: stride by intervalTiles, avoid within 4 tiles of existing
+  for (const run of corridorRuns(corridorCenters)) {
+    let step=lampsSpec.intervalTiles;
+    for (let i=step; i<run.length; i+=step) {
+      const c = run[i];
+      if (!withinNOfAny(c, lamps, 4)) lamps.push(c);
+    }
+  }
+  return lamps;
+}
+```
+
+Phase P7: Ore
+```js
+function seedAndGrowOre(mask,w,h, biome, rngOre, laneBuffer) {
+  const oresOut=[];
+  const noise = makeFBM(biome.oreSeeding.noise, rngOre); // deterministic params
+  for (let y=1; y<h-1; y++) for (let x=1; x<w-1; x++) {
+    const i=y*w+x;
+    if (!isRock(mask[i])) continue;
+    const edge = has4NeighborFloor(mask,w,h,x,y);
+    const p = edge ? lerp(0.5,1.0, biome.oreSeeding.edgeBias)
+                   : 1 - biome.oreSeeding.edgeBias*0.2;
+    if (rngOre() < p && noise(x,y) >= biome.oreSeeding.noise.threshold) {
+      const oreId = weightedPick(biome.tiles.ore.oreTypes, rngOre);
+      const lim = getOreLimits(oreId, biome); // {min,max}
+      const size = growClusterBFS(x,y, oreId, lim, mask, laneBuffer, rngOre);
+      // keep even if <min due to constraints; MVP does not backtrack
+    }
+  }
+  return oresOut;
+}
+```
+
+Phase P8: Decor
+```js
+function placeCrystals(mask,w,h, biome, corridors, rngDecor) {
+  if (!biome.decoration.crystalOnAlcove) return [];
+  const alcoves=[];
+  for (let y=1; y<h-1; y++) for (let x=1; x<w-1; x++) {
+    if (!isFloor(mask[y*w+x])) continue;
+    const r8 = rockCount8(mask,w,h,x,y);
+    const indent = isWallIndent(mask,w,h,x,y);
+    if ((r8===5 || r8===6) || indent) {
+      alcoves.push({x,y, dToLane: distToCorridor({x,y}, corridors)});
+    }
+  }
+  // Bias near corridors
+  alcoves.sort((a,b)=>a.dToLane-b.dToLane);
+  const out=[];
+  const cap = biome.decoration.maxCrystals|0;
+  for (const a of alcoves) {
+    if (out.length>=cap) break;
+    if (out.every(p=>manhattan(p,a)>=2)) out.push({x:a.x,y:a.y});
+  }
+  return out;
+}
+```
+
+Phase P9–P10: Spawns and Finalization
+```js
+function placeSpawns(candidates, weights, minSep, rngSpawns) {
+  const selected=[];
+  const norm = normalizeWeights(weights);
+  for (const c of candidates) {
+    if (selected.every(s=>manhattan(s,c)>=minSep)) {
+      selected.push({x:c.x,y:c.y, enemyId: weightedPickNorm(norm, rngSpawns)});
+    }
+  }
+  return selected;
+}
+
+function finalize(tmask,w,h, biome, ores, lamps, crystals) {
+  const tiles = new Array(w*h);
+  for (let y=0; y<h; y++) for (let x=0; x<w; x++) {
+    const i=y*w+x;
+    const kind = tmask[i]===0 ? "floor" : "rock";
+    let tileType = kind, oreType=undefined, hardness;
+    if (isOreAt(i)) { tileType="rock.ore"; oreType=getOreType(i); }
+    if (tileType==="floor") hardness = biome.tiles.floor.hardness;
+    else if (tileType==="rock") hardness = biome.tiles.rock.hardness;
+    else hardness = biome.tiles.ore.baseHardness;
+    tiles[i] = { tileType, hardness, ...(oreType?{oreType}:null) };
+  }
+  const props = [
+    ...lamps.map(p=>({kind:"lamp", position:p, tintToken: biome.lighting.lamps.token, audioId:"ambient.prop.lamp.hiss.loop"})),
+    ...crystals.map(p=>({kind:"crystal", position:p, tintToken: biome.decoration.tintToken }))
+  ];
+  const navmask = tiles.map(t=>t.tileType!=="rock" && t.tileType!=="rock.ore");
+  const minimap = tiles.map(t=>tileTypeToPaletteToken(t.tileType));
+  return { tiles, props, navmask, minimap };
+}
+```
+
+## 17) JSON Schema‑Lite (Appendix) for room-templates.json
+
+This is a minimal, implementation‑practical validator spec. Use this to produce clear authoring errors.
+
+```json
+{
+  "type": "object",
+  "required": ["version", "rooms"],
+  "properties": {
+    "version": { "type": "integer", "enum": [1] },
+    "rooms": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id","kind","size","grid","doors","tags","zClearance"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "enum": ["tunnel","cavern","ore_vein"] },
+          "size": {
+            "type": "object",
+            "required": ["w","h"],
+            "properties": {
+              "w": { "type": "integer", "minimum": 1, "maximum": 32 },
+              "h": { "type": "integer", "minimum": 1, "maximum": 32 }
+            }
+          },
+          "grid": {
+            "type": "array",
+            "minItems": { "$ref": "#/rooms/items/properties/size/properties/h" },
+            "maxItems": { "$ref": "#/rooms/items/properties/size/properties/h" },
+            "items": {
+              "type": "string",
+              "pattern": "^[#.OD]+$",
+              "minLength": { "$ref": "#/rooms/items/properties/size/properties/w" },
+              "maxLength": { "$ref": "#/rooms/items/properties/size/properties/w" }
+            }
+          },
+          "doors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["x","y","dir"],
+              "properties": {
+                "x": { "type": "integer", "minimum": 0 },
+                "y": { "type": "integer", "minimum": 0 },
+                "dir": { "type": "string", "enum": ["N","S","E","W"] }
+              }
+            }
+          },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "zClearance": { "type": "integer", "minimum": 3 },
+          "rotate": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "postValidate": [
+    "All rows in grid equal length and equal to size.w; grid.length == size.h.",
+    "Each 'D' in grid has a matching entry in doors with identical (x,y).",
+    "Each door cell 'D' is adjacent (4-neighbor) to a floor '.' within the template.",
+    "For each direction in {N,S,E,W} present among doors, at least one 3-tile aligned doorway exists: three consecutive 'D' cells collinear and oriented with dir.",
+    "Charset strictly in ['#','.', 'O', 'D']."
+  ]
+}
+```
+
+Notes:
+- The "postValidate" array lists custom validators to implement in code; JSON Schema alone cannot fully express these structural constraints.
+
+## 18) Tuning Defaults (MVP Table)
+
+Authoritative defaults (configurable via biome or generator params):
+- Map size: width=96, height=64
+- CA:
+  - p_init=0.45
+  - iters=2
+  - surviveThresh=5
+  - birthThresh=4
+- Corridor routing:
+  - turnPenalty=2.0
+  - floorBonus=−0.2
 - Lamps:
-  - If biome.lighting.lamps.atDoors: place one lamp at each room door’s interior-side shoulder.
-  - Along corridors longer than intervalTiles: place lamps every intervalTiles from the nearer hub.
-- Crystals:
-  - If decoration.crystalOnAlcove: place crystals at alcove tiles; cluster crystals per tiles.decor.crystal.cluster; respect maxCrystals.
+  - atDoors=true
+  - intervalTiles=9
+- Ore noise:
+  - octaves=2
+  - scale=0.12
+  - threshold=0.58
+- Ore edgeBias=0.7
+- Spawn minSeparationTiles=8
+- Decoration:
+  - crystalOnAlcove=true
+  - maxCrystals=28
+
+## 19) Future Hooks (Non‑binding)
+
+- Multi‑biome stacks: boundary membranes to blend tiles, lighting, and ore tables per depth.
+- Secret rooms: keyed door glyphs and noise‑gated stampers behind soft rock.
+- Collapsed tunnels: rubble fields with dig hardness modifiers and path penalties.
+- Puddles/slopes: fluid tiles, slip modifiers, and light reflections.
+- WFC overlays: post‑corridor ornamentation for stalactites, struts, and murals.
 
 ---
 
-By these strata and strictures, the First Descent shall be hewn: swift, stable, and clear as a well-cut gem.
+May your seed be strong, and your lanes run true. The Singing Stone remembers each choice; with these rules, we make it sing the same song every time.
