@@ -6,27 +6,27 @@
   "stats": {
     "attributes": { "attackPower": 8, "defense": 0 },
     "health": { "max": 120, "value": 120 },
-    "poise": { "max": 70, "value": 70, "recoverPerSec": 34, "breakDurationMs": 800 }
+    "poise": { "max": 90, "value": 90, "recoverPerSec": 34, "breakDurationMs": 800 }
   },
   "movement": {
-    "speedPxPerSec": 48,
-    "chaseSpeedPxPerSec": 60,
-    "aggroRadiusPx": 100,
-    "deaggroRadiusPx": 160,
-    "leashRadiusPx": 220,
-    "idleWander": { "enabled": true, "radiusPx": 18, "pauseMs": { "min": 600, "max": 1100 } }
+    "speedPxPerSec": 52,
+    "chaseSpeedPxPerSec": 68,
+    "aggroRadiusPx": 120,
+    "deaggroRadiusPx": 180,
+    "leashRadiusPx": 240,
+    "idleWander": { "enabled": true, "radiusPx": 20, "pauseMs": { "min": 600, "max": 1000 } }
   },
   "ai": {
-    "behavior": "skirmisher",
+    "behavior": "goblin",
     "state": "idle",
     "targetId": 0,
-    "attackCooldownMs": 340,
+    "attackCooldownMs": 360,
     "preferOpenLane": true,
     "attackWeights": { "slash_sweep": 0.55, "stab_jab": 0.45 },
     "repositionOnMissMs": 600
   },
   "telegraphs": {
-    "colorToken": "mapping.telegraph.emerge.amber",
+    "colorToken": "mapping.telegraph.arc.amber",
     "groundHalo": false,
     "arcOverlay": true
   },
@@ -39,14 +39,14 @@
       "activeMs": 96,
       "recoveryMs": 480,
       "cooldownMs": 380,
-      "rangePx": 21,
+      "rangePx": 22,
       "arcDeg": 110,
-      "hitbox": { "w": 20, "h": 14, "offsetX": 8, "offsetY": 0 },
+      "hitbox": { "w": 22, "h": 14, "offsetX": 10, "offsetY": 0 },
       "damage": { "base": 8, "poiseDamage": 16 },
-      "hitStopMs": { "attacker": 24, "victim": 44 },
+      "hitStopMs": { "attacker": 24, "victim": 46 },
       "knockback": { "px": 16, "direction": "forward" },
       "telegraph": { "useGlobalAudio": true, "visual": "arc" },
-      "notes": ["Wide arc; teaches block timing."]
+      "notes": ["Clear 420 ms windup; blockable with good timing; softened hit-stop on block per combat spec."]
     },
     {
       "id": "stab_jab",
@@ -56,14 +56,14 @@
       "activeMs": 80,
       "recoveryMs": 420,
       "cooldownMs": 340,
-      "rangePx": 19,
-      "arcDeg": 70,
+      "rangePx": 24,
+      "arcDeg": 60,
       "hitbox": { "w": 16, "h": 12, "offsetX": 12, "offsetY": 0 },
-      "damage": { "base": 7, "poiseDamage": 14 },
+      "damage": { "base": 9, "poiseDamage": 12 },
       "hitStopMs": { "attacker": 22, "victim": 42 },
       "knockback": { "px": 12, "direction": "forward" },
       "telegraph": { "useGlobalAudio": true, "visual": "arc" },
-      "notes": ["Fast poke; punishes greedy steps."]
+      "notes": ["Fast tell; punishes greedy steps; narrow lane-safe line."]
     }
   ],
   "collision": {
@@ -89,8 +89,8 @@
     "blockTeachBias": 0.65
   },
   "notes": [
-    "Block the sweep, step in on recovery; jab punishes overreach.",
-    "Forward-biased hitboxes keep lanes safe; avoid wall clips.",
-    "Poise breaks briefly expose the goblin; commit after block."
-  ]
+    "Sweep telegraph ~420 ms; block to conserve stamina.",
+    "Jab is narrow; sidestep or perfect block.",
+    "Hitboxes are forward-biased to keep walls honest in 3-wide lanes."
+    ]
 }
