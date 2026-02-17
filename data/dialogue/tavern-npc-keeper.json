@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "npcId": "npc.tavern.keeper",
+  "name": "Brewmaster Alehart",
+  "portraitKey": "npc.tavern_keeper",
+  "tavernId": "scene.tavern.claims_mouth",
+  "lines": [
+    {
+      "id": "dialog.tavern_keeper.tutorial.crafting_cadence",
+      "kind": "tutorial",
+      "weight": 90,
+      "conditions": {
+        "firstVisit": true
+      },
+      "text": "Bench first, then forge, then the steam workshop. Ores to parts, parts to power. Bring core.steam when you can.",
+      "audioId": null
+    },
+    {
+      "id": "dialog.tavern_keeper.tutorial.hardness_gate",
+      "kind": "tutorial",
+      "weight": 85,
+      "text": "Rock bites back. 'Too hard for this tool'? Upgrade to tool.pick.t2.reinforced or find a softer vein.",
+      "audioId": null
+    },
+    {
+      "id": "dialog.tavern_keeper.tutorial.stamina_rhythm",
+      "kind": "tutorial",
+      "weight": 80,
+      "conditions": {
+        "hasItemId": "tool.drill.t3.steam"
+      },
+      "text": "Pick swings breathe with your stamina—tap, rest, tap. With tool.drill.t3.steam, pulse in bursts; let the boiler catch up.",
+      "audioId": null
+    },
+    {
+      "id": "dialog.tavern_keeper.tutorial.three_wide_law",
+      "kind": "tutorial",
+      "weight": 75,
+      "text": "Three‑Wide Law: cut corridors three across. Hang a lamp by a door’s hinge; when it burns yellow, folk know it’s a way in.",
+      "audioId": null
+    },
+    {
+      "id": "dialog.tavern_keeper.tip.burrower_vs_grunt",
+      "kind": "tip",
+      "weight": 60,
+      "text": "See a glow halo on a Cave Burrower—dodge aside. A Goblin Grunt telegraphs wide—raise your guard, then crack him.",
+      "audioId": null
+    },
+    {
+      "id": "dialog.tavern_keeper.tip.sell_vs_keep_quartz",
+      "kind": "tip",
+      "weight": 50,
+      "text": "Short on coin? Sell ore.copper and ore.iron. Keep some for recipes. shard.quartz runs rare—save it for keen tools.",
+      "audioId": null
+    },
+    {
+      "id": "dialog.tavern_keeper.tip.depth_mark",
+      "kind": "tip",
+      "weight": 45,
+      "text": "Make it habit: scratch a Depth‑Mark by each door in your ledger. Next shift knows where the dark starts.",
+      "audioId": null
+    },
+    {
+      "id": "dialog.tavern_keeper.lore.first_warrant_truce",
+      "kind": "lore",
+      "weight": 35,
+      "text": "First Warrant forged the truce at Claim’s Mouth. No brawls, no blades—only coin, ale, and work tallies under my roof.",
+      "audioId": null
+    },
+    {
+      "id": "dialog.tavern_keeper.lore.bottomless_hum",
+      "kind": "lore",
+      "weight": 30,
+      "text": "Bottomless Mine? Some swear it hums a deep note. Set a mug on the bar and watch it quiver when the earth sings.",
+      "audioId": null
+    },
+    {
+      "id": "dialog.tavern_keeper.rumor.belled_tunnel_seam",
+      "kind": "rumor",
+      "weight": 20,
+      "text": "Whispers say a seam shifts by the belled tunnel. Lamps ring twice, vein slides sidewise. Follow the ringing.",
+      "audioId": null
+    }
+  ]
+}
