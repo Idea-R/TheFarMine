@@ -1,233 +1,205 @@
-# Guild Factions — The Three Guilds of the First Warrant (Sprint 1)
+# Guild Factions — Brassbound, Emberforge, and the Crystal Ordinate (Sprint 1)
 
 Provenance
 - Owner: @epsilon (Narrative Systems — Lorekeeper Runebeard)
-- Author: Lorekeeper Runebeard, sworn to tidy ledgers and tidy myths alike
 
-Cross‑References
-- docs/narrative/founding-lore.md (§The Three Guilds and the First Warrant)
-- docs/technology-systems/crafting-design.md (§Stations & Tiers)
-- docs/combat-systems/combat-design.md (§3‑wide law)
-- docs/world-generation/cave-gen-algorithm.md (§Lighting & lanes)
-- data/visual/color-palette.json (token‑only references)
+Cross‑references
+- docs/narrative/founding-lore.md (§The Three Guilds)
+- docs/technology-systems/crafting-design.md (§Stations & tiers)
+- docs/combat-systems/combat-design.md (§Three‑wide law)
+- docs/world-generation/cave-gen-algorithm.md (§Lanes & Rooms)
+- data/visual/color-palette.json (token-only mentions)
+- data/world/biome-crystal-caverns.json (spawn/lighting cues)
 
----
+Token‑only color policy
+- No raw hex. Use tokens only (examples: ui.frame.brass, ui.text.numbers, mapping.lighting.lampWarm, terrain.ore.iron, terrain.ore.quartz, mapping.lighting.crystalCool, effects.sparkRock, mapping.telegraph.emerge.amber, terrain.ore.*).
+
 
 ## TL;DR (Player‑Facing Summary)
-- Three rival guilds share a hard truce at Claim’s Mouth: Brassbound (routes and ledgers), Emberforge (craft and recovery), Crystal Ordinate (survey and resonance).
-- Brassbound favors contracts that mark and keep trade lanes lawful—lamp runs, 3‑wide audits, and escorted crates.
-- Emberforge sends you to test tools, fetch broken gear, and keep the workbenches burning—practical tasks with heat and hurry.
-- The Ordinate bids you listen to stone—chart crystal pockets, set safe markers per the 3‑wide law, and take resonance readings at seam edges.
-- Each offers soft favors (tips, intros, better notice on postings) but no binding bargains beyond MVP.
-- The Tavern posts and mediates all warrants; keep lamps lit and lanes lawful, and you’ll eat.
 
----
+- Three guilds share Claim’s Mouth under truce; no blood in the hub.
+- Brassbound: ledgers, lamps, and fair lanes keep delves safe and paid.
+- Emberforge: iron hunger; push deeper, strike faster, forge stronger.
+- Crystal Ordinate: measure the stone’s song; map and mark hazards.
+- Truce holds by the First Warrant: lanes three‑wide, lamps at doors.
+- Work any board; your deeds tip favor, not the peace.
 
-## Faction Overview (Comparative Glance)
-At Claim’s Mouth, the First Warrant binds a competitive truce. No blades over ledgers; no sabotage of lamps. The Tavern is neutral ground—its noticeboard the law of jobs—and the keeper’s bell settles the order. Each guild pushes its edge, but all kneel to the 3‑wide law and the lamp rites, lest the dark take us all.
 
-Specialties at a glance
-- Brassbound Consortium — commerce and logistics: route surveying, lamp‑rite enforcement, escorted cargo and signage.
-- Emberforge League — craft and recovery: workbench triage, tool trials, salvage of broken gear and lamp cages.
-- Crystal Ordinate — survey and resonance: crystal seam mapping, safe‑lane scouting, resonance measurement and marking.
+## Faction Overview (Compact)
 
----
+- Brassbound Consortium — motto: “Measure true, bind in brass.”; specialty: salvage & standards; tags: salvage, lamp, audit, signage; favored tier: T1–T2 Lampworks/Signage; temperament: methodical, fair.
+- Emberforge League — motto: “Heat the seam, strike the heart.”; specialty: forging & high‑tempo delves; tags: mining, tool_trial, hunt, scout; favored tier: T2–T3 Forge; temperament: bold, competitive.
+- Crystal Ordinate — motto: “Mark the measure; heed the hum.”; specialty: survey & resonance; tags: resonance, quartz, lanemark, telegraph; favored tier: T1–T2 Survey/Cartography; temperament: meticulous, curious.
 
-## Faction Entries
 
-### Brassbound Consortium
+## The Brassbound Consortium
 
-- Name & Motto
-  - Brassbound Consortium
-  - Motto: “Count every rivet; claim every mile.”
+Voice
+- The Brassbound keep ledgers like lanterns—clear, steady, and true. Where others rush, they measure. Where others brawl, they bind the rules like rivets over a strong frame.
+- Profit, aye, but profit that endures. Brass frames and fair lanes: keep three‑wide for carts and comrades both, lamps at doors so no soul steps blind. Mark the depth; pay the tithe; bring the salvage home.
 
-- Crest/Sigil and Color Tokens
-  - A stout ledger clasped with a ring of lamp‑coins, a road‑chain threading through. The clasp and chain gleam like ui.frame.brass; the neat tally marks are set in ui.text.numbers. Lamp icons call to mapping.lighting.lampWarm when painted on waystones.
+Motto
+- “Measure true, bind in brass.”
 
-- Temperament & Ethos
-  - They are counters of costs and keepers of corridors—fair when watched, fierce when cheated. A Brassbound pledge is a road paved with clauses, and they honor it precisely if you do the same. They preach that good lamps make good trade, and a measured lane is a safe one. Speak to them in sums and distances and you’ll have their ear.
+Token cues
+- ui.frame.brass, ui.text.numbers
 
-- Specialty & Play Focus
-  - Focused on logistics under MVP: route surveying, lamp placement along designated corridors, and audits for the 3‑wide law. Expect escort runs, signage posts, and early‑warning errands where clarity of path matters more than heroics.
+Specialties
+- Corridor standardization (lanes three‑wide, bevelled elbows)
+- Lampworks and sconce routing (placement, spacing, resupply)
+- Salvage rights and reclamation
+- Contract law and signage (depth marks, room doors)
 
-- Leader Seed NPC
-  - Factor Hesta Ledgerband — polite as a bill and twice as firm; she asks you to “prove” a trade lane by lighting and measuring from Claim’s Mouth to the old Pump Bridge before first shift.
+Player‑Facing Hooks
+- “Light the run, earn the run.” — teaches lamp spacing and upkeep.
+- “Ledger to lantern: count before cut.” — introduces depth marks.
+- “Fair lanes, fair shares.” — corridor audits guide pathing habits.
+- “Salvage speaks coin.” — recover fittings to learn combat→loot.
+- “Stamp the truth.” — signage locks in navigational memory.
 
-- Notable Members
-  - Tallie Inkthumb — clerk with a memory for your past routes; hints at which crates matter to whose balance.
-  - Jorren Barrelbrace — teamster captain who swears by the shortest lit lane; grumbles when the dark steals his time.
+Contract Board — Sample Contracts
+- contract.brassbound.sconce_resupply — Deliver 3 lamps placed along a corridor segment (tutorial: lamp spacing). Surfaces: quest board, tutorial tip.
+- contract.brassbound.salvage_lamp_parts — Retrieve 2 lamp fittings from goblins (teaches combat → loot loop). Surfaces: quest board.
+- contract.brassbound.lane_clearance.audit — Verify a 3‑wide corridor between two doors (minimap + navmask tour). Surfaces: quest board.
+- contract.brassbound.ledger_stamp — Mark a Depth‑Mark at a room door (introduces signage). Surfaces: quest board.
 
-- Starting Favors
-  - Their board runs thick with early tip‑offs on lamp‑rite breaches and unlit shortcuts; their clerks “just happen” to stack your name nearer the top of certain postings; a quiet word earns you cleaner descriptions on escort manifests.
+NPC Touchpoints
+- Quartermaster Brassline — contract issuer, pays on delivery.
+- Clerk Gearscribe — reputation tallier, stamps the ledger.
 
-- Rivalries & Tensions
-  - With Emberforge: they curse “forge delays” that stall scheduled hauls; Emberforge retorts that brass can’t bind a cracked handle.
-  - With Crystal Ordinate: they bristle when surveyors block a lane with instruments; the Ordinate insists the stone must be heard before the toll is taken.
-  - Internal edge: numbers over niceties—if you waste steps, you’ll hear about it.
+Reputation Track (MVP‑lite)
+- Prospect (Tier 0) — Perks: shop discount +2%; lamp stock +1 segment.
+- Boundhand (Tier 1) — Perks: shop discount +5%; lamp stock +2; signage kit coupon.
+- Brass Oath (Tier 2) — Perks: shop discount +10%; bulk lamp crate; audit fees waived.
 
-- Signature Contracts
-  - Lamp Rite Run: “Carry fresh lamp‑oil and set lamps at marked stones; send the dark scurrying so the morning haul runs true.” id: contract.brassbound.lamp_run.t1
-  - Lane Audit — 3‑Wide Compliance: “Walk the corridor with gauge and chalk; mark choke points that break the 3‑wide law and post temporary cautions.” id: contract.brassbound.lane_audit.t1
-  - Signage Post & Paint: “Plant wayposts and paint distance marks in ui.text.numbers where the walls turn; keep the chain of signs unbroken.” id: contract.brassbound.signage_post.t1
-  - Crate Escort to Tally Point: “See a sealed crate to the counting bench; keep petty hands and prowlers off until the stamp is set.” id: contract.brassbound.crate_escort.t1
-  - Ore Pocket Chart for Toll: “Sketch ore pockets along the route to forecast toll rates and congestion; note any side‑niche for future storage.” id: contract.brassbound.ore_scout.t1
 
-- Seasonal Seeds (Future)
-  - Automaton salvage rumored in a collapsed weigh‑station—if the limbs still turn, the miles will fly.
-  - A bonded way‑house charter to stitch far lamps into a single, never‑dark chain.
+## The Emberforge League
 
----
+Voice
+- Emberforge runs hot where stone runs deepest. Heat the seam, strike the heart: iron sings to the brave hand. They prize break‑speed, clean cadence, and tools that take a beating and ask for more.
+- Their pushes are bold, but not brainless; a quick dodge is worth a dozen potions. Risk is a furnace—temper yourself, then step back in.
 
-### Emberforge League
+Motto
+- “Heat the seam, strike the heart.”
 
-- Name & Motto
-  - Emberforge League
-  - Motto: “Heat, Hammer, Honor.”
+Token cues
+- terrain.ore.iron, effects.sparkRock
 
-- Crest/Sigil and Color Tokens
-  - A square‑faced hammer above a travel anvil, ringed by a glow like mapping.lighting.lampWarm. Iron rivets and copper seams flash terrain.ore.iron and terrain.ore.copper across their aprons.
+Specialties
+- Tool upgrades and durability trials
+- Iron extraction and vein pressure management
+- High‑tempo delves under time pressure
+- Break‑speed experiments and stamina pacing
 
-- Temperament & Ethos
-  - Work is worship—fix the tool, then judge the task. They prize craftplain speech and proven hands; a promise is tempered like steel, with heat and patience. They forgive honest breaks and punish careless ones. When the lamps flicker, they step toward the hiss, not away.
+Player‑Facing Hooks
+- “Rhythm breaks rock.” — teaches mining cadence and stamina.
+- “Trust your edge.” — field‑test prototype tools with tradeoffs.
+- “Step, then strike.” — dodge windows before counter‑hits.
+- “Smell the seam.” — learn to read hardness and vein density.
 
-- Specialty & Play Focus
-  - Focused on crafting and recovery under MVP: run tool trials, fetch broken gear, refit lamp cages, and haul parts to stations defined in Stations & Tiers. Expect errands that keep benches hot and hands ready.
+Contract Board — Sample Contracts
+- contract.emberforge.iron_pull — Mine 8 ore.iron under time pressure (teaches mining rhythm/cadence). Surfaces: quest board.
+- contract.emberforge.tool_trial.t2 — Field‑test Reinforced Pick (durability + stamina tutorial). Surfaces: quest board, tooltip.
+- contract.emberforge.burrower_counter — Hunt 2 Cave Burrowers after dodge lesson (combat mastery task). Surfaces: quest board.
+- contract.emberforge.vein_scout — Tag a high‑hardness seam (oreSeeding seam reading). Surfaces: quest board, tutorial tip.
 
-- Leader Seed NPC
-  - Master Bellara Firevise — measured gaze, soot on the brow; asks you to temper a pick on the road anvil and prove it by biting clean into a test seam before the heat dies.
+NPC Touchpoints
+- Foreman Cindershod — posts pushes, times your runs.
+- Smith Ashbraid — grants tool rewards, manages rep gates.
 
-- Notable Members
-  - Keel Sparks — apprentice with big ideas and short handles; needs someone steady on the haul.
-  - “Old Soot” Morric — lamp‑cage tinkerer who can hear a rattle two ladders off; pays in stories and spare pins.
+Reputation Track (MVP‑lite)
+- Spark (Tier 0) — Perks: forge queue −10% time; iron sell‑rate +2%.
+- Flame (Tier 1) — Perks: queue −20%; iron sell‑rate +5%; borrow test tools.
+- Forgehand (Tier 2) — Perks: queue −35%; iron sell‑rate +10%; mod slots coupon.
 
-- Starting Favors
-  - An open bench “when there’s a lull,” a scrap of advice that saves a swing, and early whispers about where a rivet crate fell or a cage rattles wrong.
 
-- Rivalries & Tensions
-  - With Brassbound: grinds over “rate before repair”—they’ll not have a ledger outrank a cracked haft.
-  - With Crystal Ordinate: scoffs that soft‑soled surveyors hush hammers mid‑strike; Ordinate complains the League rattles their readings.
-  - Internal edge: pride—botch a fix and they’ll remember the sound it made.
+## The Crystal Ordinate
 
-- Signature Contracts
-  - Tool Trial — Pick Temper: “Heat, quench, and prove a pick by cutting test bites in marked rock; bring back the chip to show temper.” id: contract.emberforge.tool_trial.pick.t1
-  - Repair Haul — Broken Treads: “Fetch a snapped cart tread from a spillway; time matters before the next load shudders through.” id: contract.emberforge.repair_haul.t1
-  - Salvage — Lost Drillhead: “Track a dropped drillhead to a side‑fall and winch it free; watch your footing when the stone growls.” id: contract.emberforge.salvage_drillhead.t1
-  - Lamp Cage Refit: “Carry spare cages and swap out rattlers in a dim loop so the glow stays true.” id: contract.emberforge.lamp_refit.t1
-  - Recover Rivet Crate: “Find the crate that bounced from the mule rail and return it before the shift turns cold.” id: contract.emberforge.rivet_crate_recover.t1
+Voice
+- The Ordinate listens where others only swing. Stone carries memory in its resonance; rooms hum, seams whisper, hazards telegraph. They map those murmurs so all may pass.
+- Their craft is careful: measure three times, place once. Lanes marked, corners beveled, notes inked in cool light. The mountain is not an enemy; it is an instrument.
 
-- Seasonal Seeds (Future)
-  - A hot seam breach that needs mobile quench rigs and nerve.
-  - A road‑hammer prototype that hums through shale if someone can keep its heart lit.
+Motto
+- “Mark the measure; heed the hum.”
 
----
+Token cues
+- mapping.lighting.crystalCool, terrain.ore.quartz, mapping.telegraph.emerge.amber
 
-### Crystal Ordinate
+Specialties
+- Survey and mapping with precision pips
+- Resonance lore at seam edges
+- Quartz recovery and calibration shards
+- Hazard signage and telegraph study
 
-- Name & Motto
-  - Crystal Ordinate
-  - Motto: “Where stone sings, we listen.”
+Player‑Facing Hooks
+- “Hear before harm.” — read telegraphs to survive hits.
+- “Edges hum truest.” — stand at seams for resonance readings.
+- “Corners remember.” — place lanemarks to show safe turns.
+- “Glass for the graph.” — gather quartz to fund mapping.
 
-- Crest/Sigil and Color Tokens
-  - A faceted crystal above a survey compass, its light a cool thread of mapping.lighting.crystalCool. Edges catch terrain.ore.quartz glints in their chalks and medallions.
+Contract Board — Sample Contracts
+- contract.ordinate.resonance_read — Stand at three seam edges; record resonance (ore seam tutorial). Surfaces: quest board, tutorial tip.
+- contract.ordinate.quartz_sample — Deliver 3 shard.quartz (ties to loot/crafting). Surfaces: quest board.
+- contract.ordinate.lanemark_chevrons — Place 3 lane markers at elbows (bevel corners teach). Surfaces: quest board.
+- contract.ordinate.telegraph_log — Observe a telegraph and survive hit window (combat reading task). Surfaces: quest board, rumor.
 
-- Temperament & Ethos
-  - They speak softly and measure twice, once with tools and once with the heart. To them, the mine is a choir—some notes feed the lamps, others call the burrowers. They put safety in the line before speed in the tally. If you’ll hush and heed, they’ll show you where the floor stops pretending to be floor.
+NPC Touchpoints
+- Adept Auralin — issues surveys, loans instruments.
+- Scribe Meridian — codex keeper, posts findings.
 
-- Specialty & Play Focus
-  - Focused on surveying under MVP: resonance readings at seam edges, crystal charting, and safe‑lane scouting under the 3‑wide law. Expect marking, listening posts, and quiet escorts for instruments.
+Reputation Track (MVP‑lite)
+- Initiate (Tier 0) — Perks: map hint pips +1; survey pay +2%.
+- Measurer (Tier 1) — Perks: hint pips +2; survey pay +5%; free lanemark kit.
+- Ordinate (Tier 2) — Perks: hint pips +3; survey pay +10%; rare resonance leads.
 
-- Leader Seed NPC
-  - Survey‑Mistress Lyss of the Third Tone — eyes half on you, half on the wall; asks you to set three hush‑marks and take a resonance reading where the fault hums.
 
-- Notable Members
-  - Dain Chordwright — maps the mine on threads and notes; swears he can hear a lamp’s mood.
-  - Sera of the Chalk — leaves clean, cold marks that glow like a held breath; needs a watcher while she writes.
+## Truce & The First Warrant — Faction Interplay
 
-- Starting Favors
-  - Early tremor warnings scribed onto your route, an annotated scrap of a crystal pocket, and a loaned hum‑stone to test a lamp’s steadiness.
+- By the First Warrant, witnessed nightly by the Tavern Keeper of Claim’s Mouth, no guild raises hand against another within the hub. Contract boards stand side by side, and all postings honor the Three‑Wide Law: lanes held to three‑wide between doors, lamps mounted at each room threshold, and salvage rights tallied by marked depth. Disputes go to ledger, not to knives, in keeping with the Acceptance recorded in founding‑lore.md.
 
-- Rivalries & Tensions
-  - With Brassbound: refuse to carve signs into singing faces; Brassbound calls it foot‑dragging.
-  - With Emberforge: ask hammers to throttle down near faultlines; the League calls it coddling.
-  - Internal edge: impatience with loud feet—if you clatter, they close their books.
 
-- Signature Contracts
-  - Resonance Read — Seam Edge: “Set a listening cone, count the pulses, and chalk the number where it’s safe to stand.” id: contract.ordinate.resonance_read.t1
-  - Crystal Chart — Pocket Sketch: “Trace a crystal pocket’s bounds and note the cold spots; leave the wall unbitten.” id: contract.ordinate.crystal_chart.t1
-  - Safe Passage — Mark 3‑Wide: “Scout a corridor and lay quiet marks to certify safe width and shoulder room.” id: contract.ordinate.safe_passage.mark.t1
-  - Lantern Test — Faultline: “Walk a hush‑line with a fresh lantern and log every flicker against the wall’s hum.” id: contract.ordinate.lantern_test.t1
-  - Silent Escort — Survey Kit: “Keep loiterers and curious gobbos off while an instrument runs; no shouting unless the rock shouts first.” id: contract.ordinate.silent_escort.t1
+## Contract Hooks Index (Copy/Paste IDs)
 
-- Seasonal Seeds (Future)
-  - A resonance lock in the deep that won’t open for steel—only for the right note held long enough.
-  - A choir‑map that redraws itself as the stone shifts, if powered by a river of quiet light.
+- contract.brassbound.sconce_resupply — Place 3 lamps along a corridor; teaches spacing. Surfaces: quest board, tutorial tip.
+- contract.brassbound.salvage_lamp_parts — Retrieve 2 lamp fittings from goblins; combat→loot loop. Surfaces: quest board.
+- contract.brassbound.lane_clearance.audit — Verify 3‑wide lane between doors; navmask tour. Surfaces: quest board.
+- contract.brassbound.ledger_stamp — Mark a Depth‑Mark at a room door; signage intro. Surfaces: quest board.
+- contract.emberforge.iron_pull — Mine 8 ore.iron on a timer; cadence lesson. Surfaces: quest board.
+- contract.emberforge.tool_trial.t2 — Field‑test Reinforced Pick; durability/stamina. Surfaces: quest board, tooltip.
+- contract.emberforge.burrower_counter — Hunt 2 Cave Burrowers after dodge tip. Surfaces: quest board.
+- contract.emberforge.vein_scout — Tag a high‑hardness seam; reading seams. Surfaces: quest board, tutorial tip.
+- contract.ordinate.resonance_read — Take 3 resonance reads at seam edges. Surfaces: quest board, tutorial tip.
+- contract.ordinate.quartz_sample — Deliver 3 shard.quartz for study. Surfaces: quest board.
+- contract.ordinate.lanemark_chevrons — Place 3 lane markers at elbows. Surfaces: quest board.
+- contract.ordinate.telegraph_log — Observe a telegraph, survive window. Surfaces: quest board, rumor.
 
----
+Reserved (Season growth; names only, non‑binding)
+- contract.shared.depthmark_scout — Scout unmarked doors; propose depth marks. Surfaces: rumor, quest board.
+- contract.shared.lamp_ignition — Relight 4 dark lamps in one pass. Surfaces: tutorial, quest board.
+- contract.shared.goblin_block_drill — Clear a goblin block with 3‑wide restore. Surfaces: quest board.
 
-## Gameplay Tie‑Ins & Hooks (for Designers)
 
-Design mappings by guild
-- Brassbound Consortium
-  - Worldgen lanes: tasks that validate 3‑wide corridors, require player to read/extend signage, and place lamps at algorithmic lane nodes (see §Lighting & lanes).
-  - Mining stations: light logistics through way‑stations adjacent to Stations & Tiers benches; players shuttle parts/oil between nodes.
-  - Enemy teaches: crate escorts favor chokepoints where Goblin/block is taught via shield/brace prompts; occasional path clear for lane compliance.
-  - Color tokens for signage: ui.frame.brass frames on posts; ui.text.numbers for distance marks; mapping.lighting.lampWarm implied on lit nodes.
+## Implementation Notes
 
-- Emberforge League
-  - Mining stations: direct interaction with crafting benches (Stations & Tiers); fetch/repair loops demonstrate station adjacency and resource return.
-  - Worldgen lanes: salvage hauls reinforce the need for 3‑wide clearances to drag or carry objects safely.
-  - Enemy teaches: salvage/repair routes commonly stir Burrower/dodge moments (ground tells) and a few Goblin/block checks near benches.
-  - Color tokens for signage: mapping.lighting.lampWarm around work areas; terrain.ore.iron and terrain.ore.copper accents on tool signage.
+- Contracts JSON (MVP stub, non‑binding fields):
+  - id: stable string (e.g., contract.brassbound.sconce_resupply)
+  - guild: brassbound | emberforge | ordinate | shared
+  - name: short display name
+  - summary: ≤140 chars for UI
+  - objectives[]: atomic steps with counts/locations
+  - rewards: currency, items, rep deltas
+  - surfaces[]: quest_board | tutorial | tooltip | rumor
+- Integration pointers:
+  - Resource ids (iron, copper, quartz) from data/items/resources.json (use terrain.ore.* where applicable).
+  - Enemy ids (goblin, Cave Burrower) from data/combat/*.json.
+  - Color/lighting tokens from data/visual/color-palette.json; never inline hex.
+  - Biome spawn/lighting cues from data/world/biome-crystal-caverns.json.
 
-- Crystal Ordinate
-  - Worldgen lanes: safe‑lane scouting leverages lane width data and lighting variance to teach the 3‑wide law via quiet marks.
-  - Mining stations: minimal; focus on data capture at seam edges and along faultlines, feeding back to map overlays.
-  - Enemy teaches: resonance readings foreshadow Burrower/dodge beats (tremor cues), and low‑risk Goblin/block only if noise escalates.
-  - Color tokens for signage: mapping.lighting.crystalCool for chalk marks and resonance beacons; terrain.ore.quartz as visual glints in survey notes.
-
-Quest id stub lists (string ids only)
-- Brassbound: contract.brassbound.lamp_run.t1, contract.brassbound.lane_audit.t1, contract.brassbound.signage_post.t1, contract.brassbound.crate_escort.t1, contract.brassbound.ore_scout.t1
-- Emberforge: contract.emberforge.tool_trial.pick.t1, contract.emberforge.repair_haul.t1, contract.emberforge.salvage_drillhead.t1, contract.emberforge.lamp_refit.t1, contract.emberforge.rivet_crate_recover.t1
-- Ordinate: contract.ordinate.resonance_read.t1, contract.ordinate.crystal_chart.t1, contract.ordinate.safe_passage.mark.t1, contract.ordinate.lantern_test.t1, contract.ordinate.silent_escort.t1
-
----
-
-## Dialogue Seeds (For Tavern Keeper & NPCs)
-
-Brassbound Consortium — Tavern Keeper’s voice
-- “Mind the ui.frame.brass on their notice—if it’s ringed, it’s on the clock.”
-- “They’ll pay in neat ui.text.numbers, but only if your lamps match their mapping.lighting.lampWarm marks.”
-- “Brassbound folk love a straight lane and a straight tale; cut neither.”
-- “Crate run posted—small hands in the dark, so keep your shield high and your temper low.”
-- “Three‑wide or no wide, that’s their creed; save them a choke and they’ll save you a scold.”
-- “Paint’s fresh on the wayposts; don’t smudge their ui.text.numbers unless you fancy a lecture.”
-- “If a ledger walks in, it’s wearing boots called Tallie and Jorren.”
-
-Emberforge League — Tavern Keeper’s voice
-- “When mapping.lighting.lampWarm blooms at the bench, the League smiles.”
-- “They’ll trade a tale for a toolmark; terrain.ore.iron on the apron means business.”
-- “Pick trials tonight—bite clean, bring back chips, and keep your knuckles whole.”
-- “Hear that clatter? terrain.ore.copper rivets loose again—go earn an easy fix.”
-- “They don’t haggle much; they glare until the metal agrees.”
-- “If a cage rattles on your route, swap it or Old Soot will haunt your sleep.”
-- “Forge folk forgive a stumble, not a shortcut.”
-
-Crystal Ordinate — Tavern Keeper’s voice
-- “If mapping.lighting.crystalCool shivers, hush—Ordinate ears are open.”
-- “Their chalk on the wall is worth a lamp; see the terrain.ore.quartz glint and step where it points.”
-- “They’ll ask you to listen first, walk second; pays in quiet and safe returns.”
-- “Faultline lantern test posted—count flickers, count breaths, count your luck.”
-- “Survey kit wants a shadow, not a shout; gobbos hate a watcher.”
-- “Brass hates their pauses, Forge hates their whispers, but the rock loves them fine.”
-- “Lyss of the Third Tone can hear a tremor in a toast—mind your mug.”
-
----
-
-## Acceptance & Continuity Checklist
-- Three distinct factions with clear mottos, colors (token‑only), tones, and specialties consistent with founding‑lore.md.
-- All Signature Contracts are MVP‑feasible: lamp placement runs, 3‑wide lane audits, ore/crystal charting, escorted hauls, salvage and repairs, resonance readings.
-- Specialty & Play Focus map to MVP systems: worldgen lanes and lighting, Stations & Tiers crafting, 3‑wide law, and basic enemy teaches (Goblin/block vs. Burrower/dodge).
-- No mechanical promises beyond flavor “Starting Favors”; no contradictions with established First Warrant truce.
-- Color references use tokens only from data/visual/color-palette.json; no raw hex or engine specifics.
-- The Tavern mediates warrants, neutral per founding‑lore.md; lamp rites and 3‑wide law upheld across entries.
-- Contract id stubs formatted for later data authoring; unique and namespaced by faction.
+Acceptance & QA Checklist
+- Distinct ethos and specialties per guild; mottos present.
+- 12 sample contracts with stable ids across three guilds.
+- Hooks touch MVP enemies, tools, lamps, and lanes (Three‑Wide Law).
+- All color mentions via tokens; no raw hex codes.
+- Player‑facing copy tight; TL;DR and summaries ≤140 chars where noted.
+- Terminology consistent with founding‑lore.md (First Warrant, Acceptance, Three‑Wide Law, Claim’s Mouth).
+- NPC touchpoints and MVP‑lite reputation tracks with perk hooks included.
