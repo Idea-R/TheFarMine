@@ -1,144 +1,107 @@
 {
   "version": 1,
+  "meta": {
+    "author": "beta",
+    "updated": "2026-02-18T00:00:00Z",
+    "notes": [
+      "Sprint-1 L1 room templates for Mine stamping.",
+      "Grid legend per docs/world-generation/cave-gen-algorithm.md.",
+      "Three-wide door bands on cardinal edges; rotate-safe."
+    ]
+  },
   "templates": [
     {
-      "id": "room.tunnel.basic",
+      "id": "room.tunnel.3w.segmentA",
+      "name": "Straight Tunnel Segment A",
       "kind": "tunnel",
-      "size": {
-        "w": 13,
-        "h": 9
-      },
-      "rotate": [0, 90, 180, 270],
-      "doorBands": [
-        {
-          "side": "N",
-          "span": [5, 6, 7],
-          "depth": 3,
-          "center": { "x": 6, "y": 0 }
-        },
-        {
-          "side": "S",
-          "span": [5, 6, 7],
-          "depth": 3,
-          "center": { "x": 6, "y": 8 }
-        }
+      "allowRotate": true,
+      "size": { "w": 13, "h": 9 },
+      "door_bands": [
+        { "side": "W", "center": { "x": 0, "y": 4 }, "span": 3 },
+        { "side": "E", "center": { "x": 12, "y": 4 }, "span": 3 }
       ],
-      "glyphs": {
-        "#": "rock",
-        ".": "floor",
-        "D": "door_band",
-        "O": "ore_pref"
-      },
+      "approachDepth": 3,
+      "weight": 5,
+      "tags": ["l1", "corridor", "straight", "safe_carve"],
       "grid": [
-        "#####DDD#####",
+        "#############",
+        "#############",
         "#####...#####",
+        "D...........D",
+        "D...........D",
+        "D...........D",
         "#####...#####",
-        "####.....####",
-        "##O.......O##",
-        "####.....####",
-        "#####...#####",
-        "#####...#####",
-        "#####DDD#####"
+        "#############",
+        "#############"
       ],
       "notes": [
-        "Three‑Wide axial alignment",
-        "Leave 1‑tile shoulders of '#' at corners to avoid diagonal leaks"
+        "Three-wide horizontal corridor with centered W/E mouths.",
+        "Approach depth 3 behind both door bands.",
+        "Short shoulder bulges encoded at rows 2 and 6."
       ]
     },
     {
-      "id": "room.cavern.bell",
+      "id": "room.cavern.ovalA",
+      "name": "Oval Cavern A",
       "kind": "cavern",
-      "size": {
-        "w": 21,
-        "h": 15
-      },
-      "rotate": [0, 90, 180, 270],
-      "doorBands": [
-        {
-          "side": "N",
-          "span": [9, 10, 11],
-          "depth": 4,
-          "center": { "x": 10, "y": 0 }
-        },
-        {
-          "side": "S",
-          "span": [9, 10, 11],
-          "depth": 4,
-          "center": { "x": 10, "y": 14 }
-        },
-        {
-          "side": "E",
-          "span": [6, 7, 8],
-          "depth": 4,
-          "center": { "x": 20, "y": 7 }
-        }
+      "allowRotate": true,
+      "size": { "w": 19, "h": 13 },
+      "door_bands": [
+        { "side": "N", "center": { "x": 9, "y": 0 }, "span": 3 },
+        { "side": "S", "center": { "x": 9, "y": 12 }, "span": 3 }
       ],
-      "glyphs": {
-        "#": "rock",
-        ".": "floor",
-        "D": "door_band",
-        "O": "ore_pref"
-      },
+      "approachDepth": 4,
+      "weight": 3,
+      "tags": ["l1", "cavern", "smooth_rim", "pillars", "wide"],
       "grid": [
-        "#########DDD#########",
-        "#####...........#####",
-        "####.............####",
-        "##O...............###",
-        "##...........##....##",
-        "##...........#O....##",
-        "##...O#......##.....D",
-        "##...##.............D",
-        "##..................D",
-        "##....##...........##",
-        "##....##...........##",
-        "###...............###",
-        "####.............####",
-        "#####...........#####",
-        "#########DDD#########"
+        "########DDD########",
+        "##O#...........####",
+        "###.............###",
+        "##...............##",
+        "##...............##",
+        "#.................#",
+        "#....#.......#....#",
+        "#.................#",
+        "##...............##",
+        "##...............##",
+        "###.............###",
+        "####...........#O##",
+        "########DDD########"
       ],
       "notes": [
-        "Approach lanes must enter clear into belly for CA smoothing",
-        "Pillars ≥2 tiles thick to survive CA"
+        "Medium oval cavern with smooth interior and rock rim.",
+        "Two interior pillars at (x≈5,y≈6) and (x≈13,y≈6); ≥2 tiles from approach lanes.",
+        "Ore preference seeds placed on interior rim rock, away from approach lanes.",
+        "N/S mouths are three-wide; ≥4 tiles of clear approach behind each."
       ]
     },
     {
-      "id": "room.ore_pocket.seed",
+      "id": "room.ore_pocket.nicheA",
+      "name": "Ore Pocket Niche A",
       "kind": "ore_pocket",
-      "size": {
-        "w": 11,
-        "h": 11
-      },
-      "rotate": [0, 90, 180, 270],
-      "doorBands": [
-        {
-          "side": "W",
-          "span": [4, 5, 6],
-          "depth": 3,
-          "center": { "x": 0, "y": 5 }
-        }
+      "allowRotate": true,
+      "size": { "w": 11, "h": 9 },
+      "door_bands": [
+        { "side": "W", "center": { "x": 0, "y": 4 }, "span": 3 }
       ],
-      "glyphs": {
-        "#": "rock",
-        ".": "floor",
-        "D": "door_band",
-        "O": "ore_pref"
-      },
+      "approachDepth": 3,
+      "weight": 2,
+      "tags": ["l1", "ore_bias", "niche", "copper_hint"],
       "grid": [
         "###########",
-        "###.....###",
         "##.......##",
+        "#........##",
+        "D........##",
+        "D........O#",
+        "D........O#",
+        "#........##",
         "##.......##",
-        "D.......#O#",
-        "D........OO",
-        "D.......#O#",
-        "##.......##",
-        "###.....###",
-        "####...####",
         "###########"
       ],
       "notes": [
-        "Heavy 'O' hints near back wall",
-        "No 'O' within approach depth"
+        "Small bulb niche with a single W mouth and ≥3 tiles of clear approach.",
+        "Clustered 'O' seeds on the east-side rim rock opposite the door to bias ore.",
+        "Designed as a side chamber; rotates to tuck off main corridors."
       ]
     }
   ]
