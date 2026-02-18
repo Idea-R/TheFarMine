@@ -2,64 +2,105 @@
   "version": 1,
   "templates": [
     {
-      "id": "room.tunnel.straight",
-      "name": "Straight Tunnel",
+      "id": "room.tunnel.basic",
       "kind": "tunnel",
+      "name": "Straight Tunnel Niche",
+      "weight": 3,
       "rotate": [0, 90, 180, 270],
-      "weight": 1.0,
-      "grid": [
-        "##DDD##",
-        "##...##",
-        "##...##",
-        "##...##",
-        "##...##",
-        "##...##",
-        "##...##",
-        "##...##",
-        "#######"
+      "doorBands": [
+        {
+          "side": "W",
+          "center": 3,
+          "width": 3
+        }
       ],
-      "doors": [
-        { "side": "N", "centerX": 3, "centerY": 0, "width": 3, "approachDepth": 3 }
+      "aabb": {
+        "w": 11,
+        "h": 7
+      },
+      "grid": [
+        "###########",
+        "######...##",
+        "DDD.......#",
+        "DDD.......#",
+        "DDD.......#",
+        "######...##",
+        "###########"
+      ],
+      "notes": [
+        "Three-wide approach: columns 3..5 are exactly 3-wide for rows 2..4 behind the W door band.",
+        "Corridor bellies to 5-wide (rows 1..5) in columns 6..8 before narrowing again.",
+        "Rim sealed with rock except at door band; no ore hints in this stamp."
       ]
     },
     {
-      "id": "room.cavern.medium",
-      "name": "Medium Cavern",
+      "id": "room.cavern.belly_small",
       "kind": "cavern",
+      "name": "Crystal Belly (Small)",
+      "weight": 2,
       "rotate": [0, 90, 180, 270],
-      "weight": 0.9,
+      "doorBands": [
+        {
+          "side": "N",
+          "center": 7,
+          "width": 3
+        }
+      ],
+      "aabb": {
+        "w": 15,
+        "h": 11
+      },
+      "grid": [
+        "######DDD######",
+        "######...######",
+        "######...######",
+        "######...######",
+        "#####.....#####",
+        "####...#...####",
+        "###..#...#..###",
+        "####...#...####",
+        "#####.....#####",
+        "######...######",
+        "###############"
+      ],
+      "notes": [
+        "Three-row throat: rows 1..3 are exactly 3-wide under the N door band.",
+        "Oval-ish belly opens to ~9x7 with small rock pillars that avoid the approach lane.",
+        "Rim rock everywhere except door lane; no ore hints here (CA/erosion handles edges)."
+      ]
+    },
+    {
+      "id": "room.ore_pocket.veined",
+      "kind": "ore_pocket",
+      "name": "Veined Chamber",
+      "weight": 1,
+      "rotate": [0, 90, 180, 270],
+      "doorBands": [
+        {
+          "side": "E",
+          "center": 4,
+          "width": 3
+        }
+      ],
+      "aabb": {
+        "w": 13,
+        "h": 9
+      },
       "grid": [
         "#############",
-        "###.........#",
-        "D...#####..##",
-        "D...#...#..##",
-        "D...#...#..##",
-        "###..#...#..#",
-        "###..#####..#",
-        "###........##",
+        "####...######",
+        "###OOO.######",
+        "###OO.....DDD",
+        "###.......DDD",
+        "###O......DDD",
+        "###OO..######",
+        "####...######",
         "#############"
       ],
-      "doors": [
-        { "side": "W", "centerX": 0, "centerY": 3, "width": 3, "approachDepth": 3 }
-      ]
-    },
-    {
-      "id": "room.ore_pocket.small",
-      "name": "Ore Pocket",
-      "kind": "ore_pocket",
-      "rotate": [0, 90, 180, 270],
-      "weight": 0.8,
-      "grid": [
-        "#########",
-        "##OO#OO##",
-        "#O###OO##",
-        "#O#...###",
-        "#O#...#O#",
-        "#...###O#",
-        "###DDD###"
-      ],
-      "doors": [
-        { "side": "S", "centerX": 4, "centerY": 6, "width": 3, "approachDepth": 3 }
+      "notes": [
+        "E-side three-wide door band is 3 tiles deep (cols 10..12) with a strict 3-wide approach at cols 7..9 for rows 3..5.",
+        "Ore-pref cells clustered along the western chamber wall, avoiding the approach and ≥2 tiles from rim.",
+        "O-cells are on rock only; chamber compact and rotation-safe."
       ]
     }
   ]
