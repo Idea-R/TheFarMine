@@ -3,36 +3,42 @@
   "recipes": [
     {
       "id": "recipe.tool.pick.t1.basic",
-      "name": "Basic Pickaxe",
-      "station": "workbench",
+      "name": "Craft: Basic Pickaxe",
+      "stationId": "workbench",
+      "stationTier": 1,
       "timeMs": 6000,
       "inputs": [
-        { "itemId": "ore.copper", "qty": 6 }
+        { "itemId": "ore.copper", "qty": 8 }
       ],
-      "output": { "itemId": "tool.pick.t1.basic", "qty": 1 }
+      "output": { "itemId": "tool.pick.t1.basic", "qty": 1 },
+      "notes": [ "Starter tool; copper-only for MVP" ]
     },
     {
       "id": "recipe.tool.pick.t2.reinforced",
-      "name": "Reinforced Pickaxe",
-      "station": "forge",
+      "name": "Forge: Reinforced Pickaxe",
+      "stationId": "forge",
+      "stationTier": 2,
       "timeMs": 9000,
       "inputs": [
-        { "itemId": "ore.iron", "qty": 6 },
-        { "itemId": "ore.copper", "qty": 4 }
+        { "itemId": "ore.copper", "qty": 6 },
+        { "itemId": "ore.iron", "qty": 6 }
       ],
-      "output": { "itemId": "tool.pick.t2.reinforced", "qty": 1 }
+      "output": { "itemId": "tool.pick.t2.reinforced", "qty": 1 },
+      "notes": [ "Opens iron veins; mixed copper/iron cost" ]
     },
     {
       "id": "recipe.tool.drill.t3.steam",
-      "name": "Steam Drill",
-      "station": "steam_workshop",
+      "name": "Assemble: Steam Drill",
+      "stationId": "steam_workshop",
+      "stationTier": 3,
       "timeMs": 14000,
       "inputs": [
-        { "itemId": "ore.iron", "qty": 8 },
+        { "itemId": "ore.iron", "qty": 10 },
         { "itemId": "shard.quartz", "qty": 2 },
         { "itemId": "core.steam", "qty": 1 }
       ],
-      "output": { "itemId": "tool.drill.t3.steam", "qty": 1 }
+      "output": { "itemId": "tool.drill.t3.steam", "qty": 1 },
+      "notes": [ "Hold to pulse; gates quartz" ]
     }
   ]
 }
