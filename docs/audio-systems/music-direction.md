@@ -1,225 +1,164 @@
-# Music Direction — Dulcimer, Brass, and the Deep Hum (Sprint 1)
+# Music Direction — Hammer, Bellows, and Brass (Sprint 1)
 
-Provenance
-- Owner: @zeta
-- Audio Systems — Echoheart Bellowsong (author)
+Provenance: owner @zeta (Audio Systems — Echoheart Bellowsong)
 
-Cross-references
-- docs/audio-systems/audio-design.md (§6 Music & Intensity Logic)
-- data/audio/sound-manifest.json (music.* ids)
-- docs/world-generation/cave-gen-algorithm.md (§Depth lanes)
-- docs/visual-systems/ui-framework.md (§Events bindings)
-- data/visual/color-palette.json (token-only)
-- data/items/tools.json (tempo references for mining rhythm)
+Cross-refs: data/audio/sound-manifest.json (asset ids), docs/audio-systems/audio-design.md (§10 Music Conductor, §11 Ducking), docs/combat-systems/combat-design.md (§10 Events), data/visual/color-palette.json (mapping.depthTint.l0), docs/technology-systems/crafting-design.md (§8 Events & Bridges).
 
 ---
 
-## 2) Aesthetic North Star
-
-One-page brief
-- Ensemble: steampunk dwarven chamber set. Earth-warm timbres with mechanical breath.
-- Timbres:
-  - Hammered dulcimer shimmer for work-song ostinatos and arpeggios.
-  - Bellows/brass: baritone horn/euphonium (muted/light articulation).
-  - Contrabass: steady deep hum (bowed/pizz for motion).
-  - Pump organ/bellows pad: soft bed, no modern synth sheen.
-  - Hand percussion: frame drum (felt mallets), shaker, soft brushes on low tom.
-  - Idiophones: glass/crystal chimes sparingly for depth sparkle.
-  - Musical foley: steam/gear ticks extremely low in mix (texture, not SFX).
-- Mood targets:
-  - Mine explore: patient momentum, quiet grit, head-down hope.
-  - Tavern: warm bustle, hearth-close air (ambient only in MVP).
-  - Combat overlay: percussive urgency layered atop explore without shifting harmonic ground.
+## 1) Aesthetic North Star (MVP)
+Dwarven chamber ensemble: hammered dulcimer carries sparkling ostinati, low brass (tenor horn/euphonium) breathes modal weight, hand percussion adds industrious pulse, and soft bellows/steam textures exhale in the bed with occasional crystal glints. The tone is calm and industrious for exploration, with percussive clarity for Three‑Wide reads, unobtrusive looping, and a fast, lightweight overlay path for combat.
 
 ---
 
-## 3) Instrumentation Palette (MVP)
+## 2) Instrument Palette & Roles
+- Hammered Dulcimer — ostinati/arpeggios; mid-high register; sparkle layer.
+- Low Brass (Euph/Tenor Horn) — long tones, modal pedal points; warmth/weight.
+- Hand Percussion — frame drum, shakers, light clacks; provides combat overlay cells.
+- Bellows/Steam Textures — breathing beds; depth tint pairing.
+- Crystal Accents — light plucks/glints for explore.sparkle.
 
-Core instruments
-- Hammered dulcimer: close-mic shimmer, dry decay.
-- Baritone horn / euphonium: cup-muted, light dynamics; no heroic blasts.
-- Contrabass: fundamental drone and gentle ostinato (bowed/pizz).
-- Pump organ / bellows pad: subtle breath noise, thin registration.
-- Hand percussion: shaker (seed), frame drum (felt), low tom with brushes; avoid cymbal wash.
-- Crystal chimes (idiophone): rare highlights; soft mallet or finger-pluck.
-- Musical foley: faint steam puff, slow gear ticks on long cycles (musicalized, very low).
-
-Texture and room
-- Prefer a dry, close room. No heavy reverb in MVP.
-- Stems delivered dry; engine will not provide convolution in Sprint 1.
-- Avoid modern cymbal/sizzle; keep attacks soft and contained.
+Production notes: dry-to-room IR only (small stone chamber), subtle tape overdrive for cohesion, web-safe headroom (−3 dBFS peak per stem).
 
 ---
 
-## 4) Tempo, Meter, and Cadence
+## 3) Asset IDs & Stems (authoritative)
+Exact ids (must match manifest):
 
-- Explore base tempo: 92 BPM, 4/4. Use occasional 2-bar phrasing with 3+3+2 subdivisions to echo pick cadence (ref data/items/tools.json).
-- Sparkle overlay: locked to 92 BPM; dotted-eighth arpeggios permitted; avoid polymeter or polyrhythm.
-- Combat overlay: 116 BPM “feel” layered over the 92 BPM grid via a 3-over-4 accent pattern. Quantize starts to bar 1 so natural phasing occurs on any bar-aligned trigger.
-- Loop lengths:
-  - Explore base: 16 bars (bar-aligned loop).
-  - Sparkle: 16 bars (bar-aligned loop).
-  - Combat overlay (perc-led): 8 bars (bar-aligned loop).
-- Include exact bar counts in filenames (see §9).
-
-Approximate durations for QA (at 92 BPM, 4/4)
-- 16 bars = 64 beats ≈ 41.74 s
-- 8 bars = 32 beats ≈ 20.87 s
-
----
-
-## 5) Harmonic Language & Keys
-
-- Explore base: D Dorian center. Occasional modal lift to G Mixolydian. Avoid strong leading tones that force resolution at loop seams.
-- Sparkle overlay: pentatonic figures and planed dyads fit over D Dorian. Never introduce conflicting thirds—keep color tones 2, 4, 6, and 5 dominant.
-- Combat overlay: percussion-forward with tonal percussion tuned around D. No distinct chord changes; maintain compatibility with base center.
-- Stingers:
-  - Enter combat: brief IV → I modal cadence gesture (G flavor to D, without strong leading tone).
-  - Exit combat: I sus2 resolving to open fifth (D–A), breath exhale.
+- music.explore.base.loopA — base exploration bed (dulcimer + brass pad + bellows bed printed as a single stereo loop for MVP).
+  - Target loudness: −18 LUFS integrated, peak ≤ −3 dBFS.
+  - Loop length: 16 bars.
+  - Alignment: align:"bar".
+- music.explore.sparkle.loopA — add-on sparkle layer (dulcimer upper ostinato and crystal plucks) — loop:true, align:"bar".
+  - Target loudness: −22 LUFS integrated (submix layer), peak ≤ −6 dBFS.
+  - Loop length: 8 bars.
+  - Alignment: align:"bar".
+- music.combat.overlay.perc.loopA — percussion overlay (frame drum + sticks) — loop:true, align:"bar".
+  - Target loudness: −16 LUFS integrated, peak ≤ −3 dBFS.
+  - Loop length: 4 bars.
+  - Alignment: align:"bar".
+- music.stinger.enterCombat — 1–2 bar brass swell + drum pickup; align:"bar".
+  - Target loudness: −14 LUFS short-term max, peak ≤ −1 dBFS.
+  - Length: 2 bars recommended (MVP).
+  - Alignment: align:"bar" (queued next bar).
+- music.stinger.exitCombat — 1–2 bar cadential release; align:"bar".
+  - Target loudness: −14 LUFS short-term max, peak ≤ −1 dBFS.
+  - Length: 2 bars recommended (MVP).
+  - Alignment: align:"bar" (queued next bar).
 
 ---
 
-## 6) Dynamic Layer System (Authoritative)
-
-Layer-to-manifest mapping
-- music.explore.base.loopA — primary bed
-- music.explore.sparkle.loopB — crystal shimmer overlay
-- music.combat.overlay.perc.loopA — percussive combat overlay
-- music.stinger.enterCombat — one-shot
-- music.stinger.exitCombat — one-shot
-
-State machine & hysteresis (see audio-design §6)
-- Enter combat:
-  - Condition: inCombat true for ≥300 ms.
-  - Actions: fade in combat overlay over 180–240 ms, trigger enterCombat stinger at state change, sidechain duck base by -3 dB for 600 ms.
-- Exit combat:
-  - Condition: inCombat false for ≥1500 ms.
-  - Actions: fade out combat overlay over 340–480 ms, trigger exitCombat stinger, brief +1 dB makeup on base for 400 ms acceptable.
-
-Gain targets before music bus
-- Base loop nominal: 0.63 (manifest); bus.music at -4 dB (see manifest.globals.buses).
-- Sparkle nominal: 0.60; engine defaults to 70% of nominal unless crystal density raises it (see §7).
-- Combat overlay nominal: 0.62. Ensure no master clipping; stems must preserve ≥3 dBFS headroom.
+## 4) Tempo, Meter, and Keys
+- Tempo/Meter: 92 BPM, 4/4 across all assets (fixed MVP).
+- Bar length: 4 beats; 1 bar ≈ 2.609 s at 92 BPM.
+- Keys/Modes: D Dorian/D minor color; avoid leading-tone cadences for clean looping.
+- Engineering note: Conductor holds a global 92 BPM bar/beat clock; all align:"bar" assets start/stop at bar boundaries; stingers are queued and fire on the next bar.
 
 ---
 
-## 7) Depth & Biome Modulation (Explore Layers)
-
-Depth scalar routing (0..1) to explore pair
-- Base gain scale: baseGain = 0.18 + 0.64 × depth
-- Sparkle gain bias:
-  - sparkleGain = 0.35 + clamp01(crystalDensity × 0.7) × 0.30
-  - crystalDensity is biome-provided (0..1). Clamp result to [0.35, 0.65].
-- No key or tempo changes with depth in MVP.
-
-Notes
-- Depth lanes per docs/world-generation/cave-gen-algorithm.md supply the depth value.
-- Visual palette cues (token-only, data/visual/color-palette.json) may co-vary but do not modulate music in MVP.
+## 5) Loop Construction & Seam Rules
+- All loops are exact whole-bar multiples with seamless cycle points at zero-crossings; ambience tails must be printed entirely within the loop region so the last sample leads cleanly to the first.
+- Recommended loop lengths (MVP):
+  - explore.base.loopA: 16 bars.
+  - explore.sparkle.loopA: 8 bars (harmonically compatible subset of base).
+  - combat.overlay.perc.loopA: 4 bars (tight re-entry).
+- Tail handling: bake reverbs/delays into the loop body; no external/continuing tails beyond loop end.
 
 ---
 
-## 8) Cue Map & Triggers (Copy/Paste)
+## 6) Layer States & Intensity Model
+- Explore Calm: base only.
+- Explore Curious: base + sparkle (triggered by light milestones; can be manually toggled in MVP).
+- Combat Engaged: base + combat overlay; enter stinger on first combat.TelegraphStart when not already in combat.
+- Combat Cooldown: remain in Combat during hysteresis, then play exit stinger and drop overlay.
 
-Scene transitions
-- scene.mine.enter → start music.explore.base.loopA and music.explore.sparkle.loopB at next bar boundary. Engine may free-run clock; provide bar-aligned loop points for seamlessness.
-- scene.hub.enter → stop mine music layers; start ambient.tavern.loopA (music deferred; ambient only in MVP).
-
-Combat events
-- music.state { inCombat } → manage overlay and stingers per §6 hysteresis. All overlay/stinger triggers align to bar starts when latency permits (see §12).
-
----
-
-## 9) Stem Prep & File/Loop Specs (Authoritative for assets)
-
-Delivery
-- Format: OGG, 44.1 kHz, 16-bit, stereo for all loops and stingers.
-- Loudness: -16 LUFS integrated target; true-peak ≤ -3 dBFS.
-- Stems are dry; no bus reverb printed.
-
-Looping
-- Bar-aligned loop points; ensure zero-crossings at boundaries.
-- Include 10–20 ms pre-roll safety inside files; if engine supports metadata loop points, set precise LoopStart/LoopEnd. Otherwise hard-trim and QA for gapless playback.
-
-File naming (exact)
-- music/explore_base_loopA_92bpm_16bar.ogg → id music.explore.base.loopA
-- music/explore_sparkle_loopB_92bpm_16bar.ogg → id music.explore.sparkle.loopB
-- music/combat_overlay_perc_loopA_92bpm(116feel)_8bar.ogg → id music.combat.overlay.perc.loopA
-- music/stinger_enter_combat_92bpm_barAligned.ogg → id music.stinger.enterCombat
-- music/stinger_exit_combat_92bpm_barAligned.ogg → id music.stinger.exitCombat
-
-Phase and onset discipline
-- Sparkle and combat overlay must begin with silence or a light pickup ≤50 ms to avoid transient pops when faded in mid-phrase.
-- Strongest accents land on beat 1. Avoid hard transients in the first 20 ms of the file.
+Hysteresis:
+- Enter: play enter stinger immediately (queued to next bar); overlay starts on the next bar boundary.
+- Exit: require 4 full bars with no combat events (TelegraphStart/Hit) before scheduling exit stinger; overlay stops on the bar boundary preceding the exit stinger if needed (never mid-bar).
 
 ---
 
-## 10) Mixing & Sidechain Targets
+## 7) Loudness Targets & Balancing
+Per-asset integrated LUFS targets:
+- explore.base.loopA: −18 LUFS, peak ≤ −3 dBFS.
+- explore.sparkle.loopA: −22 LUFS (submix layer), peak ≤ −6 dBFS.
+- combat.overlay.perc.loopA: −16 LUFS, peak ≤ −3 dBFS.
+- Stingers (enter/exit): −14 LUFS short-term max, peak ≤ −1 dBFS.
 
-Buses & headroom
-- Follow manifest.globals.buses (music at -4 dB).
-- Maintain ≥6 dB headroom on master under worst-case SFX bursts.
-
-Engine-driven sidechain ducks
-- combat.poiseBreak → duck music by -4 dB for 500 ms (attack 60 ms, release 200 ms).
-- mining.break.stone → duck music by -2 dB for 220 ms (fast attack/release).
-
-Internal music-bus stem balance (guidance)
-- Base: 0 dB
-- Sparkle: -4 dB
-- Combat overlay: -2 dB
+Runtime gains:
+- Music bus initialGain: −4.0 dB (per manifest.globals.buses.music).
+- Conductor may apply ±2 dB trims to overlays to maintain headroom when SFX ducking is active (see §9). Maintain combined music peak headroom ≥ −2 dBFS under typical SFX load.
 
 ---
 
-## 11) Tavern Ambient (MVP)
-
-- No music bed in MVP. ambient.tavern.loopA suffices for Sprint 1.
-- Direction note (Season 2): introduce hurdy-gurdy drone + low chatter loop in D mixolydian family for musical continuity with mine key center.
-
----
-
-## 12) Implementation Notes for Engineers
-
-Engine API usage
-- setMusicState({ inCombat, biomeId })
-- setDepthScalar(value) → affects explore base/sparkle per §7.
-- On scene.mine.enter: start explore.base, then sparkle (same bar). Prevent duplicate starts via polyphonyKey.
-- Overlay and stingers managed via hysteresis in §6.
-
-Bar-aware fades
-- Prefer aligning overlay fade-in to the next bar if estimated trigger latency <200 ms.
-- If >200 ms, trigger immediately but use 180–240 ms ramp to the musical grid (start at low-energy segment per §9).
-
-Ordering & polyphony caps
-- Start order: base → sparkle; overlays/stingers follow state changes.
-- Use polyphonyKey per id (e.g., "music.explore.base.loopA") with maxVoices=1 to avoid double-start/race.
-
-Safety & QA hooks
-- On combat enter: schedule stinger at bar boundary; overlay fade can begin immediately if boundary miss would exceed latency budget.
-- Ensure bar-aligned loop points are respected even if streams begin late; engine clock should snap subsequent loop cycles.
+## 8) Ducking & Sidechain Plan
+- As per manifest.globals.ducking.rules: SFX momentarily duck Music and Ambient by ~3–4 dB with 12–20 ms attack and 180–260 ms release (nominal 3.5 dB, 16 ms, 220 ms).
+- UI ducks Music slightly less (~2–3 dB; same envelope).
+- Stingers are exempt from ambient ducking; SFX may still duck stingers modestly (1–2 dB) to preserve hit clarity. Ensure manifest flags reflect this exemption for ambient-to-stinger.
 
 ---
 
-## 13) Composer Checklist (QA)
+## 9) Conductor Behaviors (Engineer Contract)
+Conductor API expectations (docs/audio-systems/audio-design.md §10/§11 compliant):
+- Music.startLayer(id, { align:"bar"|"immediate" })
+- Music.stopLayer(id, { align:"bar"|"immediate" })
+- Music.playStinger(id, { align:"bar" }) — queues to the next bar; does not interrupt running layers.
+- Music.setTempo(bpm) — MVP fixed 92.
+- Music.getBarBeat() → { bar:int, beat:int (1..4) }
 
-- [ ] All stems at -16 LUFS integrated; true-peak ≤ -3 dBFS
-- [ ] Bar-aligned loop points; zero-crossings; gapless re-entry verified
-- [ ] Overlay rhythmic grid aligns to 92 BPM base; 3-over-4 accent for 116-feel overlay only
-- [ ] Harmonic language avoids leading-tone traps at loop seam; D Dorian center maintained
-- [ ] Stingers trimmed, bar-aligned attack; enter = IV→I gesture, exit = I sus2 → open fifth
-- [ ] File names exactly match manifest ids; bar counts and BPM encoded in filename
-- [ ] Sparkle avoids conflicting thirds; pentatonic/planed dyads only
-- [ ] Initial 20 ms transient control; overlays begin with ≤50 ms light pickup
-- [ ] Dry stems; no printed reverb; mechanical foley subtle and musical
-- [ ] Durations noted (16-bar ≈ 41.74 s; 8-bar ≈ 20.87 s at 92 BPM)
+Event wiring (docs/combat-systems/combat-design.md §10 Events):
+- On first combat.TelegraphStart when not in combat: Music.playStinger("music.stinger.enterCombat", {align:"bar"}); Music.startLayer("music.combat.overlay.perc.loopA", {align:"bar"}).
+- During combat (any combat.TelegraphStart/Hit): maintain overlay; reset exit hysteresis timer.
+- On combat calm (no combat events for ≥4 bars): queue Music.playStinger("music.stinger.exitCombat", {align:"bar"}) for next bar; Music.stopLayer("music.combat.overlay.perc.loopA", {align:"bar"}) on the boundary that precedes exit stinger if overlapping.
+
+Edge cases:
+- If a new combat event arrives while exit stinger is queued or exit is in progress: cancel exit stinger and keep/restore overlay; system remains in combat state.
+- Starting explore.sparkle.loopA is non-destructive and must phase-align to base on bar start; stopping it must be bar-quantized (no fades mid-bar beyond micro-fade at seam for click prevention).
+- Crafting/technology bridges (docs/technology-systems/crafting-design.md §8) do not alter music state in MVP; they only generate SFX that engage normal ducking.
 
 ---
 
-## 14) Acceptance
+## 10) Scene Integration & Depth Tint Sync
+- Mine scene enter:
+  - Start music.explore.base.loopA immediately (align:"immediate" ok at scene load; it naturally locks to bar 1 of the global clock).
+  - Keep music.explore.sparkle.loopA off by default; allow debug/manual toggle.
+  - Optional MVP: bind normalized depth scalar [0..1] to a gentle lowpass on the bellows layer inside the base bed (2–3 dB tonal shift across range), visually paired to data/visual/color-palette.json mapping.depthTint.l0. If not implemented, keep musical bed static and let Ambience own depth.
+- Tavern scene:
+  - Stop all Mine music layers gracefully on bar boundaries.
+  - No combat overlay in Tavern; rely on tavern ambient only.
 
-- Stems integrate with current engine logic without audible pops.
-- Music maintains headroom under SFX, follows bus targets, and sidechain ducks per §10.
-- Overlays/stingers feel musical within the hysteresis windows in §6; bar-aware behavior honored where feasible.
-- Depth and biome modulation of explore layers perform as defined in §7.
-- All ids and filenames match data/audio/sound-manifest.json and naming in §9.
+---
 
-Echoheart Bellowsong hums the rails: dulcimer sparks, brass breathes, the deep hum holds true.
+## 11) Composer Delivery Specs
+- File format: 48 kHz / 24-bit WAV per stem; stereo interleaved.
+- Loop conformance: region length equals exact bar multiples at 92 BPM; seamless cycle with tails baked-in.
+- Naming: filenames exactly match manifest ids (e.g., music.explore.base.loopA.wav).
+- Provide: bar count per asset, BPM confirmation, and a separate 1-bar count-in reference render (click or stick) for verification.
+
+---
+
+## 12) QA & Audition Checklist
+- Verify loop seams at 92 BPM in-engine; no clicks or ambience discontinuities.
+- Confirm bar alignment of overlays/stingers, and hysteresis behavior (enter immediate on next bar; exit only after 4 idle bars).
+- Validate that ducking envelopes feel natural under frequent SFX (mining/combat hits); stingers remain intelligible yet not overpowering.
+- Confirm overall mix under hit-stop moments remains musical; no time scaling or tempo warble.
+- Check combined peaks under typical SFX do not exceed −2 dBFS on the master.
+
+---
+
+## 13) Risks & Dials
+- Risks: fixed BPM limits flexibility across future biomes; combat overlay may feel busy under dense SFX.
+- Dials (tunable at runtime):
+  - Overlay gain trim: ±2 dB (Conductor).
+  - Exit hysteresis: 3–6 bars.
+  - Sparkle participation: on/off gate.
+  - Stinger length: 1–2 bars (use 2 bars by default in MVP).
+
+---
+
+## 14) Acceptance Checklist
+- Asset ids align 1:1 with data/audio/sound-manifest.json.
+- Tempo/meter fixed and documented; loop lengths defined in bars.
+- Bar-quantized start/stop behaviors and hysteresis rules are explicit.
+- Loudness targets and peak ceilings provided; ducking assumptions match manifest.
+- Conductor API and event wiring unambiguous and compliant with docs/audio-systems/audio-design.md (§10, §11).
