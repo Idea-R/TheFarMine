@@ -2,114 +2,64 @@
   "version": 1,
   "templates": [
     {
-      "id": "room.tunnel.3w.straight",
-      "name": "Straight Tunnel (3‑Wide Approach)",
+      "id": "room.tunnel.straight",
+      "name": "Straight Tunnel",
       "kind": "tunnel",
-      "weight": 6,
       "rotate": [0, 90, 180, 270],
-      "size": { "w": 11, "h": 9 },
-      "legend": {
-        "#": "rock",
-        ".": "floor",
-        "D": "door_band",
-        "O": "ore_pref",
-        " ": "void"
-      },
+      "weight": 1.0,
       "grid": [
-        "###########",
-        "###########",
-        "########..#",
-        "D.........#",
-        "D.........#",
-        "D.........#",
-        "########..#",
-        "###########",
-        "###########"
+        "##DDD##",
+        "##...##",
+        "##...##",
+        "##...##",
+        "##...##",
+        "##...##",
+        "##...##",
+        "##...##",
+        "#######"
       ],
       "doors": [
-        { "side": "W", "cells": [ { "x": 0, "y": 3 }, { "x": 0, "y": 4 }, { "x": 0, "y": 5 } ] }
-      ],
-      "notes": [
-        "Three‑Wide Law: lane depth ≥3 maintained behind door.",
-        "Stamping: map '.'→walkable; 'D'→walkable with flags.DOOR_BAND and mark interior approach cells with flags.APPROACH3W; '#'→rock; 'O'→rock with flags.ORE_PREF.",
-        "Door alignment: corridor digger centers on the middle 'D'. The provided doors[].cells are authoritative in unrotated orientation; engine must rotate these when stamping rotated variants.",
-        "Performance: grids capped to ≤17×17."
+        { "side": "N", "centerX": 3, "centerY": 0, "width": 3, "approachDepth": 3 }
       ]
     },
     {
-      "id": "room.cavern.basic",
-      "name": "Basic Cavern (3‑Wide Pad)",
+      "id": "room.cavern.medium",
+      "name": "Medium Cavern",
       "kind": "cavern",
-      "weight": 5,
       "rotate": [0, 90, 180, 270],
-      "size": { "w": 15, "h": 13 },
-      "legend": {
-        "#": "rock",
-        ".": "floor",
-        "D": "door_band",
-        "O": "ore_pref",
-        " ": "void"
-      },
+      "weight": 0.9,
       "grid": [
-        "######DDD######",
-        "######...######",
-        "######...######",
-        "#####.....#####",
-        "#####.....#####",
-        "####.......####",
-        "####.......####",
-        "####.......####",
-        "#####.....#####",
-        "#####.....#####",
-        "######...######",
-        "###############",
-        "###############"
-      ],
-      "doors": [
-        { "side": "N", "cells": [ { "x": 6, "y": 0 }, { "x": 7, "y": 0 }, { "x": 8, "y": 0 } ] }
-      ],
-      "notes": [
-        "Guarantees 3×3 interior pad behind the door as per Three‑Wide Law.",
-        "Stamping: map '.'→walkable; 'D'→walkable with flags.DOOR_BAND and mark interior approach cells with flags.APPROACH3W; '#'→rock; 'O'→rock with flags.ORE_PREF.",
-        "Door alignment: corridor digger centers on the middle 'D'. The provided doors[].cells are authoritative in unrotated orientation; engine must rotate these when stamping rotated variants.",
-        "Performance: grids capped to ≤17×17."
-      ]
-    },
-    {
-      "id": "room.ore_pocket.copperish",
-      "name": "Copperish Ore Pocket",
-      "kind": "ore_vein",
-      "weight": 4,
-      "rotate": [0, 90, 180, 270],
-      "size": { "w": 13, "h": 11 },
-      "legend": {
-        "#": "rock",
-        ".": "floor",
-        "D": "door_band",
-        "O": "ore_pref",
-        " ": "void"
-      },
-      "grid": [
-        "#####DDD#####",
-        "####O...O####",
-        "####O...O####",
-        "####O...O####",
-        "###O.....O###",
-        "####OOOOO####",
-        "#####O#O#####",
-        "######O######",
         "#############",
-        "#############",
+        "###.........#",
+        "D...#####..##",
+        "D...#...#..##",
+        "D...#...#..##",
+        "###..#...#..#",
+        "###..#####..#",
+        "###........##",
         "#############"
       ],
       "doors": [
-        { "side": "N", "cells": [ { "x": 5, "y": 0 }, { "x": 6, "y": 0 }, { "x": 7, "y": 0 } ] }
+        { "side": "W", "centerX": 0, "centerY": 3, "width": 3, "approachDepth": 3 }
+      ]
+    },
+    {
+      "id": "room.ore_pocket.small",
+      "name": "Ore Pocket",
+      "kind": "ore_pocket",
+      "rotate": [0, 90, 180, 270],
+      "weight": 0.8,
+      "grid": [
+        "#########",
+        "##OO#OO##",
+        "#O###OO##",
+        "#O#...###",
+        "#O#...#O#",
+        "#...###O#",
+        "###DDD###"
       ],
-      "notes": [
-        "'O' markers flag ORE_PREF for copper clustering; template does not directly place ore.",
-        "Stamping: map '.'→walkable; 'D'→walkable with flags.DOOR_BAND and mark interior approach cells with flags.APPROACH3W; '#'→rock; 'O'→rock with flags.ORE_PREF.",
-        "Door alignment: corridor digger centers on the middle 'D'. The provided doors[].cells are authoritative in unrotated orientation; engine must rotate these when stamping rotated variants.",
-        "Performance: grids capped to ≤17×17."
+      "doors": [
+        { "side": "S", "centerX": 4, "centerY": 6, "width": 3, "approachDepth": 3 }
       ]
     }
   ]
