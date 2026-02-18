@@ -6,9 +6,9 @@
       "bit": 0,
       "defaults": { "x": 0, "y": 0, "layer": 0 },
       "fields": [
-        { "key": "x", "type": "number", "min": null, "max": null, "notes": "world x (px); unbounded float" },
-        { "key": "y", "type": "number", "min": null, "max": null, "notes": "world y (px); unbounded float" },
-        { "key": "layer", "type": "int", "min": 0, "max": 7, "notes": "render/physics layer 0..7" }
+        { "key": "x", "type": "int", "min": -32768, "max": 32767, "notes": "world px" },
+        { "key": "y", "type": "int", "min": -32768, "max": 32767, "notes": "world px" },
+        { "key": "layer", "type": "int", "min": 0, "max": 3, "notes": "tilemap layer index" }
       ]
     },
     {
@@ -16,8 +16,8 @@
       "bit": 1,
       "defaults": { "vx": 0, "vy": 0 },
       "fields": [
-        { "key": "vx", "type": "number", "min": null, "max": null, "notes": "velocity x (px/s); unbounded float" },
-        { "key": "vy", "type": "number", "min": null, "max": null, "notes": "velocity y (px/s); unbounded float" }
+        { "key": "vx", "type": "number", "min": -512, "max": 512, "notes": "px/s" },
+        { "key": "vy", "type": "number", "min": -512, "max": 512, "notes": "px/s" }
       ]
     },
     {
@@ -25,8 +25,8 @@
       "bit": 2,
       "defaults": { "attackPower": 0, "defense": 0 },
       "fields": [
-        { "key": "attackPower", "type": "int", "min": 0, "max": 999, "notes": "clamped integer [0..999]" },
-        { "key": "defense", "type": "int", "min": 0, "max": 999, "notes": "clamped integer [0..999]" }
+        { "key": "attackPower", "type": "int", "min": 0, "max": 999, "notes": "additive" },
+        { "key": "defense", "type": "int", "min": 0, "max": 999, "notes": "subtractive" }
       ]
     },
     {
@@ -34,8 +34,8 @@
       "bit": 3,
       "defaults": { "max": 100, "value": 100 },
       "fields": [
-        { "key": "max", "type": "int", "min": 1, "max": 10000, "notes": "max health [1..10000]" },
-        { "key": "value", "type": "int", "min": 0, "max": null, "notes": "dynamic clamp to [0..max] at add/patch" }
+        { "key": "max", "type": "int", "min": 1, "max": 10000, "notes": "capacity" },
+        { "key": "value", "type": "int", "min": 0, "max": 10000, "notes": "clamped to [0..max] dynamically" }
       ]
     },
     {
@@ -43,10 +43,10 @@
       "bit": 4,
       "defaults": { "max": 100, "value": 100, "regenPerSec": 14, "regenDelayAfterActionMs": 600 },
       "fields": [
-        { "key": "max", "type": "int", "min": 1, "max": 10000, "notes": "max stamina [1..10000]" },
-        { "key": "value", "type": "int", "min": 0, "max": null, "notes": "dynamic clamp to [0..max] at add/patch" },
-        { "key": "regenPerSec", "type": "number", "min": 0, "max": 1000, "notes": "recovery rate per second [0..1000]" },
-        { "key": "regenDelayAfterActionMs", "type": "int", "min": 0, "max": 60000, "notes": "delay after action before regen [0..60000] ms" }
+        { "key": "max", "type": "int", "min": 1, "max": 10000, "notes": "capacity" },
+        { "key": "value", "type": "int", "min": 0, "max": 10000, "notes": "clamped to [0..max] dynamically" },
+        { "key": "regenPerSec", "type": "number", "min": 0, "max": 1000, "notes": "units/s" },
+        { "key": "regenDelayAfterActionMs", "type": "int", "min": 0, "max": 10000, "notes": "ms" }
       ]
     },
     {
@@ -54,10 +54,10 @@
       "bit": 5,
       "defaults": { "max": 100, "value": 100, "recoverPerSec": 35, "breakDurationMs": 800 },
       "fields": [
-        { "key": "max", "type": "int", "min": 1, "max": 10000, "notes": "max poise [1..10000]" },
-        { "key": "value", "type": "int", "min": 0, "max": null, "notes": "dynamic clamp to [0..max] at add/patch" },
-        { "key": "recoverPerSec", "type": "number", "min": 0, "max": 1000, "notes": "recovery rate per second [0..1000]" },
-        { "key": "breakDurationMs", "type": "int", "min": 0, "max": 60000, "notes": "poise-broken duration [0..60000] ms" }
+        { "key": "max", "type": "int", "min": 1, "max": 10000, "notes": "capacity" },
+        { "key": "value", "type": "int", "min": 0, "max": 10000, "notes": "clamped to [0..max] dynamically" },
+        { "key": "recoverPerSec", "type": "number", "min": 0, "max": 2000, "notes": "units/s" },
+        { "key": "breakDurationMs", "type": "int", "min": 0, "max": 10000, "notes": "ms" }
       ]
     },
     {
@@ -65,8 +65,8 @@
       "bit": 6,
       "defaults": { "capacity": 20, "slots": {} },
       "fields": [
-        { "key": "capacity", "type": "int", "min": 1, "max": 999, "notes": "slot capacity [1..999]" },
-        { "key": "slots", "type": "object", "min": null, "max": null, "notes": "shallow map itemId:string -> qty:int; primitive leaves only" }
+        { "key": "capacity", "type": "int", "min": 0, "max": 999, "notes": "slot count" },
+        { "key": "slots", "type": "object", "min": null, "max": null, "notes": "map itemId->qty; shallow-merge; extra nested keys ignored" }
       ]
     },
     {
@@ -74,10 +74,10 @@
       "bit": 7,
       "defaults": { "visible": true, "depth": 0, "scale": 1, "tintToken": "" },
       "fields": [
-        { "key": "visible", "type": "bool", "min": null, "max": null, "notes": "coerced via !!value" },
-        { "key": "depth", "type": "int", "min": -32768, "max": 32767, "notes": "render depth [-32768..32767]" },
-        { "key": "scale", "type": "number", "min": 0.1, "max": 16, "notes": "sprite scale [0.1..16]" },
-        { "key": "tintToken", "type": "string", "min": null, "max": null, "notes": "arbitrary token; String(value)" }
+        { "key": "visible", "type": "bool", "min": null, "max": null, "notes": "render on" },
+        { "key": "depth", "type": "int", "min": -32768, "max": 32767, "notes": "z-order hint" },
+        { "key": "scale", "type": "number", "min": 0.1, "max": 8, "notes": "uniform" },
+        { "key": "tintToken", "type": "string", "min": null, "max": null, "notes": "palette token or empty; resolved by systems" }
       ]
     },
     {
@@ -85,13 +85,13 @@
       "bit": 8,
       "defaults": { "w": 12, "h": 12, "offsetX": 0, "offsetY": 0, "solid": false, "isTrigger": false, "hurtboxPadPx": 0 },
       "fields": [
-        { "key": "w", "type": "int", "min": 0, "max": 1024, "notes": "width px [0..1024]" },
-        { "key": "h", "type": "int", "min": 0, "max": 1024, "notes": "height px [0..1024]" },
-        { "key": "offsetX", "type": "int", "min": -1024, "max": 1024, "notes": "offset x px [-1024..1024]" },
-        { "key": "offsetY", "type": "int", "min": -1024, "max": 1024, "notes": "offset y px [-1024..1024]" },
-        { "key": "solid", "type": "bool", "min": null, "max": null, "notes": "coerced via !!value" },
-        { "key": "isTrigger", "type": "bool", "min": null, "max": null, "notes": "coerced via !!value" },
-        { "key": "hurtboxPadPx", "type": "int", "min": 0, "max": 16, "notes": "expand hurtbox by px [0..16]" }
+        { "key": "w", "type": "int", "min": 0, "max": 256, "notes": "px width; 12x12 canonical for actors; projectiles 4x4 via archetypes" },
+        { "key": "h", "type": "int", "min": 0, "max": 256, "notes": "px height; 12x12 canonical for actors; projectiles 4x4 via archetypes" },
+        { "key": "offsetX", "type": "int", "min": -64, "max": 64, "notes": "px" },
+        { "key": "offsetY", "type": "int", "min": -64, "max": 64, "notes": "px" },
+        { "key": "solid", "type": "bool", "min": null, "max": null, "notes": "obstructs" },
+        { "key": "isTrigger", "type": "bool", "min": null, "max": null, "notes": "overlap only" },
+        { "key": "hurtboxPadPx", "type": "int", "min": 0, "max": 8, "notes": "inflate for hits" }
       ]
     },
     {
@@ -99,11 +99,11 @@
       "bit": 9,
       "defaults": { "behavior": "idle", "state": "idle", "targetId": 0, "attackCooldownMs": 0, "preferOpenLane": true },
       "fields": [
-        { "key": "behavior", "type": "string", "min": null, "max": null, "notes": "behavior tree/state id; String(value)" },
-        { "key": "state", "type": "string", "min": null, "max": null, "notes": "runtime substate; String(value)" },
-        { "key": "targetId", "type": "int", "min": 0, "max": 16777215, "notes": "entity id [0..16777215]" },
-        { "key": "attackCooldownMs", "type": "int", "min": 0, "max": 60000, "notes": "cooldown ms [0..60000]" },
-        { "key": "preferOpenLane", "type": "bool", "min": null, "max": null, "notes": "coerced via !!value" }
+        { "key": "behavior", "type": "string", "min": null, "max": null, "notes": "selector key" },
+        { "key": "state", "type": "string", "min": null, "max": null, "notes": "state key" },
+        { "key": "targetId", "type": "int", "min": 0, "max": 16777215, "notes": "entity id or 0" },
+        { "key": "attackCooldownMs", "type": "int", "min": 0, "max": 60000, "notes": "ms" },
+        { "key": "preferOpenLane", "type": "bool", "min": null, "max": null, "notes": "lane bias" }
       ]
     },
     {
@@ -111,7 +111,7 @@
       "bit": 10,
       "defaults": { "inputEnabled": true },
       "fields": [
-        { "key": "inputEnabled", "type": "bool", "min": null, "max": null, "notes": "coerced via !!value" }
+        { "key": "inputEnabled", "type": "bool", "min": null, "max": null, "notes": "accept inputs" }
       ]
     },
     {
@@ -119,7 +119,7 @@
       "bit": 11,
       "defaults": { "kind": "" },
       "fields": [
-        { "key": "kind", "type": "string", "min": null, "max": null, "notes": "enemy kind token; String(value)" }
+        { "key": "kind", "type": "string", "min": null, "max": null, "notes": "enemy id/kind" }
       ]
     },
     {
@@ -127,10 +127,10 @@
       "bit": 12,
       "defaults": { "itemId": "", "qty": 1, "stackable": true, "onGround": true },
       "fields": [
-        { "key": "itemId", "type": "string", "min": null, "max": null, "notes": "item id; String(value)" },
-        { "key": "qty", "type": "int", "min": 0, "max": 9999, "notes": "stack count [0..9999]" },
-        { "key": "stackable", "type": "bool", "min": null, "max": null, "notes": "coerced via !!value" },
-        { "key": "onGround", "type": "bool", "min": null, "max": null, "notes": "coerced via !!value" }
+        { "key": "itemId", "type": "string", "min": null, "max": null, "notes": "resource/tool id" },
+        { "key": "qty", "type": "int", "min": 0, "max": 9999, "notes": "stack size" },
+        { "key": "stackable", "type": "bool", "min": null, "max": null, "notes": "can stack" },
+        { "key": "onGround", "type": "bool", "min": null, "max": null, "notes": "world drop" }
       ]
     },
     {
@@ -138,10 +138,10 @@
       "bit": 13,
       "defaults": { "tileType": "rock", "hardness": 3, "breakable": true, "oreType": "" },
       "fields": [
-        { "key": "tileType", "type": "string", "min": null, "max": null, "notes": "engine enforces allowed set; schema permissive" },
-        { "key": "hardness", "type": "int", "min": 0, "max": 99, "notes": "break hardness [0..99]" },
-        { "key": "breakable", "type": "bool", "min": null, "max": null, "notes": "coerced via !!value" },
-        { "key": "oreType", "type": "string", "min": null, "max": null, "notes": "empty for non-ore; ids resolved in worldgen/mining" }
+        { "key": "tileType", "type": "string", "min": null, "max": null, "notes": "rock|floor|rock.ore; validated by consumers" },
+        { "key": "hardness", "type": "int", "min": 0, "max": 20, "notes": "eligibility gate" },
+        { "key": "breakable", "type": "bool", "min": null, "max": null, "notes": "mineable" },
+        { "key": "oreType", "type": "string", "min": null, "max": null, "notes": "ore id or empty" }
       ]
     },
     {
@@ -149,9 +149,9 @@
       "bit": 14,
       "defaults": { "speedPxPerSec": 120, "ttlMs": 1500, "damage": { "base": 4, "poiseDamage": 10 } },
       "fields": [
-        { "key": "speedPxPerSec", "type": "number", "min": 0, "max": 10000, "notes": "speed in px/s [0..10000]" },
-        { "key": "ttlMs", "type": "int", "min": 1, "max": 60000, "notes": "time-to-live ms [1..60000]" },
-        { "key": "damage", "type": "object", "min": null, "max": null, "notes": "shallow: { base:int [0..9999], poiseDamage:int [0..9999] }" }
+        { "key": "speedPxPerSec", "type": "int", "min": 0, "max": 1024, "notes": "px/s" },
+        { "key": "ttlMs", "type": "int", "min": 0, "max": 60000, "notes": "lifetime" },
+        { "key": "damage", "type": "object", "min": null, "max": null, "notes": "{base:int,poiseDamage:int}; shallow-merge; ints 0..9999; extra nested keys ignored" }
       ]
     }
   ]
