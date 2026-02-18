@@ -1,200 +1,172 @@
-# Guild Factions — Compacts of Brass and Stone
+# Guild Factions of The Far Mine — Banners, Boasts, and Bargains (Sprint 1)
 
-Owner/Provenance: @epsilon (Narrative Systems — Lorekeeper Runebeard)
+Provenance: owner @epsilon (Narrative Systems — Lorekeeper Runebeard)
 
 Cross-References:
-- docs/narrative/founding-lore.md (§Guild Compact, law.three_wide)
-- data/dialogue/tavern-npc-keeper.json
-- docs/technology-systems/crafting-design.md (§Stations)
-- data/items/tools.json
-- data/audio/sound-manifest.json (ambient.tavern.loopA mention only)
-- docs/world-generation/cave-gen-algorithm.md (Three‑Wide lanes reference)
+- docs/narrative/founding-lore.md (§The Dwarven Guild Compact)
+- docs/technology-systems/crafting-design.md (§Stations, Tools)
+- docs/combat-systems/combat-design.md (§Events & Enemy ids)
+- data/world/biome-crystal-caverns.json (biome id)
+- data/items/tools.json (tool ids)
+- data/combat/enemy-*.json (enemy ids)
+- docs/community/engagement-playbook.md (Brewmaster role echo)
 
-## Overview (Short Primer)
 
-Claim’s Mouth is neutral ground, oath-watched and ledger-kept. Here, warrants are posted on rough boards, bounties sealed with brass wax, and every guild swears to keep blades sheathed so the contracts may speak first.
 
-Competition turns into quests because ore is finite, time is dear, and pride weighs as much as iron. When three guilds disagree on method, they do not brawl—they measure you. Bring back proof, stamped and true, and the next door opens.
+## Canonical Faction Tokens (Index)
 
-So step steady: the Union braces, the Concord listens, the Syndicate charges. All will pay for clean work, and all will test your mettle.
+- lore.guild.steamwrights — The Steamwright Compact
+  - Tagline: Tinkerers who yoke pressure and polish into honest work.
+- lore.guild.stonebinders — The Stonebinder Lodge
+  - Tagline: Oath-keepers who measure twice and tunnel true.
+- lore.guild.emberwatch — The Emberwatch Covenant
+  - Tagline: Vigil-keepers who bear the first lamp and last stand.
 
----
+Tokens above are stable for save-data/UI and may be referenced by quests, vendors, and journals without change across sprints.
 
-## Faction Catalog (Authoritative)
 
-### The Brassbound Union (guild.brassbound)
 
-Motto: “Measure twice, brace thrice.”
+## Faction Profiles
 
-Profile: Stoic engineers who prize redundancy and verified margins. The Union keeps the lanes lawful broad—Three‑Wide, as the Compact allows—so carts turn, crews pass, and collapse chances dwindle. They write slow, mark true, and prefer ten small bites to one greedy mouthful. Risk posture is low; they lose no dwarf for want of one more strut.
+### The Steamwright Compact (lore.guild.steamwrights)
 
-Leader: Foreman Rivet Orm — Counts bolts by touch; can hear a brace sing off-key across a drift.
-
-Station Affinity: They shepherd rookies through the workbench to forge progression, laying out clear recipes and checks. Expect guidance toward early iron unlocks and reinforcement patterns that map neatly to Stations in the crafting design.
-
-Contracts: Surveys, lamping of corridors, reinforcement installs, and standardization of routes. They love proofs: a stamped tool, a measured span, a properly nested pin. Bring them a reinforced pick and show iron scored clean—no sparks wasted, no teeth chipped.
-
-Reputation Boons (future dial): Small discount on repairs at Union-staffed Stations; increased durability checks pass-rate on reinforced tools when used in compliant lanes.
-
-Why join them first: Their paths are safest; their expectations, clearest. With the Union backing you, iron ceases to be a rumor and becomes a rhythm.
-
-```json
-{
-  "id": "guild.brassbound",
-  "name": "Brassbound Union",
-  "motto": "Measure twice, brace thrice.",
-  "specialty": ["reinforcement","safe_lanes","iron_unlocks"],
-  "leader": { "id": "npc.guild.brassbound.foreman", "name": "Foreman Rivet Orm" },
-  "style": { "risk": "low", "ethos": "methodical" },
-  "questHooks": [
-    { "id": "hook.guild.brassbound.iron_trial", "title": "Iron Trial", "system": "crafting", "summary": "Forge tool.pick.t2.reinforced and prove its bite on iron.", "mvpSurface": "tavern_board" },
-    { "id": "hook.guild.brassbound.lane_lamps", "title": "Lamp the Lanes", "system": "worldgen/ui", "summary": "Survey a corridor and mark two door-lamps on the map.", "mvpSurface": "npc_line" }
-  ]
-}
-```
-
----
-
-### The Pressureglass Concord (guild.pressureglass)
-
-Motto: “Where light bends, stone yields.”
-
-Profile: Scholars with dust on their sleeves. The Concord studies crystal lore and the way seams whisper before they show. Their curiosity is tempered by fieldcraft: sample, label, survive to test it later. Risk posture is medium—they’ll lean into the unknown but rope themselves to good notes.
-
-Leader: Opticmaster Lysa Prismkeg — Reads faults by lantern-scatter; keeps a satchel of chips like a library.
-
-Station Affinity: They dream of the steam_workshop—lenses, gauges, pressure safeties—yet accept that quartz gates much of their progress. Early on, they point delvers toward quartz handling and ore scouting patterns that teach collection discipline and site fidelity.
-
-Contracts: Return clean shards, sketch alcoves, and listen for the long hum that rides quiet air near crystal. They value patient presence: stand, observe, and bring back signal over noise. Their warrants are often “see and say” tasks that wire neatly into mapping and sampling.
-
-Reputation Boons (future dial): Better sale price when turning in quartz; soft map pings for likely crystal alcoves once you’ve proven a steady ear.
-
-Why join them first: If your hands like samples and your eyes like patterns, the Concord’s leads will feed your maps and your purse in due time, without boiling your boots.
-
-```json
-{
-  "id": "guild.pressureglass",
-  "name": "Pressureglass Concord",
-  "motto": "Where light bends, stone yields.",
-  "specialty": ["crystal_lore","ore_scouting","quartz_handling"],
-  "leader": { "id": "npc.guild.pressureglass.opticmaster", "name": "Opticmaster Lysa Prismkeg" },
-  "style": { "risk": "medium", "ethos": "inquisitive" },
-  "questHooks": [
-    { "id": "hook.guild.pressureglass.quartz_scout", "title": "Quartz Scout", "system": "mining", "summary": "Return shard.quartz from a fresh seam and note the alcove depth.", "mvpSurface": "tavern_board" },
-    { "id": "hook.guild.pressureglass.echo_listen", "title": "Echo Listen", "system": "worldgen/ui", "summary": "Stand still by a crystal alcove and log its hum for the Concord.", "mvpSurface": "npc_line" }
-  ]
-}
-```
+- Motto: Where brass sings, stone yields.
+- Crest & Colors: A toothed gear clasping a pick over rising steam. Brass frames and warm steel accents; highlights ride ui.frame.brass and characters.outline.light, soot-dark recesses trimmed in ui.shadow.deep.
+- Ethos & Backstory:
+  Born from the clinker-sparks of the early boilers, the Compact swore that clever hands make lighter burdens. When the first steam throat howled in the Far Mine, they tuned it to a worker’s rhythm, not a war drum. Their masters prize iteration and field-wisdom: sketch, forge, test, mend, then brag only if it holds. They honor the Compact of Guilds by delivering tools that any hall can service when the night deepens. Their elders still keep the ledger of burst seams and burned fingers, each scar a lesson inked in oil. Yet for all their caution, they love a trial by rock; the true measure of an idea is the sound it makes biting quartz. They stand cordial with book-lore but impatient with dithering, happiest when a forge’s breath fogs the visor and a prototype meets the seam.
+- Specialty (Crafting/Stations):
+  The Compact centers on crafting and station mastery. Their quests tend toward field trials and incremental refinements; rewards flavor as upgraded patterns, fit-tests, or refurbish rights—never promised as buffs, but framed as craftsmanship earned.
+- Signature Assets (ids/examples):
+  - Tools/Stations: tool.pick.t2.reinforced, tool.drill.t3.steam, station.steamworks.t3
+  - Materials: mat.scrap.copper, mat.ore.iron
+- Tavern Presence:
+  In lore.place.tavern.hearth_and_anvil they annex a sturdy table, unrolling sketches beside dented mugs. The Keeper mutters they pay on time, in coin or clever fixes for a leaky tap.
+- Player-Facing Quest Hooks:
+  - Field-test a reinforced haft against a quartz seam
+  - Escort a lamp line while a boiler cart hisses
+  - Recover goblin scrap for a gear clearance check
+  - Map vented shafts to site a safe steamworks bench
+- Relationship Stance:
+  - With Stonebinders: cooperate on safety rites and gauge sizes; friction over pace and tolerances.
+  - With Emberwatch: admire courage on field tests; clash when risk appetite leaps past checklist.
+- UI-safe Snippets:
+  - Tight threads, true bite, no wasted swing.
+  - Steam up, chin down, let the tool speak first.
 
 ---
 
-### The Cindersteam Syndicate (guild.cindersteam)
+### The Stonebinder Lodge (lore.guild.stonebinders)
 
-Motto: “Heat, haste, haul.”
-
-Profile: Brash delvers who count wins by wagonload. The Syndicate chases throughput: hotter fires, faster drills, deeper runs, and the grit to shove past snarling things that fancy your ankles. They’re not reckless—just intolerant of idle rock. Risk posture is high; rewards scale to bruises earned.
-
-Leader: Boss Torg Emberhaft — Laughs like a furnace door; times runs by the taste of steam.
-
-Station Affinity: They push you toward tool.drill.t3.steam, stamina loops, and any Station tweak that keeps bits spinning and boots moving. Their advice runs blunt: assemble it, fuel it, breach with it, then brag with receipts.
-
-Contracts: Drill demos, timed breaches, and bounty slips for nasties who prowl the fresher cuts. They relish tutorials that end in sweat: parry under pressure, keep the drill fed, and don’t let goblins make you drop your tea.
-
-Reputation Boons (future dial): Reduced drill upkeep with Syndicate mechanics; bonus scrip on enemy trophy turn-ins when posted by their board.
-
-Why join them first: If you like the roar of steam and the clarity of a ticking clock, they’ll turn your nerves into coin and your haste into habit.
-
-```json
-{
-  "id": "guild.cindersteam",
-  "name": "Cindersteam Syndicate",
-  "motto": "Heat, haste, haul.",
-  "specialty": ["throughput","drills","aggressive_delves"],
-  "leader": { "id": "npc.guild.cindersteam.boss", "name": "Boss Torg Emberhaft" },
-  "style": { "risk": "high", "ethos": "audacious" },
-  "questHooks": [
-    { "id": "hook.guild.cindersteam.drill_demo", "title": "Drill Demo", "system": "crafting", "summary": "Assemble tool.drill.t3.steam and breach a quartz seam under time.", "mvpSurface": "tavern_board" },
-    { "id": "hook.guild.cindersteam.goblin_parry", "title": "Goblin Parry", "system": "combat", "summary": "Parry a goblin slash_sweep three times without taking a hit.", "mvpSurface": "npc_line" }
-  ]
-}
-```
+- Motto: Measure deep, stand fast.
+- Crest & Colors: A knotted cord encircling a three-marked door lintel. Cool granite tones, chalk-white lines, and oath-red knots; frames lean on ui.frame.iron and guide-stripes on ui.signal.line.
+- Ethos & Backstory:
+  The Lodge was hewn in the hush after a cave-in that taught law the hard way. They codified the lamp-law and the lore.law.three_wide so that every dwarf passes a door as if carrying a wounded friend. Their masters bind oaths like mortar: you do not cut corners where corners cut back. Patient surveyors, they read the grain of the world and listen for hollow boasts in stone. Yet tradition here is not stall; it is a rope line—move forward, hand to hand. In their halls, maps are living things, breathed on by chalk and sweat, updated by any who return. They resent slapdash rigging and celebrate the quiet hero who sets a brace no one notices until it holds. To them, the Mine is a long conversation: knock, wait, answer, and the mountain answers back.
+- Specialty (Exploration/Worldgen savvy):
+  The Lodge focuses on mapping, corridor law, and stable routes. Their tasks steer players to survey, stake, and tidy, with rewards framed as safe passage rights, signage kits, or improved wayfinding—not mechanical guarantees.
+- Signature Assets (ids/examples):
+  - Stations/Tools: station.workbench.t1, tool.pick.t1.basic, station.forge.t2
+  - Enemies/Banes: enemy.cave.burrower (tracked hazard behavior)
+- Tavern Presence:
+  At lore.place.tavern.hearth_and_anvil they sit near the door, chalking maps on tabletops with patient taps. The Keeper says their coins are clean and their advice cleaner.
+- Player-Facing Quest Hooks:
+  - Mark a three-wide corridor through the first quartz beds
+  - Set braces where burrowers soften pillars
+  - Survey a safe route to a copper seam and back
+  - Post lamp-law placards at risky junctions
+- Relationship Stance:
+  - With Steamwrights: welcome calibrated tools; argue when prototypes skip proofing.
+  - With Emberwatch: respect vigilance; bridle at rash charges that scuff lamp-law.
+- UI-safe Snippets:
+  - Chalk first, charge later.
+  - A wide door saves a narrow breath.
 
 ---
 
-## Faction Differentiators (At-a-Glance)
+### The Emberwatch Covenant (lore.guild.emberwatch)
 
-- Brassbound Union: reinforcement, safe lanes, early iron. Risk: low. On-ramps: Iron Trial; Lamp the Lanes.
-- Pressureglass Concord: crystal lore, ore scouting, quartz. Risk: medium. On-ramps: Quartz Scout; Echo Listen.
-- Cindersteam Syndicate: throughput, drills, combat bounties. Risk: high. On-ramps: Drill Demo; Goblin Parry.
+- Motto: Hold the light, send the dark running.
+- Crest & Colors: A lifted lantern flanked by crossing hammers. Ember-orange cores with smoke-gray edges; warning bands marked in ui.signal.warn and lamplight picked by ui.glow.warm.
+- Ethos & Backstory:
+  The Covenant took shape when the first goblin raid skittered like knives over slate. They vowed to be the first awake and last asleep, their lamps ever at the lip of shadow. Not war-mad, but war-ready, they drill in close quarters where echo lies. They study enemy habits the way others study ore grain, because a predictable foe is a mined seam of safety. Their chaplains bless helmets and footings alike, preaching that courage without care is a broken lantern. Emberwatch stories are short, sharp, and told with fists thudding tabletops—each a lesson on when to fall back and when to surge. They honor the Compact by escorting the fragile and meeting the night halfway, adopting any trick that brings their people home, be it steam’s hiss or chalk’s truth, so long as the lamp keeps burning.
+- Specialty (Combat/Tactics):
+  The Covenant emphasizes patrols, escorts, and counter-ambush craft. Their quests cue scouting, timed response, and den-clearing; rewards shade toward safe-escort favors or training tales, not stat promises.
+- Signature Assets (ids/examples):
+  - Enemies: enemy.goblin.grunt, enemy.cave.burrower
+  - Tools/Materials: tool.pick.t2.reinforced, mat.ore.iron
+- Tavern Presence:
+  In lore.place.tavern.hearth_and_anvil they keep to the walls, eyes on doors, buying a round for bruised knuckles. The Keeper says their lamp never gutters, even in a draft.
+- Player-Facing Quest Hooks:
+  - Escort a lamp line through a goblin-prone bend
+  - Bait and trace a burrower to its soft tunnel
+  - Recover a fallen banner near iron markers
+  - Drill a rally knock into fresh door lintels
+- Relationship Stance:
+  - With Steamwrights: hungry for new kit; chafe at delays for polish and proofs.
+  - With Stonebinders: share lamp-law; bristle when caution stalls a hot trail.
+- UI-safe Snippets:
+  - Keep the light moving.
+  - Hear the rock, then hit the thing in it.
 
----
 
-## Reputation & Progression Notes (MVP‑Safe)
 
-- Ladder (0–3): Rank 0 Unbonded; Rank 1 Hand; Rank 2 Proven; Rank 3 Sworn.
-- Triggers (simple, event-driven):
-  - Item turn-ins: shard.quartz, enemy trophies, stamped tools.
-  - Crafts: completion of specified tool tiers (e.g., tool.pick.t2.reinforced, tool.drill.t3.steam).
-  - Surveys/marks: lane lamps placed, alcoves logged.
-  - Tutorials cleared: parry streaks, timed breaches.
-- Boons (flavor only for Sprint 1; future integration points):
-  - Brassbound: light repair discount at Union Stations; higher chance to avoid tool wear in Three‑Wide lanes.
-  - Pressureglass: improved quartz sale rates; occasional crystal alcove pings on map after listen tasks.
-  - Cindersteam: lower drill upkeep; bonus scrip multipliers for posted bounties.
-- Notes:
-  - Reputation accrues per guild; neutral ground persists in Claim’s Mouth.
-  - UI should surface current rank tag and next warrant unlock condition.
-  - All numbers are dials for later tuning; no balances implied here.
+## Relationship Web (Compact Matrix)
 
----
+- Steamwrights ↔ Stonebinders: trade tool precision for route safety; quarrel when pace outruns proof.
+- Steamwrights ↔ Emberwatch: spark together on field trials; strain when bold leaps skip safeguards.
+- Stonebinders ↔ Emberwatch: tradition tempers daring; both insist the lamp-law holds in any rush.
 
-## Quest Hook Index (Stable IDs)
 
-- hook.guild.brassbound.iron_trial — Iron Trial — system: crafting — surface: tavern_board
-- hook.guild.brassbound.lane_lamps — Lamp the Lanes — system: worldgen/ui — surface: npc_line
-- hook.guild.pressureglass.quartz_scout — Quartz Scout — system: mining — surface: tavern_board
-- hook.guild.pressureglass.echo_listen — Echo Listen — system: worldgen/ui — surface: npc_line
-- hook.guild.cindersteam.drill_demo — Drill Demo — system: crafting — surface: tavern_board
-- hook.guild.cindersteam.goblin_parry — Goblin Parry — system: combat — surface: npc_line
 
----
+## Quest Hook Library (All Factions, Re-usable Seeds)
 
-## Integration Notes (For Engineers/Designers)
+- [mining] Trace a safe three-wide to fresh copper and chalk the turns
+- [crafting] Bench-test a basic pick on quartz and report wear marks
+- [combat] Scout goblin grunt patrol beats near the old brace line
+- [mining] Flag burrower sink-soft floors before hauling starts
+- [crafting] Salvage copper scrap to true a wobbling drill collar
+- [combat] Run a two-lamp escort through a choke and back clean
+- [mining] Tap-map a suspected hollow behind iron streaks
+- [crafting] Align forge tongs at station.forge.t2 for heavy heads
+- [combat] Set a rally knock pattern on three new doors
 
-- Contracts:
-  - IDs are stable and lowercase with dots: guild.*, hook.guild.*.
-  - Quest hooks are MVP-safe, mapping to existing systems: mining, crafting, combat, worldgen/ui.
-  - No raw color/audio tokens in prose; only conceptual mentions. NPC ids can be created later to match leaders.
-  - DialogueSystem may surface short faction taglines in NPC chatter; keep mottos ≤70 chars for UI fit.
-- Data blocks:
-  - Exact schema per block: id, name, motto, specialty[], leader{}, style{}, questHooks[] (order preserved).
-  - Summaries ≤120 chars for reuse on boards/tooltips.
-- Worldgen ties:
-  - Brassbound “safe lanes” align with Three‑Wide lanes; lamp marks are map annotations.
-  - Concord alcove “echo listen” is a stand-still timer near crystal-tagged tiles; log only, no audio token names.
-  - Syndicate drill demo assumes tool.drill.t3.steam is craftable per Stations.
-- Surfaces:
-  - tavern_board = posted warrant UI.
-  - npc_line = single-line prompt from a leader or keeper.
 
----
 
-## UI Snippets [HOOK]
+## Integration Notes & Stable IDs
 
-- [HOOK] Brassbound Union: Steady hands win iron, not bravado. Brace it, then bite it.
-- [HOOK] Pressureglass Concord: Listen to the stone; it hums before it yields.
-- [HOOK] Cindersteam Syndicate: Make it hot, make it fast, drag it home.
-- [HOOK] Claim’s Mouth posts are live—pick a board, earn your mark.
+- Stable tokens for systems:
+  - Faction tokens: lore.guild.steamwrights | lore.guild.stonebinders | lore.guild.emberwatch
+  - Tavern: lore.place.tavern.hearth_and_anvil
+  - Laws: lore.law.three_wide (door approach discipline)
+  - Biome: lore.biome.crystal_caverns
+- Engineering handshake notes:
+  - QuestJournal UI may reference faction tokens for banners/icons; apply palette tokens from data/visual/color-palette.json. No hex values in this document.
+  - Audio: ambient cues may include lore.sound.ambient.tavern.loopA in Tavern scenes; confirm id with @zeta when manifest lands.
+  - Flavor-first language only; avoid implying mechanical buffs or guarantees in text.
 
----
 
-## Versioning & Acceptance
 
-v1.0
+## Tavern Keeper Cross-Tie (Dialogue Seeds)
 
-Acceptance Checklist:
-- Exactly 3 factions with distinct mottos, specialties, and leaders.
-- Each faction has a machine-scrapable data block with keys: id, name, motto, specialty[], leader{}, style{}, questHooks[].
-- Exactly 6 total quest hooks (2 per guild) with MVP-safe targets/surfaces.
-- IDs conflict with none in existing data (tools/enemies/audio).
-- Tone: dwarven, clear, approachable; lengths fit UI.
+- On The Steamwright Compact:
+  - Steamwrights fixed my tap and charged me less than a spill
+  - If it hisses they grin and call it progress
+  - They test steel the way I test ale, often and honest
+
+- On The Stonebinder Lodge:
+  - Lodge folk leave chalk lines straighter than my bar
+  - Three wide at the door, they drill it into you
+  - They pay for maps and pay again if the chalk holds
+
+- On The Emberwatch Covenant:
+  - Emberwatch drink with backs to the wall and eyes on mine
+  - Their lamp makes even bad nights polite
+  - When trouble knocks they are already halfway to the door
+
+
+
+## Acceptance Checklist
+
+- Three factions present with distinct identities, mottos, specialties, and hooks.
+- All UI-safe lines within 90–120 chars as specified; faction tokens stable and consistent.
+- References align with existing ids and MVP scope: tools, stations, materials, enemies.
+- Document parses as Markdown, consistent Lorekeeper Runebeard voice, ready to commit to docs/narrative/.
