@@ -1,319 +1,388 @@
-# The Far Mine — Combat Stamina/Poise MVP (Sprint 1 Gamma)
+# The Far Mine — Combat Stamina/Poise MVP (Sprint 1)
 
-Owner: Battlehammer Ironshield (Gamma)  
+Author: Battlehammer Ironshield (Gamma)  
 Version/Date: v0.1 / 2026-02-18  
 Status: Draft v0.1
 
-## 1) Title & Scope
-Scope (Sprint 1 Gamma MVP):
-- Player melee basics, stamina/poise model, player-focused state machine, I-frames/hitstun rules, damage/stagger math, telegraph timings, hit-stop, tuning ranges.
-- Two weapon archetypes (Pickaxe T0, Hammer T1).
-- Two L1 enemies (Goblin Grunt, Cave Burrower).
-- ECS integration hooks and events.
-- Deterministic collision/hit resolution order.
-- Pseudocode for text sim and parameter externalization for Rust/Bevy runtime and JS harness tests.
-- Target TTK: ~25–35 s vs a single L1 enemy with starter Pickaxe.
+Scope: L1 side-view vertical slice. Melee-focused MVP: stamina/poise loop, dodge/block basics (parry disabled unless toggled), telegraph-based enemy attacks, hit-stop, deterministic damage/poise formulas. Integrates with Bevy schedules per Alpha (Gameplay, Events, RenderPrep, FixedUpdate 16 ms baseline).
 
-Out of scope: ranged, status effects, AI sophistication beyond simple approach/attack loops, movement physics, networking.
+---
 
-## 2) Design Pillars (concise)
-- Telegraph-first readability.
-- Stamina as tempo throttle.
-- Poise as the lesson-teacher (risk windows via stagger/break).
-- Hits feel weighty (hit-stop).
-- Fairness via clear I-frames and parry logic.
+## 1) Design Goals & Feel Targets
 
-## 3) Core Variables & Ranges (MVP defaults with tuning bounds)
+- Pillars:
+  - Readable telegraphs
+  - Earned hits, fair punish windows
+  - Pressure/release cadence
+  - Solo TTK vs Goblin 30±5 s with T0 pick; fair with 65% hit ratio
+- Responsiveness targets:
+  - Input-to-action latency ≤ 60 ms end-to-end
+  - Hit-stop micro-pauses: 10–26 ms bands for MVP (fixed per-attack)
 
-Stamina and Costs
-- Stamina.max = 100 (80–120)
-- Stamina.regen_per_sec = 18 (12–24)
-- Stamina.regen_delay_ms = 500 (300–700)
-- Stamina.on_hit_regen_pause_ms = 250
-- Costs:
-  - light_attack = 15 (10–18)
-  - heavy_attack = 35 (28–42)
-  - dodge = 20 (16–24)
-  - block_tick = 5 per 200 ms while holding guard
-  - parry_window_ms = 120 (90–150) before attack active start
+---
 
-Poise (player baseline)
-- Poise.max = 60 (40–80)
-- Poise.recover_per_sec = 12 (8–16)
-- Poise.break_duration_ms = 800 (700–900)
-- Enemies define their own (see §11).
+## 2) Core Variables & Ranges (Player MVP)
 
-Dodge / I-frames
-- total_dodge_ms = 180 (160–220)
-- iframes_ms = 120, centered on dodge peak
-- Move distance: tied to player speed (not elaborated here).
+- Stamina
+  - max_s = 100
+  - regen_per_sec = 18–24 (baseline 20)
+  - regen_delay_ms = 500 after any spend
+- Action Costs
+  - light = 12
+  - heavy = 24
+  - dodge = 18
+  - block_hold = 4/sec
+  - block_impact = 8 on successful block
+  - Sprint: disabled in Sprint 1
+- Poise
+  - player max_p = 60
+  - recover_per_sec = 12
+  - break_threshold = 0
+  - break_stun_ms = 650
+  - partial_stagger: when cumulative poise_delta ≥ 15 within 600 ms cluster
+- Damage
+  - Base from tool.weapon archetypes
+  - Defense = flat reduction
+  - Minimum 1 after reduction
+- I-frames
+  - Dodge: 120 ms of invulnerability starting at dodge frame 2 (~33 ms from input), lasts 120 ms
+  - Block parry window: off (parry disabled unless param toggle set true)
+- Hit-stop (fixed per-attack for MVP)
+  - Attacker_ms: light 10–12, heavy 16–20
+  - Victim_ms: light 22–26, heavy 30–36
 
-Hit-stop
-- Attacker: 10–18 ms (default choose per attack)
-- Victim: 20–36 ms (default choose per attack)
-- Global clamp: [8..40] ms
+---
 
-## 4) Move State Machine (player-focused; enemies mirror with AI control)
-States
-- idle, move, attack_light, attack_heavy, chain_followup, dodge, block, parry_flash (brief), hitstun_light, hitstun_heavy, poise_broken, death.
+## 3) State Machine (Player/Enemy)
 
-Priorities (highest to lowest)
-- death > poise_broken > dodge (iframes) > active attack > block/parry > movement/idle.
+States: Idle, Windup, Active, Recovery, Dodge, Block, Hitstun, PoiseBroken, Dead
 
-Transitions
-- idle/move → attack_light (on input and stamina ≥ cost) → chain_followup (buffer window 140 ms after recovery start; up to 3 hits in light chain).
-- idle/move → attack_heavy (on input and stamina ≥ cost).
-- any non-critical → dodge (consumes stamina; grants I-frames per §3).
-- idle/move → block (hold; drains per 200 ms tick if blocking any valid incoming angle or under pressure rules; see §6).
-- While blocking: if within parry_window_ms before incoming active: enter parry_flash; no damage; apply counter-poise to attacker; brief stun to attacker.
-- On hit: enter hitstun_light or hitstun_heavy by attack tag unless covered by I-frames or parry. If poise ≤ 0: enter poise_broken (uninterruptible stagger for break_duration_ms; stamina regen paused first 300 ms).
-- health ≤ 0 → death.
+ASCII diagram (condensed):
+```
+        +-------+
+        | Idle  |
+        +---+---+
+            | attack (stamina>=cost)
+            v
+        +---+------+
+        | Windup   | --(t>=windup_ms)--> +--------+
+        +---+------+                     | Active |
+            ^                            +---+----+
+            | dodge (allowed, stamina)       |
+            | block hold                      --(t>=active_ms)-->
+            | on hit -> Hitstun                   +---------+
+            |                                     | Recovery|
+            |                                     +----+----+
+            |                                          |
+ any -> Dodge (i-frames)                               v
+ any -> Block (hold)                              back to Idle
+ any -> Hitstun (on hit)
+ Hitstun -> Idle (on timer end if !PoiseBroken)
+ PoiseBroken (locks input; no move/dodge) -> Idle (on break_stun_ms end; poise reset)
+ Dead: terminal
+```
 
-## 5) Timing Model & Windows (ms @60 Hz reference)
-AttackDef fields:
-- windup_ms, active_ms, recovery_ms, cooldown_ms
-- telegraph.flash_at_ms relative to active start (negative, e.g., -110)
-- TelegraphStartEvent fires at now + (windup_ms + flash_at_ms)
+Deterministic transitions (guards → effects):
+- Idle → Windup: on attack input AND stamina ≥ action_cost → spend stamina; set combat_state.timers; schedule TelegraphStartEvent at (now + flashAtMs)
+- Windup → Active: when elapsed ≥ windup_ms → enable attack_capsule.active = true
+- Active → Recovery: when elapsed ≥ active_ms → attack_capsule.active = false
+- Any → Dodge: on dodge input AND stamina ≥ dodge_cost → spend stamina; set Dodge with i_frames_ms; cancel current attack hurtbox; maintain facing
+- Any → Block: on block input hold → drain stamina block_hold per sec; set Block state; on block impact spend block_impact; if insufficient stamina at impact, Block fails
+- On hit taken: apply damage → set Hitstun timer; apply poise damage → check break/partial stagger
+- Any → PoiseBroken: if poise ≤ 0 within cluster window → lock input (no move/dodge/attack), set timer break_stun_ms; on end, set poise to p_break_recover = floor(max*0.4)
+- Any → Dead: if health ≤ 0
 
-Per-frame resolution order (deterministic):
-1) Process inputs/state changes (respect priorities).
-2) Advance timers; when crossing telegraph threshold, emit TelegraphStartEvent.
-3) At active window start, enable collisions; for each collision, resolve in order: I-frames → parry → block → hit.
-4) Emit DamageEvent and apply hit-stop (pause attacker/victim action clocks by configured ms; clamp to [8..40]).
-5) Update poise; if poise ≤ 0: emit PoiseBreakEvent and enter poise_broken for configured duration; cancel non-unstoppable attacks (MVP: none are unstoppable).
+---
 
-Tick note: 60 Hz reference (~16.67 ms); timers are ms-precise and accumulated; events fire when crossing thresholds, not just on exact equals.
+## 4) Hit Resolution Order (per collision)
 
-## 6) Damage, Block, Parry, Stagger Math
-Raw damage
-- Let attack_power = AttackDef.damageBase
-- Let weapon_power = weapon tier modifier (MVP: 0 unless otherwise set)
-- dmg = max(1, attack_power + weapon_power - defense)
+Within same frame (deterministic by entity id ascending):
+1) Check invulnerability/i-frames
+2) Block/parry check (parry disabled MVP)
+3) Apply damage (with defense clamp)
+4) Apply poise damage and cluster tracking
+5) Schedule HitStopEvent (attacker_ms, victim_ms)
+6) Apply knockback (per attack def; MVP constant or 0 if blocked)
+7) Enqueue audio/FX events
+8) State changes (Hitstun, PoiseBroken, Dead)
 
-On block
-- Negate full damage; drain stamina:
-  - block_cost = base 6 + ceil(dmg * 0.6)
-  - chip_health = ceil(dmg * 0.1)
-- If stamina < block_cost: apply excess as extra chip at 0.5 per missing stamina (cap total chip to 50% of dmg).
-- Example: dmg=20 → base block_cost=6+12=18; chip=2. If stamina=10, shortfall=8 → extra_chip=ceil(8*0.5)=4, total chip=2+4=6 (≤ cap=10).
+Notes:
+- Successful Block: negate damage and poise; spend block_impact stamina; if stamina < block_impact at impact time → block fails and full hit applies.
+- Hitstun duration determined by attack and/or stagger rules (MVP: 200–260 ms light, 300–360 ms heavy; authoring per attack; partial_stagger triggers lower bound).
 
-On parry (within parry_window before active)
-- Damage = 0; chip = 0.
-- Attacker receives parry_poise = base 16 + ceil(dmg * 1.0).
-- Attacker enters hitstun_light = 220 ms (fixed for MVP on parry).
-- Emit parry.success SFX (route via PlaySfxEvent).
+---
 
-Poise damage and breaks
-- Apply AttackDef.poiseDamage on hit (or on block? MVP: on full hit only).
-- When poise ≤ 0 → poise_broken for break_duration_ms (player baseline 800; enemy per §11).
-- On exit from poise_broken: restore poise to max * 0.5; begin recovering normally.
-- Attacks are interrupted on poise break unless marked unstoppable (MVP: none).
+## 5) Damage, Stamina, and Poise Formulas
 
-Hitstun durations (derived defaults; clamps)
-- light = clamp(200 + 2 × poiseDamage, 200, 260)
-- heavy = clamp(300 + 3 × poiseDamage, 320, 420)
+Damage:
+- dmg_final = max(1, floor((weapon.damage_base * multipliers) - target.defense))
+- Multipliers:
+  - stance = 1.0 (MVP constant)
+  - backhit = 1.1 (MVP off by default)
+  - enemy.damage_multiplier (from enemy archetype; default 1.0)
 
-## 7) Stamina Regen & Delays
-- After any stamina spend, start regen_delay_ms timer (default 500 ms) before regen begins.
-- On receiving a hit, pause regen an additional on_hit_regen_pause_ms (250 ms).
-- Regen rates:
-  - idle or blocking: 100% of regen_per_sec.
-  - moving or attacking: 75% of regen_per_sec.
-  - in poise_broken: paused for first 300 ms, then 50% of regen_per_sec until state exit.
-- Stamina cannot exceed max; floors at 0.
+Stamina:
+- Spend at action start (attack, dodge, block impact; block hold drains per second)
+- Regen only if time_since_last_spend ≥ regen_delay_ms
+- regen_rate = base_regen_per_sec (no modifiers MVP)
+- regen_this_tick = regen_rate * dt_seconds; clamp to max
 
-## 8) Telegraphs & FX Contracts
-Per-attack telegraph definition
-- telegraph { flash_at_ms (negative), color_token, arc_overlay }
+Poise:
+- poise_t ∈ [0, max]
+- On hit: poise_t -= attack.poise_damage
+- Recovery: allowed if time_since_last_poise_hit ≥ 400 ms, rate = recover_per_sec
+- Break: if poise_t ≤ 0 within 1.0 s cluster window since first contributing hit
+  - Emit PoiseBreakEvent{duration_ms}
+  - Set poise_t = 0; lock in PoiseBroken for duration
+  - On exit: poise_t = floor(max * 0.4)
+- Partial stagger: if cumulative poise_delta ≥ 15 within 600 ms without break → apply Hitstun (lower tier)
 
-Color tokens (MVP)
-- mapping.telegraph.arc.amber (enemy)
-- mapping.telegraph.arc.cyan (player heavy)
-- mapping.telegraph.arc.green (parry cue, internal)
+---
 
-ECS Events
-- TelegraphStartEvent { attacker:Entity, attack_id:string, flash_at_ms:int, color_token:string, pos:Vec2, arc_deg:int, range_px:int }
-- AttackCommitEvent { attacker:Entity, attack_id:string, active_ms:int }
-- PoiseBreakEvent { entity:Entity, duration_ms:int }
-- StaggerStartEvent { entity:Entity, kind:"light"|"heavy", duration_ms:int }
-- Existing: DamageEvent, PlaySfxEvent
+## 6) Telegraphs & Timing Model
 
-Audio
-- sfx.combat.telegraph.whoosh on TelegraphStartEvent
-- sfx.combat.poise.break on PoiseBreakEvent
-- parry.success on successful parry (as above)
+- TelegraphStartEvent is fired at enemy windup_time + flashAtMs (flashAtMs is negative lead)
+- Payload:
+  - { entity, attack_id, color_token ("telegraph.arc.amber" etc.), flash_ms = abs(flashAtMs), arc_deg, range_px }
+- Visual:
+  - Optional VFX arc overlay; tokens from data/visual/color-palette.json using telegraph.arc.*
+- Audio:
+  - Emit event.Combat.telegraph.start on TelegraphStartEvent
 
-## 9) Collision & Hit Resolution Order (deterministic)
-For each victim intersecting attack geometry during active:
-1) If victim is in dodge I-frames: no hit; consume no further logic.
-2) Else if victim is blocking and within parry_window before active start: parry success (see §6); emit parry SFX; attacker receives parry_poise.
-3) Else if victim is blocking: apply block flow (stamina drain, chip).
-4) Else: apply full damage and poiseDamage per attack.
+---
 
-Notes
-- Multi-hit disabled in MVP; per-attack geometry.multiHit=false.
-- An attack can only apply to a given victim once per active window.
+## 7) Components & Events (ECS Integration)
 
-## 10) Weapon Archetypes (MVP examples with concrete numbers)
+Components (MVP additions):
+- stamina { current:f32, max:f32, regen_per_sec:f32, regen_delay_ms:u16, last_spend_ms:u64 }
+- poise { current:i32, max:i32, recover_per_sec:f32, last_hit_ms:u64, break_cooldown_ms:u16 }
+- combat_state { state:str, timers:{windup_ms:u16, active_ms:u16, recovery_ms:u16, hitstun_ms:u16}, i_frames_ms:u16 }
+- attack_capsule { range_px:i16, arc_deg:i16, active:bool }
 
-Pickaxe T0 (Starter Tool)
-- Light:
-  - windup=240 ms, active=70 ms, recovery=260 ms
-  - damage_base=8, poise_damage=10
-  - stamina_cost=15
-  - hit_stop {att=12, vic=26}
-  - chain window=140 ms
-  - 3-hit chain damage scaling: 1.0 / 0.9 / 1.1
-- Heavy:
-  - windup=360 ms, active=90 ms, recovery=340 ms
-  - damage_base=16, poise_damage=18
-  - stamina_cost=35
-  - hit_stop {att=16, vic=34}
+Events:
+- TelegraphStartEvent { entity:u32, attack_id:str, color_token:str, flash_ms:u16, arc_deg:u16, range_px:u16 }
+- DamageEvent { source:u32, target:u32, amount:i32, type:"melee|env|other" }
+- PoiseBreakEvent { entity:u32, duration_ms:u16 }
+- HitStopEvent { attacker_ms:u8, victim_ms:u8 }
 
-Hammer T1 (Heavy Prototype for tuning)
-- Light:
-  - windup=280 ms, active=80 ms, recovery=300 ms
-  - damage_base=12, poise_damage=14
-  - stamina_cost=18
-  - hit_stop default to 14/30 unless overridden
-- Heavy:
-  - windup=420 ms, active=110 ms, recovery=420 ms
-  - damage_base=24, poise_damage=28
-  - stamina_cost=38
-  - hit_stop default to 18/36 unless overridden
+Scheduling:
+- Systems emit in Gameplay stage (FixedUpdate 16 ms)
+- Bridges consume in Events stage (audio/VFX, telemetry)
+- RenderPrep reads VFX flags and telegraph overlays
+- Determinism: resolve collisions/hits per eid ascending; run single-threaded or with explicit ordering fences for these systems
 
-Geometry guidance (both archetypes)
-- Range: 70–85 px (Pickaxe), 65–80 px (Hammer)
-- Arc: 75–110 degrees (light), 90–130 degrees (heavy)
+---
 
-## 11) Enemy Archetypes L1 (summary; full JSON in data/combat)
-Goblin Grunt
-- health ≈ 140; defense = 1
-- poise { max=40, recover_per_sec=9, break_duration_ms=700 }
-- attacks: jab (telegraph flash_at_ms = -110), slash (flash_at_ms = -120)
-- approach speed tuned to ≈ 22 px/frame bucket (authoritative in movement config)
-- attack powers (guidance): jab damage_base=7, poiseDamage=8; slash damage_base=10, poiseDamage=12
+## 8) Weapon Archetypes (MVP examples)
 
-Cave Burrower (MVP)
-- health ≈ 160; defense = 2
-- poise { max=50, recover_per_sec=8, break_duration_ms=800 }
-- pattern: surface poke (telegraph arc), short burrow reposition (adds targeting noise), lunge with longer telegraph (flash_at_ms = -140), punishable recovery on whiff
-- attack powers (guidance): poke damage_base=8, poiseDamage=10; lunge damage_base=14, poiseDamage=16
-- Full config in enemy-cave-burrower.json
+- Pickaxe_T0 (Starter; light):
+  - damage_base = 4; poise_damage = 2
+  - windup = 220 ms; active = 80 ms; recovery = 260 ms
+  - cost = 12
+  - hitStop { attacker: 10, victim: 22 }
+- Pickaxe_T1 (Copper; heavy):
+  - damage_base = 8; poise_damage = 5
+  - windup = 320 ms; active = 90 ms; recovery = 320 ms
+  - cost = 24
+  - hitStop { attacker: 16, victim: 30 }
+- Note: Values align with data/items/tools.json intent
 
-## 12) Tuning Targets & Cadence
-- Solo TTK vs L1 enemy target: 25–35 s with Pickaxe T0.
-- Expected average: 6–9 successful light hits + 1–2 heavies to kill Goblin Grunt; similar or +1 heavy for Cave Burrower given defense=2.
-- One poise break every 8–12 s if player presses advantage (chain follow-ups, proper spacing).
-- Heavies punish over-commit; light-chain is sustainable with good stamina discipline. Spamming heavies should bottom out stamina and open the player to risk.
+---
 
-## 13) ECS Integration Hooks
-Components (attach to entities as applicable)
-- Health { current:int, max:int }
-- Stamina { current:int, max:int, regen_per_sec:float, regen_delay_ms:int }
-- Damageable { defense:int, poise:{ max:int, value:int, recover_per_sec:float, break_duration_ms:int } }
-- Faction { id:enum/player|enemy|neutral }
-- AttackState { optional; holds current AttackDef id, timers, chain index }
-- DodgeState { timer_ms:int, iframes_center_ms:int, iframes_ms:int }
-- BlockState { is_blocking:bool, next_tick_ms:int }
-- SpriteRef { id }
-- SoundEmitter { id? }
+## 9) Enemy Archetypes (L1)
 
-Systems (Gameplay stage)
-- CombatResolveSystem
-  - Consumes queued attack states; manages telegraph timing; enables active hitboxes; performs collision queries; resolves I-frames/parry/block/hit; emits DamageEvent, TelegraphStartEvent, AttackCommitEvent, PoiseBreakEvent, StaggerStartEvent; applies hit-stop pausing action clocks only (not global).
-- StaminaSystem
-  - Tracks spend events; manages regen_delay_ms and on_hit_regen_pause_ms; adjusts regen rates by movement/attack/poise_broken states.
-- PoiseSystem
-  - Applies poise damage; starts/ends poise_broken; restores poise to 50% on break end; handles recover_per_sec.
+- Goblin Grunt (data/combat/enemy-goblin-grunt.json)
+  - Health: authoring per data (tune for 25–35 s TTK vs T0 pick)
+  - Defense: flat (e.g., 1–2)
+  - Poise: 40; recover 9/s; break_stun_ms = 700
+  - Attacks:
+    - Jab: windup 260 ms, flashAtMs = -120 ms (amber), active 70 ms, recovery 240 ms, arc 60°, range 36 px
+    - Slash: windup 340 ms, flashAtMs = -160 ms (amber), active 90 ms, recovery 300 ms, arc 100°, range 46 px
+- Cave Burrower (to author JSON)
+  - Health ≈ 120; defense 0
+  - Poise 35; recover 8/s; break_stun_ms = 650
+  - Attacks:
+    - Pop-up Lunge: windup 420 ms; flashAtMs = -140 ms; arc 70°; range 54 px; color telegraph.arc.amber
+    - Sand Toss: ranged stub off for MVP; future telegraph color telegraph.arc.cyan
+    - Burrow Retreat: movement/escape; no damage
+  - Behavior: emerges within 30 px of player; retreats after miss
 
-Events (register in Bevy app and JS harness)
-- TelegraphStartEvent, AttackCommitEvent, PoiseBreakEvent, StaggerStartEvent, DamageEvent, PlaySfxEvent
+---
 
-## 14) Data Contracts (Enemy/AttackDef JSON outline)
-Enemy JSON (e.g., goblin)
-- { version, id, meta, visuals, audio, stats, movement, ai, attacks[], loot, acceptance }
+## 10) Hitbox/Arc Geometry Contract
 
-AttackDef
-- {
-  id, name,
-  geometry: { range_px:int, arc_deg:int, multiHit:false },
-  timings: { windup_ms:int, active_ms:int, recovery_ms:int, cooldown_ms:int },
-  staminaCost:int,
-  poiseDamage:int,
-  damageBase:int,
-  hitStop: { attackerMs:int, victimMs:int },
-  telegraph: { flashAtMs:int, colorToken:string, arcOverlay:string },
-  onHit: { knockbackPx:int, applyStagger:"light"|"heavy"|null },
-  sfxOverrides?: { telegraph?:string, swing?:string, hit?:string },
-  acceptance: { clamps:boolean, notes:string[] }
+- Attack arcs are polar sectors centered on facing vector of source entity
+- Parameters: arc_deg, range_px from attack def
+- Collision sampling:
+  - MVP coarse sweep: sample every 6 degrees; cast to target hurtbox circle/rect
+  - Optional: SAT against precomputed arc mesh for higher fidelity
+- Active window is continuous across active_ms; evaluate collisions each tick while attack_capsule.active = true
+- Facing is frozen at Windup→Active boundary for the duration of Active (MVP)
+
+---
+
+## 11) Tuning Targets & Acceptance
+
+- TTK target: 25–35 s vs Goblin with Pickaxe_T0; mixed chain (light→light→dodge cadence), 65% hit ratio
+- Stagger cadence: light staggers on 2–3 quicks within ~1.2 s; poise break windows ~ every 8–12 s under pressure
+- Regen feel: from full (100), can chain 3 lights (36 stamina), then recover to one more light in ~0.6–0.8 s idle
+
+---
+
+## 12) Text Sim Pseudocode & Scenarios
+
+Engine model (fixed dt = 16 ms):
+
+```
+state = load_params(params.json)
+scenario = load_scenario(script)
+t = 0
+while t < scenario.duration:
+  // Input & scripting
+  inputs = scenario.inputs_at(t)
+
+  // Stamina spend on action start
+  for actor in actors:
+    if inputs.attack and actor.stamina.current >= cost(attack):
+      actor.stamina.current -= cost(attack); actor.stamina.last_spend_ms = t
+      enter_windup(actor, attack)
+    if inputs.dodge and actor.stamina.current >= cost(dodge):
+      spend(actor, dodge); start_dodge_iframes(actor, start=t+33, dur=120)
+    if inputs.block_hold:
+      drain = block_hold_per_sec * dt
+      if actor.stamina.current > 0: actor.stamina.current = max(0, actor.stamina.current - drain)
+
+  // Regen
+  for actor in actors:
+    if (t - actor.stamina.last_spend_ms) >= actor.stamina.regen_delay_ms:
+      actor.stamina.current = min(actor.stamina.max, actor.stamina.current + actor.stamina.regen_per_sec * dt/1000.0)
+
+  // Timers & telegraphs
+  advance_combat_timers(actor, dt)
+  if telegraph_due(actor, t): emit(TelegraphStartEvent(...))
+
+  // Collisions (scripted for sim or using arc sampling)
+  for atk in active_attacks:
+    for target in targets_in_arc(atk):
+      if target.invulnerable_at(t): continue
+      if target.is_blocking and can_pay_block_impact(target):
+        target.stamina.current -= block_impact; schedule_hitstop(atk, blocked=true)
+        continue
+      dmg = max(1, floor(atk.damage_base * multipliers(atk, target)) - target.defense)
+      apply_health(target, -dmg); emit(DamageEvent(...))
+      target.poise.current = max(0, target.poise.current - atk.poise_damage); update_poise_cluster(target, t)
+      if should_break_poise(target): enter_poise_broken(target)
+      else if partial_stagger(target): enter_hitstun(target, tier=light)
+      schedule_hitstop(atk, blocked=false)
+
+  // Hit-stop application (engine time dilation or actor-local pause)
+  apply_hitstop_queues()
+
+  // Logging
+  log_trace_row(t, actors, events_emitted)
+
+  t += dt
+```
+
+Scenarios:
+- light_single: 1 light vs dummy (logs stamina spend/regen and hit-stop timings)
+- heavy_single: 1 heavy vs dummy
+- chain_mix: light → light → dodge → light over 1.6 s, then idle; vs Goblin archetype to observe poise cluster and regen
+
+Worked Example (light_single vs dummy; dt=16 ms; baseline regen 20/s):
+- Setup: Player stamina=100; poise irrelevant; attack Pickaxe_T0 (windup 220, active 80, recovery 260); hitstop {10,22}
+- Trace (ms | action | stamina | notes)
+  - 0 | input: light; spend 12 | stamina=88.0 | last_spend=0; regen paused until ≥500 ms
+  - 208 | TelegraphStartEvent | stamina=88.0 | flashAtMs=-120 → fires at 220-120=100; correction: event actually at 100 ms (emitted earlier)
+  - 220 | Active starts; collision at 224 | stamina=88.0 | hit connects
+  - 224 | Damage applied | stamina=88.0 | dmg = max(1, floor(4*1.0 - defense(0))) = 4
+  - 224 | HitStopEvent queued | stamina=88.0 | attacker_ms=10; victim_ms=22
+  - 224–234 | Attacker micro-pause | stamina=88.0 | 10 ms pause (one frame)
+  - 500 | Regen resumes | stamina=88.0 → next ticks add 0.32 per 16 ms
+  - 512 | Regen tick | stamina≈88.32 | continues until max
+
+Note: If defense=3, dmg = max(1, floor(4) - 3) = 1.
+
+---
+
+## 13) Data & Externalization
+
+Suggested path: data/combat/params.json
+- Shape:
+```
+{
+  "stamina": {
+    "max": 100,
+    "regen_per_sec": 20,
+    "regen_delay_ms": 500,
+    "costs": { "light":12, "heavy":24, "dodge":18, "block_hold":4, "block_impact":8 }
+  },
+  "poise": {
+    "player": { "max":60, "recover_per_sec":12, "break_stun_ms":650 },
+    "enemy_defaults": { "recover_per_sec":9, "break_stun_ms":700 }
+  },
+  "attacks": {
+    "player": {
+      "light": { "damage_base":4, "poise_damage":2, "windup_ms":220, "active_ms":80, "recovery_ms":260, "hitstop":{ "attacker_ms":10, "victim_ms":22 }, "arc_deg":80, "range_px":44, "flashAtMs":-120 }
+    },
+    "player_heavy": {
+      "heavy": { "damage_base":8, "poise_damage":5, "windup_ms":320, "active_ms":90, "recovery_ms":320, "hitstop":{ "attacker_ms":16, "victim_ms":30 }, "arc_deg":100, "range_px":52, "flashAtMs":-160 }
+    }
+  },
+  "timings": { "dodge_i_frames_ms":120, "dodge_iframe_start_ms":33 },
+  "hitstop": {
+    "player": { "light": { "attacker_ms":10 }, "heavy": { "attacker_ms":16 } },
+    "enemy": { "light": { "victim_ms":22 }, "heavy": { "victim_ms":30 } }
+  },
+  "visual": { "telegraph_color_tokens": ["telegraph.arc.amber","telegraph.arc.cyan"] }
 }
+```
+- All color/audio tokens must align with data/visual/color-palette.json and docs/audio-systems/audio-design.md
 
-MVP notes
-- weaponPower is considered 0 unless provided elsewhere (weapon-tier data). Effective damage uses damageBase + weaponPower - defense.
-- multiHit must be false in MVP.
+---
 
-## 15) Text Sim Pseudocode & Params Externalization
-File: src/combat/sim_pseudocode.txt (to be created)
+## 14) Integration Notes & Risks
 
-Outline
-- simulate_scenario(params, script, seed):
-  - init RNG with seed
-  - spawn player, enemy with health/stamina/poise using params
-  - time_ms = 0
-  - while both alive:
-    - process script(time_ms) → player inputs (light/heavy/dodge/block/idle)
-    - advance timers; handle telegraph events
-    - if any attack enters active: resolve collisions order: I-frames → parry → block → hit
-    - apply dmg, poise, hit-stop (pause local clocks)
-    - apply stamina spends and regen pacing
-    - log: time_ms, player_state, enemy_state, player_stamina, enemy_poise, dmg_applied, poise_events
-    - time_ms += dt (e.g., 16 ms)
-  - return trace.csv, summary { TTK_ms, avg_DPS, avg_time_between_staggers, stamina_floor, time_in_poise_broken }
+Bevy mapping:
+- FixedUpdate (16 ms):
+  - input_system → stamina_spend_system → combat_timers_system → telegraph_emit_system → attack_activation_system → collision_resolve_system → poise_system → hitstop_queue_system
+- Events:
+  - audio_bridge_system (TelegraphStartEvent → event.Combat.telegraph.start)
+  - vfx_bridge_system (telegraph arcs, hit sparks)
+- RenderPrep:
+  - read VFX flags, draw arc overlays; apply camera micro-pause response to hit-stop if needed
 
-Scripts
-- light_spam: chain 3x light whenever chain window is open; repeat on cooldown.
-- heavy_poke: heavy every ~1.5 s if stamina allows; otherwise idle to regen.
-- mixed_chain: light-light-heavy cadence respecting chain window and stamina.
+Determinism:
+- Sort entities by eid ascending in collision_resolve_system; process in that order
+- Single-thread critical systems or use explicit system ordering and commands buffering
 
-Outputs
-- CSV-like trace and summary metrics consumable by JS harness and Rust unit tests.
+Risks:
+- Numbers will shift after playtests (TTK, regen, poise)
+- AI feint/approach needs tuning for fair punish windows
+- Event ordering and hit-stop profiling needed across platforms
+- Artists may request per-anim flash offsets (per-sprite telegraph anchor)
 
-Params JSON (data/combat/params-mvp.json)
-- {
-  stamina: { max, regen_per_sec, regen_delay_ms, on_hit_regen_pause_ms,
-    costs: { light, heavy, dodge, block_tick } },
-  poise: { player_max, player_rps, break_ms },
-  timings: { parry_window_ms, total_dodge_ms, iframes_ms },
-  hit_stop: { att_ms_range:[min,max], vic_ms_range:[min,max], clamp:[8,40] },
-  weapon_archetypes: { pickaxe_t0:{...}, hammer_t1:{...} },
-  enemies: { goblin_grunt:{...}, cave_burrower:{...} }
-}
+---
 
-Worked example (expected)
-- mixed_chain vs goblin_grunt:
-  - Expected TTK ≈ 32 s
-  - ~2 poise breaks
-  - stamina floor ≈ 22
-  - Notes: chain scaling 1.0/0.9/1.1 and goblin defense=1 yield average light hit ≈ max(1, 8-1)=7, heavy ≈ 15; cadence bounded by stamina and recovery windows.
+## 15) Test Plan
 
-## 16) Acceptance Checklist (for this spec)
-- Stamina costs/regen math and delays specified, including state-based regen modifiers and pause on hit.
-- Poise thresholds, damage application, break behavior, and recovery clarified.
-- Deterministic hit resolution order: I-frames → parry → block → hit.
-- Clear player state machine with priorities and transitions; chain buffer window detailed.
-- Telegraph timing and event emission rules provided; hit-stop timings and clamps provided.
-- Concrete numbers for two weapon archetypes and two L1 enemy archetypes.
-- ECS components, systems, and events named and scoped for Bevy integration.
-- Data contract outlines for Enemy and AttackDef.
-- Sim pseudocode and externalized params JSON shape defined.
-- Tuning targets align to ~30 s TTK with Pickaxe T0.
+Unit tests:
+- Damage clamp: never < 1 after defense
+- Stamina regen delay: no regen before 500 ms since last spend
+- Poise break timing: break only if ≤ 0 within 1.0 s cluster; recovery resumes after 400 ms since last poise hit
+- Event emission points: TelegraphStartEvent timing (windup + flashAtMs), HitStopEvent on hit, PoiseBreakEvent on break
 
-## 17) Risks & Assumptions
-- Numbers are pre-playtest; will iterate after sandbox TTK tests and telemetry from sim harness.
-- Event ordering may require minor emit-site tweaks in CombatResolveSystem to align with animation systems.
-- Telegraph flash_at_ms may require per-anim offsets due to blend trees; color tokens must remain stable across VFX/audio.
-- weapon_power assumed 0 for MVP; introducing tiers later may compress TTK—monitor and retune defense/health accordingly.
-- Hit-stop must pause only attacker/victim action clocks, not global time; verify in both Rust and JS harness for determinism.
+Sandbox tests:
+- Spawn goblin dummy; run chain_mix 10 trials
+- Log: TTK, hits landed, poise breaks, average stamina utilization
+- Acceptance: mean TTK ∈ [25, 35] s; poise breaks observed at ~8–12 s cadence under pressure; input-to-action ≤ 60 ms; hit-stop in 10–26 ms bands
 
-— Battlehammer Ironshield, hammer rings true.
+---
+
+## 16) Appendix: Implementation Notes (MVP constraints)
+
+- Parry: feature-flagged off; when on, treat as perfect block within first 80 ms of Block with counter window (future)
+- Block: successful block negates damage and poise; costs block_impact stamina; if cannot pay → block fails
+- Knockback: author per attack; default small for light, medium for heavy; 0 if blocked
+- Facing lock: during Active only
+- I-frames: Dodge only; no backhit bonus by default (toggleable later)
