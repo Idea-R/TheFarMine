@@ -1,434 +1,459 @@
-# Combat Design — Stamina, Steel, and the Three‑Wide Law (Sprint 1)
+# Combat Design — Steel, Steam, and Teachable Blows (Sprint 1)
 
 Provenance
 - Owner: @gamma (Combat Systems — Battlehammer Ironshield)
-- Voice: Battlehammer Ironshield, trimmed and hammer-true for implementers
-- Cross‑refs:
-  - src/core/ecs-registry.js
+- This document is implementation-ready for Sprint 1 MVP. Times are in ms; target frame rate 60 fps.
+- Cross-references:
+  - src/core/ecs-registry.js (Health/Stamina/Poise clamps and post-patch guarantees)
   - data/core/component-schemas.json
+  - docs/visual-systems/style-guide.md (§Telegraphs)
+  - data/visual/color-palette.json (telegraph token)
+  - docs/audio-systems/audio-design.md (§Event Bridge)
   - data/audio/sound-manifest.json
-  - data/visual/color-palette.json
   - data/combat/enemy-goblin-grunt.json
-  - data/combat/enemy-cave-burrower.json (pending)
-  - docs/core-systems/ecs-architecture.md
-  - docs/world-generation/cave-gen-algorithm.md
+  - data/combat/enemy-cave-burrower.json
 
+---
 
-## 1) Design Pillars & MVP Goals
-- Readable telegraphs
-- Earned hits (no freebies; commitment matters)
-- Stamina as tempo governor
-- Poise as posture/advantage management
-- Lane safety under the Three‑Wide Law
-- MVP pacing target: ~30 s solo TTK vs Goblin Grunt and Cave Burrower using Expected Player stats (AP 8, DEF 0, hitRate 0.6)
+## 2) Design Pillars
 
+- Balance creed
+  - Every weapon must feel earned.
+  - Every enemy teaches a specific timing/read through clear telegraphs and fair punish windows.
+- Three‑Wide Law
+  - Bodies standardized at 12×12 px.
+  - Attack arcs ≤110° (no barn-door nonsense in tight halls).
+  - Doors, corridors, and combat lanes target 3 tiles wide (keep pathing and swing arcs honest).
+- Telegraph-first combat
+  - Readable windups with consistent event timing and overlay cues.
+  - Fair i-frames on dodges; clear block raise time.
+  - Distinct parry vs block windows in the future. MVP includes block and dodge only. Parry is stubbed in notes for later.
 
-## 2) Core Stats & Units
-- Time: milliseconds (ms). Frame reference 60 FPS (1 f ≈ 16.67 ms).
-  - Common windows (frames → ms, rounded):
-    - 6f ≈ 100 ms
-    - 8f ≈ 133 ms
-    - 12f ≈ 200 ms
-    - 18f ≈ 300 ms
-    - 25f ≈ 417 ms
-    - 30f ≈ 500 ms
-- Space: pixels (px). Standard body collider: 12×12 px, centered on an entity’s transform.
-- Attack range, arc, hitbox semantics:
-  - rangePx: measured from the body’s forward face (front edge of 12×12) to furthest hitbox extent during Active.
-  - arcDeg: degrees of sweep centered on entity forward (0°); positive in both left/right directions symmetrically unless otherwise specified.
-  - hitbox: axis‑aligned box in local space, forward‑biased via offset; sampled every frame during Active.
+---
 
+## 3) Core Stats & Components (ECS contract)
 
-## 3) Stamina System (Costs, Regen, Delay)
-Baseline (ECS component)
-- Stamina{ max:100, value:100, regenPerSec:14, regenDelayAfterActionMs:600 }
+- Components
+  - Health: { current:int, max:int }. Clamp rules:
+    - On any write: current = clamp(current, 0, max).
+    - On max change: current = min(current, max).
+    - Hitting 0 does not delete the entity; emits death/KO elsewhere when needed (out of scope MVP).
+  - Stamina: { current:int, max:int, regenPerSec:int, regenDelayAfterActionMs:int, lastSpendAtMs:int }. Clamp rules:
+    - current = clamp(current, 0, max).
+    - If current < cost, action is denied (no negative stamina).
+  - Poise: { current:int, max:int, recoverPerSec:int, breakDurationMs:int, state:"Normal|Broken", lastHitAtMs:int, breakEndsAtMs:int }. Clamp rules:
+    - current = clamp(current, 0, max).
+    - On reaching 0: state = Broken; timer starts.
+    - On break end: current snaps to floor (see §5).
+- Baseline Player Attributes (ENTITY_TYPES.Player)
+  - attributes: { attackPower: 8, defense: 0 }
+  - Health.max, Stamina.max, Poise.max set by spawn template; see §4 and §5 defaults for Stamina/Poise.
+- Enemy archetype expectations
+  - Body 12×12 px.
+  - Collider defaults: axis-aligned box, 12×12, origin center; no rotation scaling hitbox.
+  - Renderable: depth ≈300 to layer correctly under UI telegraphs and above tiles.
 
-Action costs (initial tuning)
-- Light attack: 14 stamina; windup 220 ms; recovery 340 ms (player-facing reference)
-- Heavy attack (placeholder): 24 stamina; windup 420 ms; recovery 520 ms (not MVP‑required)
-- Dodge: 18 stamina; i‑frames 160 ms; total animation 360 ms; regen delay applies on start
-- Block hold: 0 per second baseline while held; on hit, stamina drain is defined by Block Mitigation (see Section 5)
+---
 
-Regen rules
-- Linear stamina regen resumes after regenDelayAfterActionMs following the last stamina‑gating action start (attack, dodge, block-raise).
-- Rate: regenPerSec; clamped at max.
+## 4) Stamina System (Numbers locked for MVP)
 
-Edge cases
-- Insufficient stamina prevents action start (attack, dodge). UI/HUD should gray out.
-- Block hold is allowed at 0 stamina, but on hit, mitigation is lost per Block Mitigation overflow rules (may take full damage).
+- Pools (defaults)
+  - Stamina.max = 100
+  - Stamina.regenPerSec = 14
+  - Stamina.regenDelayAfterActionMs = 600
+- Costs (player)
+  - Light Attack: 14
+  - Dodge/Roll: 24 (grants i-frames; see §6)
+  - Block: 6 to raise; plus 8 applied on each successful block (on impact). If 8 cannot be paid at impact, see §7 Guard Break.
+  - Sprint: N/A in MVP (reserved)
+- Regen rules
+  - Any stamina spend pauses regen for 600 ms.
+  - After the delay, stamina regenerates linearly at 14/s until capped at max.
+  - Floor at 0; actions that cannot pay full cost are denied (no partials; no negatives).
+  - Block raise denial: if current < 6, block cannot be raised.
 
+Implementation notes
+- tick(dt): if now - lastSpendAtMs ≥ 600, add regenPerSec * dt; clamp.
+- All stamina writes go through patchComponent; registry clamps post-patch (see §19).
 
-## 4) Poise System (Breaks, Recovery, Advantage)
-Baseline (ECS component)
-- Poise{ max:100, value:100, recoverPerSec:35, breakDurationMs:800 }
+---
 
-Behavior
-- Incoming attacks apply poiseDamage concurrently with health damage resolution.
-- If poise value ≤ 0 after application:
-  - Trigger PoiseBreak (stun) for breakDurationMs (800 ms) with recovery lockout (poise does not recover during this duration).
-  - Emit SFX/VFX and event (see Events).
-  - Attacker advantage: target is stunned, cannot block/dodge; attacker recovers normally and may chain follow‑ups.
+## 5) Poise System (Break and Recovery)
 
-Recovery
-- Passive recoverPerSec resumes 400 ms after last received poiseDamage (cooldown), clamped to max.
-- Taking any further poiseDamage during cooldown resets the 400 ms timer.
+- Pools (defaults)
+  - Poise.max = 100
+  - Poise.recoverPerSec = 35 (only while not Broken and not hit in last 480 ms)
+  - Poise.breakDurationMs = 800
+- Break
+  - When Poise.current reaches 0: enter Broken for 800 ms.
+  - Effects while Broken:
+    - Cannot act (no move, no dodge, no block, no attack).
+    - Takes +20% Health damage (see §8, PoiseBreak bonus).
+    - Special SFX/VFX (see §9 and §10).
+- Recovery
+  - If not Broken: recovery resumes 300 ms after last received hit (lastHitAtMs).
+  - While Broken: no recovery. At break end:
+    - state = Normal
+    - Poise.current snaps to floor: 25% of max (i.e., 25 if max=100).
+    - Normal recovery resumes (respecting the 300 ms hit grace and 480 ms anti-cheese window).
+- Anti-spam windows (MVP-simple)
+  - “not hit in last 480 ms” gate supersedes the 300 ms resume if still within 480 ms.
 
+---
 
-## 5) Damage & Mitigation Formulas
-Raw damage calculation
-- baseEffective = max(0, attack.base + attacker.Attributes.attackPower − defender.Attributes.defense)
+## 6) Dodge/Movement Windows
 
-Health damage application
-- If not blocked or dodged: healthDamage = baseEffective
-- If dodged during i‑frames: healthDamage = 0
-- If blocked: see Block mitigation
+- Total dodge duration: 360 ms (6 frames at 60 fps; style-guide aligned).
+- I-frames: 140 ms, centered early-middle:
+  - Default MVP window: t = [80 ms, 220 ms] from dodge start.
+  - Represented as a constant window now; future per-animation mapping supported by a tunables array.
+- Cancel/buffer rules
+  - Cannot cancel into attack during active i-frames.
+  - Can buffer an attack within the last 120 ms of the dodge; it fires when dodge ends.
+  - Movement continues during non-i-frame segments as dictated by animation root motion (MVP: fixed displacement blend).
 
-Poise damage application
-- If not blocked or dodged: poiseApplied = attack.poiseDamage
-- If dodged during i‑frames: poiseApplied = 0
-- If blocked: reduced per Block mitigation
+---
 
-Block mitigation
-- Normal block (any time outside perfect window):
-  - Health damage reduced by 70% (take 30% chip): healthDamage = round(baseEffective × 0.30)
-  - Poise damage reduced by 40%: poiseApplied = round(attack.poiseDamage × 0.60)
-  - Stamina cost: consumeStamina = round(baseEffective × 0.90)  // based on incoming pre‑reduction damage
-  - If stamina < consumeStamina:
-    - Apply deficit proportionally to health chip by increasing chip toward full hit. Let deficit = consumeStamina − staminaAvailable (clamped ≥ 0). Proportion p = min(1, deficit / consumeStamina).
-    - healthDamage = round(lerp(baseEffective × 0.30, baseEffective, p))
-    - poiseApplied remains reduced (do not restore poise to full on stamina failure).
-    - Stamina becomes 0.
-- Perfect block window (first 120 ms after block‑raise completes):
-  - Health damage reduced by 90% (10% chip): healthDamage = round(baseEffective × 0.10)
-  - Poise damage reduced by 70%: poiseApplied = round(attack.poiseDamage × 0.30)
-  - Reflect poise: attacker receives 6 poiseDamage immediately.
-  - Stamina cost: consumeStamina = round(baseEffective × 0.60)
-  - Overflow handling identical to normal block (proportional chip increase).
+## 7) Block Rules
 
-Dodge i‑frames
-- If attack Active overlaps the defender only during i‑frames, apply 0 health and 0 poise; otherwise resolve full (or blocked) damage.
+- Raise time
+  - Block becomes active 120 ms after input (raise animation gate).
+- Stamina on block
+  - 6 stamina on raise (pay-to-prepare).
+  - 8 additional stamina only if a hit is successfully blocked (applied on impact).
+  - If insufficient stamina to pay the 8 on impact:
+    - Guard breaks: the hit counts as fully unblocked.
+    - Apply an extra +12 Poise damage on top of the attack’s normal Poise damage.
+- Damage reduction while blocking
+  - Health: 70% reduced (i.e., 30% goes through; see §8).
+  - Poise: 40% reduced (i.e., 60% goes through; see §8).
+- Chip damage floor
+  - If the original unblocked Health damage (Mitigated in §8) would have been ≥5, then blocked Health damage is at least 1.
+- Notes
+  - No additional “stamina damage” scaling from attack properties in MVP; stamina drain is only the fixed 8 on successful block.
+  - Broken entities cannot block.
 
-Rounding
-- Use banker's rounding to nearest integer for damage and stamina costs to remain stable across platforms.
+---
 
+## 8) Damage & Mitigation Formulae (MVP-simple)
 
-## 6) Telegraphs & Attack Lifecycle
-States
-- TelegraphStart → Windup (telegraph VFX active) → Active (hitbox live) → Recovery → Cooldown
+- Definitions (integers unless stated)
+  - RawDamage = attacker.attributes.attackPower + attack.damage.base
+  - Mitigated = max(1, RawDamage - defender.attributes.defense)
+- On Block (block is active and stamina costs are successfully paid)
+  - HealthDamage = max(chipFloor, ceil(Mitigated * 0.30))
+    - chipFloor = 1 if Mitigated ≥ 5, else 0
+  - PoiseDamage = ceil(attack.damage.poiseDamage * 0.60)
+- On Hit (no block or guard break)
+  - HealthDamage = Mitigated
+  - PoiseDamage = attack.damage.poiseDamage
+- PoiseBreak bonus
+  - While target is Broken, incoming HealthDamage × 1.20 (round: ceil at final stage).
+  - Order of operations: determine HealthDamage as above (block or hit), then if target is Broken, HealthDamage = ceil(HealthDamage * 1.20).
+  - In practice, Broken targets cannot block; rule included for completeness/future exceptions.
+- Application order
+  1) Compute RawDamage and Mitigated.
+  2) Resolve block state and stamina payments.
+  3) Compute HealthDamage and PoiseDamage per above.
+  4) Apply PoiseBreak bonus if target Broken.
+  5) Apply damage; clamp Health/Poise via registry.
 
-Cues and budgets
-- Readable slow: windup 380–460 ms (teaches block timing)
-  - Visual: arc overlay enabled
-  - Audio: sfx.combat.telegraph.swing at TelegraphStart
-- Fast jab: windup 240–300 ms
-  - Visual: narrower arc overlay
+---
 
-Visual tokens
-- telegraph colorToken → data/visual/color-palette.json: mapping.telegraph.arc.amber
-- GroundHalo: false (MVP)
-- arcOverlay: true
+## 9) Hit-Stop & Feedback
 
-Artist cue table (relative to Active start)
-- sweepStart: Windup start (t = −windupMs)
-- flashAtMs: −120 ms (brief brighter arc pulse before impact)
-- impactWindow: Active duration
-- recoveryFade: first 180 ms of Recovery, reduce arc opacity to 0
+- Hit-Stop windows (ms)
+  - Attacker: 18–24 based on attack heft; MVP default 22 if unspecified in attack def.
+  - Victim: 36–48; MVP default 42 if unspecified in attack def.
+- Audio
+  - Do not time-scale or pitch-scale audio with hit-stop (see audio doc).
+  - Use Event Bridge keys mapped from attack ids and event types (see §10).
+- Visual
+  - Apply effects.hitFlash overlay to both attacker and victim on Hit.
+  - Apply effects.poiseBreakFlash on PoiseBreak events.
+  - Telegraph overlays are managed separately (see §15).
 
+---
 
-## 7) Hit‑Stop & Local Timescale
-Default caps
-- Victim: 42–52 ms depending on attack
-- Attacker: 20–26 ms depending on attack
+## 10) Events & Contracts (authoritative payloads)
 
-Specifics
-- Light hits: attacker 22 ms, victim 42 ms
-- Heavy hits (if added later): attacker 28 ms, victim 60 ms (cap)
+- Event payloads (all ints are 32-bit)
+  - combat.TelegraphStart
+    - { attackerId:int, attackId:string, windupMs:int }
+  - combat.AttackActivate
+    - { attackerId:int, attackId:string, activeMs:int, hitbox:{w:int,h:int,offsetX:int,offsetY:int}, arcDeg:int, rangePx:int }
+  - combat.Hit
+    - { attackerId:int, victimId:int, attackId:string, blocked:bool, damage:{ health:int, poise:int }, poiseBreak:bool }
+  - combat.PoiseBreak
+    - { entityId:int, breakDurationMs:int }
+  - combat.AttackEnd
+    - { attackerId:int, attackId:string }
+- Emission sites and order
+  - TelegraphStart (at windup start)
+  - AttackActivate (at start of active frames)
+  - Hit (0..n, per contact; multi-target allowed in arc)
+  - AttackEnd (at recovery start)
+  - PoiseBreak may fire during Hit processing if the victim’s Poise reaches 0.
+- Audio bridge
+  - Event Bridge keys must map to ids in data/audio/sound-manifest.json.
+  - Example keying convention (MVP suggestion): "sfx.combat.{attackId}.{eventType}"
 
-Blocked hits
-- Reduce both attacker and victim hit‑stop by ~30% (e.g., 22→15 ms, 42→29 ms) to keep rhythm while still tactile.
+---
 
-Scope
-- Hit‑stop is applied as a local timescale to the involved actors only; world, movement of others, and AI scheduling continue unpaused.
+## 11) Timings & Frame Mapping
 
+- Frame target
+  - 60 fps; 1 frame ≈ 16.67 ms
+- Telegraph flash windows
+  - Safe window: flashAtMs ∈ [-180 .. -80] relative to active start.
+- Archetype timing ranges
+  - Jab/Stab windup: 240–300 ms
+  - Slash/Sweep windup: 380–520 ms
+  - Heavy windup: 520–700 ms (not used in MVP)
+  - Active windows: 70–110 ms typical
+  - Recovery windows: 400–560 ms typical
+- All timing gates must be consistent with style-guide rhythm and readable in 3-wide lanes.
 
-## 8) Player Actions (Block, Dodge, Attack) — Timing & Cones
-Block
-- Raise time: 120 ms from input to block‑active
-- Maintain until released
-- Perfect window: first 120 ms after raise completes
-- Block cone: 140° centered forward; hits from outside cone are unblocked
+---
 
-Dodge
-- Startup: 80 ms
-- I‑frames: 160 ms (begin at DodgeStart event)
-- Endlag: 120 ms
-- Total animation: 360 ms
-- Movement burst: 80 px over 360 ms, velocity easing front‑loaded
-- Obeys lane safety (no tunneling through walls; adjust if collision)
+## 12) Attack Definition Schema (Enemy/Player parity)
 
-Attack (player baseline reference; not MVP‑finalized)
-- Light Chop example (for test harness parity):
-  - windupMs: 220, activeMs: 90, recoveryMs: 340, cooldownMs: 0 (player actions typically reuse recovery as lockout)
-  - rangePx: 24, arcDeg: 80
-  - damage: { base:10, poiseDamage:12 }
+- Authoritative shape for data/combat/enemy-*.json (and player attacks), in this key order:
+  - {
+    id,
+    name,
+    kind:"melee",
+    windupMs,
+    activeMs,
+    recoveryMs,
+    cooldownMs,
+    rangePx,
+    arcDeg,
+    hitbox:{ w, h, offsetX, offsetY },
+    damage:{ base, poiseDamage },
+    hitStopMs:{ attacker, victim },
+    knockback:{ px, direction:"forward" },
+    telegraph:{ colorToken:"mapping.telegraph.arc.amber", arcOverlay:true, flashAtMs },
+    notes:[]
+    }
+- Constraints and validation
+  - Bodies are 12×12; default melee rangePx must be within 18–26 for parity and readability.
+  - arcDeg ≤110 (Three-Wide Law).
+  - Hitboxes must be forward-biased (positive offsetX) to avoid wall self-clips:
+    - Recommended: offsetX ≥ half body width (≥6 px) for 12×12.
+  - activeMs between 70–110 unless documented exception in notes.
+  - windupMs must sit in the correct archetype band (see §11) unless notes justify variance.
+  - telegraph.colorToken must resolve in data/visual/color-palette.json.
+
+---
+
+## 13) Player Basic Attack (MVP)
+
+- One default melee light attack (id: "light_1")
+  - windupMs: 300
+  - activeMs: 80
+  - recoveryMs: 420
+  - cooldownMs: 320
+  - rangePx: 20
+  - arcDeg: 80
+  - hitbox: { w:12, h:12, offsetX:10, offsetY:0 }
+  - damage: { base:6, poiseDamage:14 }
   - hitStopMs: { attacker:22, victim:42 }
-  - Notes: matches stamina and timings elsewhere for consistency
+  - staminaCost: 14 (see §4)
+  - telegraph: { colorToken:"mapping.telegraph.arc.amber", arcOverlay:true, flashAtMs:-110 }
+- Notes
+  - Single-press, no combo chaining in MVP.
+  - Uses standard Dodge/Block timing interactions (see §6–§7).
 
+---
 
-## 9) Enemy Attacks Schema Mapping (Engine Contract)
-AttackDef fields (as used in enemy JSONs)
-- id: string (unique within enemy file)
-- name: string
-- kind: "melee" | "ranged" (MVP uses "melee")
-- windupMs: int
-- activeMs: int
-- recoveryMs: int
-- cooldownMs: int
-- rangePx: int
-- arcDeg: int
-- hitbox: { w:int, h:int, offsetX:int, offsetY:int }  // local, forward = +X
-- damage: { base:int, poiseDamage:int }
-- hitStopMs: { attacker:int, victim:int }
-- knockback: { px:int, direction:"fromAttackerForward"|"awayFromContactNormal" }
-- telegraph: { useGlobalAudio:boolean, visual:{ colorToken:string, arcOverlay:boolean, groundHalo:boolean } }
-- notes: string[]
+## 14) Enemy Catalog Expectations (MVP)
 
-Collision semantics
-- During Active, sample per frame (60 Hz); on first overlap with a given victim in that Active window, apply a Hit and set a per‑victim cooldown so repeated frames do not multi‑hit.
-- Hitboxes should be forward‑biased to protect walls in 3‑wide lanes.
-- rangePx measures from the body’s forward face (front of 12×12 collider) to hitbox far edge.
+- Goblin Grunt (data/combat/enemy-goblin-grunt.json)
+  - Stat block (targets)
+    - Health ≈ 64
+    - Poise ≈ 70
+    - attributes.attackPower ≈ 6
+    - Body 12×12
+    - Move speed ≈ 48 px/s
+    - Turn rate 360–540 deg/s
+  - Attacks (two)
+    - slash_sweep
+      - Longer windup (≈ 420–500 ms), wider arc (≤ 100–110°), range 20–22 px.
+      - Damage tuned to pressure block stamina; poiseDamage slightly higher than jab.
+    - stab_jab
+      - Shorter windup (≈ 260–300 ms), narrow arc (≤ 70–85°), range 20–22 px.
+      - Damage modest; poiseDamage moderate; teaches quick-read punish.
+    - Both within §11 timing bands; both emit telegraphs per §10 and §15.
+  - AI parameters (targets)
+    - aggroRange ≈ 120 px
+    - leash ≈ 240 px
+    - attackCooldown ≈ 900–1100 ms
+    - preferOpenLane: true (respects 3-wide pathing)
+    - feintChance ≈ 0.06 (future dial; for MVP may be stubbed)
+    - keepDistance ≈ 6 px (repositions to maintain viable range)
+    - attackWeights favor slash_sweep slightly (e.g., 0.55 sweep / 0.45 jab)
+  - Balance
+    - Tuned for ~30 s duel TTK vs Player AP 8 with hitRate ≈ 0.6 and fair reads.
+- Cave Burrower
+  - Must align exactly with existing data/combat/enemy-cave-burrower.json.
+  - No changes in MVP; use it as source of truth for timings, damage, and telegraph notes.
+  - Ensure arcDeg ≤110 and body 12×12 consistency (already delivered; cross-check during integration).
 
-ASCII: body and hitbox offset (top‑down, +X is forward)
-- O = body center, [ ] = body 12×12, { } = hitbox
+---
 
-           +X →
-        ┌─────────── Lane ───────────┐
-                 [   O   ]
-         {hitbox}
-   offsetX>0 pushes { } forward from O
-   offsetY shifts vertical lane position (±)
+## 15) Telegraph Visuals & Tokens
 
-Goblin exemplars
-- Slash Sweep
-  - windupMs: 420, activeMs: 100, recoveryMs: 480, cooldownMs: 360
-  - arcDeg: 110°, rangePx: 22
-  - hitbox: { w:16, h:10, offsetX:10, offsetY:0 }
-  - damage: { base:8, poiseDamage:14 }
-  - hitStopMs: { attacker:22, victim:42 }
-  - telegraph.visual.colorToken: mapping.telegraph.arc.amber
-- Stab Jab
-  - windupMs: 280, activeMs: 80, recoveryMs: 420, cooldownMs: 320
-  - arcDeg: 60°, rangePx: 24
-  - hitbox: { w:12, h:8, offsetX:12, offsetY:0 }
-  - damage: { base:10, poiseDamage:10 }
-  - hitStopMs: { attacker:22, victim:42 }
-  - telegraph.visual.colorToken: mapping.telegraph.arc.amber
+- Visual
+  - Telegraph overlay uses color token: mapping.telegraph.arc.amber (from data/visual/color-palette.json).
+  - Arc line width 2 px; halo 1 px per style-guide.
+  - Enabled on TelegraphStart; optional flash at telegraph.flashAtMs; clears on AttackEnd (recovery start).
+- Audio
+  - useGlobalAudio: true recommended at TelegraphStart for sfx.combat.telegraph.swing (ensure manifest id resolves).
+- Behavior
+  - The telegraph arc should respect arcDeg, rangePx, and hitbox forward bias for true representation.
+  - Do not persist overlays during hit-stop; overlays are UI-timed, not time-scaled.
 
+---
 
-## 10) AI & Gating Hooks Relevant to Combat
-- AI.attackCooldownMs: minimum ms between chosen enemy attacks, independent of per‑attack cooldownMs
-- attackWeights: weighted choice for attack selection; tune to prefer diverse sequences
-- preferOpenLane: true biases A* to remain centered in lanes; avoid rubbing walls
-- repositionOnMissMs: delay before re‑approach after a whiff (e.g., 400–600 ms)
-- Aggro/leash:
-  - aggroRadiusPx: begin chasing
-  - leashRadiusPx: return home if exceeded or line‑of‑sight lost for N ms
-- Range gating: do not attack if player beyond (rangePx + 8 px buffer) at AttackActive start; cancel into Recovery if target left bubble mid‑windup
+## 16) Loot & Rewards (combat tie-in only)
 
+- Per-enemy loot tables are defined in their JSON blocks.
+- MVP scarcity rule
+  - nothingWeight must exceed the sum of average individual drop weights to bias toward “no drop.”
+- Goblin Grunt drops
+  - Lean toward copper/iron scraps; small chance of minor consumables (if present).
+- Cave Burrower drops
+  - Include a small quartz chance; otherwise light material yield.
+- Out of scope
+  - Gold economy and crafting balance are beyond this document; we only enforce post-combat hooks.
 
-## 11) Events & ECS Integration (Authoritative Contracts)
-Emitter system
-- CombatSystem (publishes all combat.* events; consumers: Audio, VFX, UI, AI)
+---
 
-All times are ms unless stated.
+## 17) Sandbox Tuning Targets & Acceptance
 
-Events and payloads
-- combat.TelegraphStart
-  ```
-  {
-    "attackerId": "entity-uuid",
-    "attackId": "goblin.stabJab",
-    "windupMs": 280,
-    "colorToken": "mapping.telegraph.arc.amber",
-    "sfxId": "sfx.combat.telegraph.swing"
-  }
-  ```
-- combat.AttackActive
-  ```
-  {
-    "attackerId": "entity-uuid",
-    "attackId": "goblin.stabJab",
-    "activeMs": 80
-  }
-  ```
-- combat.Hit
-  ```
-  {
-    "attackerId": "entity-uuid",
-    "victimId": "entity-uuid",
-    "attackId": "goblin.stabJab",
-    "damage": { "base": 18, "final": 5 },
-    "poiseDamage": 6,
-    "blocked": true,
-    "perfect": false,
-    "hitStopMs": { "attacker": 15, "victim": 29 }
-  }
-  ```
-- combat.PoiseBreak
-  ```
-  {
-    "entityId": "entity-uuid",
-    "breakDurationMs": 800
-  }
-  ```
-- combat.BlockStart
-  ```
-  { "entityId": "entity-uuid" }
-  ```
-- combat.BlockEnd
-  ```
-  { "entityId": "entity-uuid" }
-  ```
-- combat.DodgeStart
-  ```
-  { "entityId": "entity-uuid", "iFrameMs": 160 }
-  ```
-- combat.DodgeEnd
-  ```
-  { "entityId": "entity-uuid" }
-  ```
+- Targets
+  - Solo TTK: ~30 s for an average player against a single MVP enemy in a clean 3-wide lane.
+  - Stamina pacing: allows either 3–4 light attacks or 1 dodge + 2 attacks before pausing for regen.
+  - Recovery windows leave space to read telegraphs and choose block vs dodge.
+- Acceptance checklist
+  - Numbers match this spec (Stamina/Poise timings, costs, and reductions).
+  - JSON fields adhere to the schema in §12.
+  - Telegraph color tokens and audio ids resolve from their manifests.
+  - Combat events fire in the correct order; PoiseBreak events on 0 Poise.
+  - ECS clamps (Health/Stamina/Poise) verified post-patch in src/core/ecs-registry.js.
 
-Emit sites and ordering
-- TelegraphStart at Windup begin (one per attack instance)
-- AttackActive at Active window open
-- Hit once per victim per Active window on first overlap
-- PoiseBreak after applying poise clamp that crosses ≤ 0
-- BlockStart when block state enters raise (t=0 of 120 ms raise)
-- DodgeStart when i‑frames begin (after 80 ms startup)
-- BlockEnd/DodgeEnd on state exit
+---
 
+## 18) Example Event Payloads (for engineers/tests)
 
-## 12) Audio & VFX Cue Table
-Default SFX ids (resolve in data/audio/sound-manifest.json)
-- onTelegraph: sfx.combat.telegraph.swing
-- onHit (light): sfx.combat.hit.light
-- onBlock: sfx.combat.block
-- onPoiseBreak: sfx.combat.poiseBreak
+- TelegraphStart (Goblin slash_sweep)
+  - { "attackerId": 102, "attackId": "slash_sweep", "windupMs": 420 }
+- Hit (unblocked)
+  - { "attackerId": 102, "victimId": 1, "attackId": "slash_sweep", "blocked": false, "damage": { "health": 9, "poise": 16 }, "poiseBreak": false }
+- PoiseBreak
+  - { "entityId": 1, "breakDurationMs": 800 }
 
-Visual tokens (data/visual/color-palette.json)
-- Telegraph arcs: mapping.telegraph.arc.amber
-- Impact overlay: effects.hitFlash
-- Poise break overlay: effects.poiseBreakFlash
+Notes
+- Blocked hit example (if blocked and costs paid) would set "blocked": true and use reduced damage per §8.
+- Guard break due to insufficient stamina on block registers as "blocked": false and adds +12 Poise in the computed damage step.
 
-Event → A/V suggestions
-- TelegraphStart: play sfx.combat.telegraph.swing at t=0; show arc with mapping.telegraph.arc.amber; pulse at flashAtMs = −120 ms
-- AttackActive: no additional SFX by default; maintain arc until Recovery start
-- Hit (unblocked): sfx.combat.hit.light at t=0; spawn effects.hitFlash on victim at t=0; apply hit‑stop
-- Hit (blocked): sfx.combat.block at t=0; spawn effects.hitFlash dimmer on defender’s shield direction; reduced hit‑stop
-- PoiseBreak: sfx.combat.poiseBreak at t=0; spawn effects.poiseBreakFlash on victim; optional camera nudge
+---
 
+## 19) Systems Order & Integration Notes
 
-## 13) Tuning Targets & Safe Ranges
-Target TTK math vs Goblin Grunt (example, Expected Player AP 8, DEF 0, hitRate 0.6)
-- Example Goblin Grunt (data/combat/enemy-goblin-grunt.json target): Health ≈ 240, Defense ≈ 2
-- Player Light Chop damage per landed hit:
-  - base 10 + AP 8 − DEF 2 = 16
-- Hits to kill (landed): 240 / 16 = 15
-- Considering hitRate 0.6: swings needed ≈ 15 / 0.6 = 25
-- Cycle time per swing: 220 ms windup + 90 ms active (overlaps) + 340 ms recovery ≈ 560 ms envelope
-  - 25 swings pure uptime ≈ 14.0 s
-- Stamina gating (14 per swing, max 100, regen 14/s, delay 600 ms):
-  - Bursts of 7 swings (≈3.92 s), then rest ≈ 7.6 s to refill (0.6 s delay + 7 s regen)
-  - 25 swings → 7 + 7 + 7 + 4 swings with rests: attack time ≈ 13.0 s, rests ≈ 19.8 s
-  - Total ≈ 32.8 s (before accounting for any blocks/dodges adding minor overhead)
-- Conclusion: On‑track for ~30 s TTK; minor dials (DEF, health, stamina) can bring within 28–32 s.
+- Systems order (per tick)
+  1) AI System (intent selection, assigns current attack or movement)
+  2) CombatSystem
+     - Emits TelegraphStart at windup start
+     - Emits AttackActivate at active start
+     - Processes contacts; emits Hit for each
+     - Emits PoiseBreak when Poise reaches 0
+     - Emits AttackEnd at recovery start
+  3) AudioEventBridge (maps events to manifest ids; plays without time scaling)
+  4) RenderSyncSystem (applies telegraphs and flash overlays)
+- Clamp guarantees
+  - src/core/ecs-registry.js enforces Health/Stamina/Poise clamps after any patch.
+  - CombatSystem must use patchComponent for writes to Health, Stamina, Poise; do not mutate raw component memory.
+- Networking/Determinism (MVP local)
+  - Event order and payloads above are authoritative for local simulation and replay logs.
 
-Safe ranges for MVP content
-- Enemy windupMs: 240–460
-- Enemy activeMs: 70–110
-- Enemy recoveryMs: 380–520
-- Enemy cooldownMs: 300–420
-- PoiseDamage per light: 10–18
-- Poise breakDurationMs: 700–900
-- Block chip: 20–35% normal; 5–15% perfect
-- Dodge i‑frames: 140–180 ms
+---
 
+## 20) Open Dials & Future Work
 
-## 14) Lane Law & Hitbox Rules
-Three‑Wide Law (lane width = 3 × 12 px = 36 px)
-- No melee AoE lateral span may exceed 2/3 lane width (≤ 24 px effective width) without a clear, early telegraph (≥ 380 ms windup with arc overlay).
-- Melee hitboxes must be forward‑biased (offsetX > 0) to reduce wall contacts.
-- Body colliders are fixed at 12×12 px; do not scale for MVP.
-- Knockback must not push victims into/through walls:
-  - Cap knockback to stop at ≥ 1 px from wall surfaces.
-  - Default knockback for light attacks: 6–10 px; for heavies: 12–18 px (if added later).
-- RangePx measured from front face; keep range tight in lanes (≤ 24 px for light enemy hits).
+- Dials (safe ranges for iteration)
+  - feintChance per enemy: 0.00–0.12
+  - approach/keepDistance per enemy: 4–12 px
+  - staminaCost per weapon family:
+    - Light: 12–16
+    - Medium: 18–26 (future)
+    - Heavy: 28–36 (future)
+  - dodge i-frame window: 120–160 ms (keep total dodge at 340–380 ms)
+  - poise recoverPerSec: 30–45
+  - poise breakDurationMs: 700–900
+- Parry (not MVP)
+  - Future: 2-stage window (early “perfect” 60–80 ms → full negate, late “soft” 80–120 ms → reduced damage).
+  - Requires new events (combat.Parry, combat.ParryPerfect), additional SFX, and stamina/poise interactions.
+- Heavy attacks and weapon families
+  - Add new kind:"melee" subtypes with different knockback and hit-stop ranges.
+- Multi-hit arcs and cleave tuning
+  - Consider per-target diminishing hit-stop for readability in crowds (post-MVP).
 
+---
 
-## 15) Sandbox & Tests
-Quickplay scenarios
-- Goblin Grunt duel (flat lane)
-  - Trials: 10
-  - Metrics: average TTK, stamina utilization (% time regenerating), poise breaks per minute, block success rate, dodge success rate
-  - Expected ranges:
-    - Avg TTK: 28–34 s
-    - Stamina regen time fraction: 45–60%
-    - Poise breaks: 1–2 per fight (player on goblin), 0–1 against player
-- Cave Burrower (emerge/pounce) — pending asset
-  - Validate emerge telegraph ≥ 380 ms, pounce i‑frame fair window (≥ 140 ms overlap)
-  - Edge case: blockable body‑bump on failed pounce should apply block chip and stamina drain per Block mitigation
+## Appendix A — ECS Contract Summary (quick reference)
 
-Acceptance checks
-- TelegraphStart, AttackActive, and Hit events fire in correct order with correct payloads
-- Perfect block window measured from block‑raise completion (120 ms raise + 120 ms perfect)
-- Dodge i‑frames align with DodgeStart event
-- Single Hit per victim per Active window
-- Hit‑stop local to participants only
-- Lane compliance: no hitbox lateral span > 24 px without slow telegraph
+- Health
+  - Write path: patchComponent(entityId, "Health", { current: newValue })
+  - Clamp: 0 ≤ current ≤ max
+- Stamina
+  - Spend(actionCost): if current ≥ cost → current -= cost; lastSpendAtMs = now; else deny
+  - Regen: if now - lastSpendAtMs ≥ 600 ms → current += 14 * dtSec
+- Poise
+  - OnHit: current -= poiseDamage; lastHitAtMs = now; if current ≤ 0 → state=Broken; breakEndsAtMs=now+800
+  - Tick: if state=Broken and now ≥ breakEndsAtMs → state=Normal; current = round(max*0.25)
+  - Recover: if state=Normal and now - lastHitAtMs ≥ 300 ms and now - lastHitAtMs ≥ 480 ms gate → current += 35 * dtSec
 
+---
 
-## 16) Data Authoring Guidelines (Enemies/Attacks)
-Checklist for enemy JSONs
-- Field order (recommended for readability): id, name, kind, windupMs, activeMs, recoveryMs, cooldownMs, rangePx, arcDeg, hitbox, damage, hitStopMs, knockback, telegraph, notes
-- Tokens:
-  - telegraph.visual.colorToken must exist in data/visual/color-palette.json
-  - sfx ids must exist in data/audio/sound-manifest.json
-- Body collider: 12×12 px (do not override in MVP)
-- Hitboxes: forward‑biased (offsetX > 0), sized to stay within lane law
-- arcDeg < 120 for lane melee; exceptions require slow telegraph budget
-- rangePx ≤ 24 for light enemy strikes
-- hitStopMs: use attacker:22, victim:42 for light attacks unless specified
-- Notes: include intent (e.g., “fast jab to punish greed”)
+## Appendix B — Implementation Rulings (edge cases)
 
+- Simultaneous hits
+  - Process in attacker id ascending order for determinism; apply clamps between each Hit.
+- Overkill damage
+  - No spillover mechanics; just clamp Health to 0.
+- Multiple blocks in same frame
+  - Apply 8 stamina per successfully blocked hit; if stamina runs out mid-frame, subsequent hits count as unblocked with +12 Poise each.
+- Knockback
+  - Direction "forward" is attacker’s facing; apply after hit-stop resolves; magnitude in pixels (no physics sim in MVP).
+- Hitbox vs arc
+  - An entity is valid if within both the arcDeg sector and the hitbox sweep at activation. Favor arc sector for target gating; hitbox is for collision overlap.
+- Telegraphs on cooldowned attacks
+  - TelegraphStart only fires when the attack is actually committed after cooldown.
 
-## 17) Open Questions & Iteration Notes
-Dials to revisit post‑playtest
-- Block chip % (normal and perfect)
-- Perfect block window (120 ms) leniency
-- Dodge i‑frame length (currently 160 ms)
-- Poise recoverPerSec (currently 35) and breakDurationMs (800)
+---
 
-Integration risks
-- Event ordering under lag or variable frame times; add unit tests for TelegraphStart timing and PoiseBreak emission relative to Hit.
-- Stamina overflow handling on block must remain deterministic across rounding and different baseEffective values.
+## Appendix C — Data Authoring Cheatsheet
 
-Planned adds (post‑Sprint 1)
-- Enemy: Cave Burrower final timings and emerge dust VFX hooks
-- Player heavy attack finalization
-- Additional audio layers for heavy hits and perfect blocks
+- AttackDef example (Goblin slash_sweep; illustrative)
+  - {
+    "id": "slash_sweep",
+    "name": "Wide Slash",
+    "kind": "melee",
+    "windupMs": 440,
+    "activeMs": 90,
+    "recoveryMs": 500,
+    "cooldownMs": 980,
+    "rangePx": 21,
+    "arcDeg": 100,
+    "hitbox": { "w": 12, "h": 12, "offsetX": 10, "offsetY": 0 },
+    "damage": { "base": 5, "poiseDamage": 16 },
+    "hitStopMs": { "attacker": 22, "victim": 42 },
+    "knockback": { "px": 14, "direction": "forward" },
+    "telegraph": { "colorToken": "mapping.telegraph.arc.amber", "arcOverlay": true, "flashAtMs": -120 },
+    "notes": [ "Sweep teaches wider read; sits at upper arc bound." ]
+    }
+- Player light_1 mirrors the schema with staminaCost handled in the action definition (engine-side).
 
-
-## 18) Acceptance Checklist (for this doc)
-- Stamina costs, regen, and delays specified
-- Poise thresholds, recovery, and break durations specified
-- Telegraph timings, states, and visual/audio tokens specified
-- Hit‑stop values and local timescale behavior specified
-- Damage and block mitigation formulas are concrete and testable
-- Events with exact payload structures and emission order defined
-- Enemy AttackDef schema mapped to JSON with exemplars
-- Lane law and hitbox rules formalized
-- Tuning targets (~30 s TTK) with back‑of‑pickaxe math included
-- Safe ranges for timings and poise/block/dodge provided
-- Sandbox tests and acceptance checks defined
-
-By my beard, that’s the lot. Implement true to the numbers, and the mines will sing of fair fights and earned victories.
+Steel speaks truth: teach through timing, punish through clarity, and let no swing be unearned.
