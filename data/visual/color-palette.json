@@ -2,111 +2,104 @@
   "version": 1,
   "meta": {
     "author": "eta",
-    "date": "2026-02-18",
-    "notes": "v0.1 brass+crystal palette for Sprint 1; cohesive steampunk-dwarven scheme with warm metals, cool crystals, and legible UI neutrals"
+    "date": "2026-02-18T00:00:00Z",
+    "notes": "v0.1 brass+crystal palette for Sprint 1"
   },
   "tokens": {
     "ui": {
-      "notes": "UI/HUD palette. panel.* are base and inverted HUD panel grounds; frame.* for decorative brass frames and rivets; accent.* for focus/interactive trims; text.* for legible copy; health/stamina bars with deep shadows; icon.slot.* for inventory grid slots; cursor.highlight for selection/hover ring.",
       "panel": {
-        "bg": "#1b1a17",
-        "bg_inverted": "#f0eadf"
+        "bg": "#1b1f26",
+        "bg_inverted": "#e9e2d1"
       },
       "frame": {
-        "brass": "#a77f1e",
-        "rivet": "#5a4521"
+        "brass": "#b58e2b",
+        "rivet": "#6e571c"
       },
       "accent": {
-        "brass": "#d1a33b",
-        "crystal": "#34c5e8"
+        "brass": "#d1a83a",
+        "crystal": "#48d1e8"
       },
       "text": {
-        "primary": "#e7e2d6",
-        "secondary": "#b7b0a3",
-        "inverted": "#2a261f"
+        "primary": "#e8edf6",
+        "secondary": "#a5adb7",
+        "inverted": "#2b3037"
       },
       "health": {
-        "bar": "#cf2e2e",
-        "bar_shadow": "#6b1717"
+        "bar": "#c73a3a",
+        "bar_shadow": "#7a2323"
       },
       "stamina": {
-        "bar": "#1fb173",
-        "bar_shadow": "#0d5e41"
+        "bar": "#7fb13a",
+        "bar_shadow": "#3d5a1b"
       },
       "icon": {
         "slot": {
-          "bg": "#131210",
-          "border": "#3a3123"
+          "bg": "#232a34",
+          "border": "#3b4552"
         }
       },
       "cursor": {
-        "highlight": "#ffd166"
+        "highlight": "#61e3ff"
       }
     },
     "terrain": {
-      "notes": "World terrain tints. rock.* for general mine strata; cave.* are environmental overlays for damp/cool and ember/warm moods.",
       "rock": {
-        "base": "#544b3f",
-        "shadow": "#2f2a24",
-        "highlight": "#786b58"
+        "base": "#4e5761",
+        "shadow": "#2b323a",
+        "highlight": "#6c757f"
       },
       "cave": {
-        "damp_tint": "#2c3d44",
-        "ember_tint": "#5a2d12"
+        "damp_tint": "#2e5f6b",
+        "ember_tint": "#7f4621"
       }
     },
     "materials": {
-      "notes": "Raw material color IDs used in inventory icons, crafting UI, and VFX sampling. metal.* are warm/dull; crystal.* are saturated jewel-tones.",
       "metal": {
-        "copper": "#b76d2e",
-        "iron": "#8a9096",
-        "brass": "#b68e2c"
+        "copper": "#b4652a",
+        "iron": "#6b6f76",
+        "brass": "#b58e2b"
       },
       "crystal": {
-        "cyan": "#2fc3da",
-        "amber": "#f4a940",
-        "violet": "#7c67e6"
+        "cyan": "#48d1e8",
+        "amber": "#f2a83b",
+        "violet": "#9a6ae1"
       }
     },
     "effects": {
-      "notes": "FX accents. steam.* for particle fog layers; hit.flash for brief damage flashes; glow.* for emissive halos (crystal and warm lamps).",
       "steam": {
-        "light": "#d5d9db",
-        "mid": "#9aa3a6"
+        "light": "#e9efe9",
+        "mid": "#c1cbc4"
       },
       "hit": {
-        "flash": "#fff1a8"
+        "flash": "#fff2a1"
       },
       "glow": {
-        "crystal_soft": "#44dff7",
-        "lamp_warm": "#ffc666"
+        "crystal_soft": "#7fe8ff",
+        "lamp_warm": "#ffcf74"
       }
     },
     "mapping": {
-      "notes": "Minimap legend. mapping.minimap.* read directly by the mapper; colors chosen for quick parsing over dark background.",
       "minimap": {
-        "bg": "#0e0d0b",
-        "rock": "#3b342c",
-        "floor": "#6a5d4a",
-        "ore_copper": "#d07a2c",
-        "ore_iron": "#9ca5b1",
-        "player": "#34c5e8",
-        "enemy": "#ff4d4d",
-        "exit": "#7cff7a"
+        "bg": "#0f1319",
+        "rock": "#2a3642",
+        "floor": "#3b4652",
+        "ore_copper": "#e29a59",
+        "ore_iron": "#9ea6af",
+        "player": "#e7f542",
+        "enemy": "#e34b4b",
+        "exit": "#66d17a"
       }
     },
     "telegraph": {
-      "notes": "Combat telegraph arcs. Amber = caution, Cyan = utility/ally, Green = safe path/charged.",
       "arc": {
-        "amber": "#ffb642",
-        "cyan": "#35c4ff",
-        "green": "#86ff5a"
+        "amber": "#ffb340",
+        "cyan": "#61e3ff",
+        "green": "#66d17a"
       }
     },
     "lighting": {
-      "notes": "Screen-space lighting accents used across UI. ui_shadow multiplies behind panels; rim_brass for specular rim on brass frames.",
-      "ui_shadow": "#000000",
-      "rim_brass": "#f6c35b"
+      "ui_shadow": "#0f141a",
+      "rim_brass": "#f0c95a"
     }
   },
   "aliases": {},
@@ -128,24 +121,28 @@
         "min_ratio": 4.5
       }
     ],
-    "notes": "Verify at 3x–4x scale in-engine; if ui.text.primary < 4.5:1 on ui.panel.bg, darken panel by ~3–5% or brighten primary by ~3% while maintaining warmth."
+    "notes": "Verify at 3x–4x scale in-engine; adjust ui.panel.bg or text tokens if ratios fail."
   },
   "schema_hint": {
     "version": "int",
     "meta": {
       "author": "string",
-      "date": "ISO-8601",
+      "date": "iso-8601",
       "notes": "string"
     },
-    "tokens": "object of categories → token groups → hex strings; each category may include a 'notes' string for usage context",
-    "aliases": "object of deprecated_id → current_id (empty in v0.1)",
+    "tokens": "object",
+    "aliases": "object",
     "accessibility": {
-      "contrast_targets": "array of {fg:string, bg:string, min_ratio:number}",
+      "contrast_targets": "array",
+      "notes": "string"
+    },
+    "integration": {
+      "loader": "string",
       "notes": "string"
     }
   },
   "integration": {
-    "loader": "At startup, build ColorLUT from tokens.* by flattening nested keys into dot paths (e.g., 'ui.panel.bg'). For each leaf hex, register color without alpha; alpha is applied at render-time. Panic/log on missing token; apply fallback '#ff00ff' magenta for debugging and continue.",
-    "notes": "Minimap consumes mapping.minimap.* directly; combat events reference telegraph.arc.*; UI/HUD binds ui.* tokens by id. lighting.* used by shader constants for rim/specular and drop shadows."
+    "loader": "Create ColorLUT at startup; log on missing token; return fallback '#ff00ff' to visualize errors.",
+    "notes": "Minimap reads mapping.minimap.*; telegraph arcs read telegraph.arc.* from combat events; enemy configs reference telegraph.arc.amber; audio/biome lighting may reference effects.glow.*."
   }
 }
