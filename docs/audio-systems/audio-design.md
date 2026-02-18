@@ -1,356 +1,438 @@
-# Audio System Design — Rhythm of Brass and Stone (Sprint 1)
+# Audio System Design — Pulse of Stone and Steam (Sprint 1)
 
 Provenance
 - Owner: @zeta (Audio Systems — Echoheart Bellowsong)
-- Author: Echoheart Bellowsong (Audio Systems — Zeta)
-- Scope: Implementation-ready contracts and behavior for src/audio/audio-system.js wired against data/audio/sound-manifest.json v1.
-
-Cross-References
-- data/audio/sound-manifest.json (authoritative asset, bus, and polyphony metadata)
-- docs/technology-systems/crafting-design.md (§8 Audio/UI Event Bridge)
-- docs/combat-systems/combat-design.md (§10 Events & Contracts)
-- docs/world-generation/cave-gen-algorithm.md (§1 depth tint mention)
-- src/core/ecs-registry.js (ENTITY_TYPES, IDs carried in events)
-- data/visual/color-palette.json (mapping.* tokens; aligns with ambience depth tinting)
-- Future companion: docs/audio-systems/music-direction.md (tempo, bar grid, arrangement)
-
-
-
-## 1) Goals & MVP Scope
-
-Priorities (Sprint 1)
-- Audible clarity in busy scenes; crisp transient delivery under hit-stop.
-- Three‑Wide readability support: midrange-forward SFX, restrained low-end; single-bus stereo, minimal spatial spread.
-- Deterministic routing via manifest IDs; no implicit routing in code.
-- Low-polyphony footprint on web; strict category limits; fair voice-steal.
-- Bar-aligned music transitions with simple hysteresis; stingers quantized to bar.
-- Depth-aware ambient layering with a single normalized depth scalar.
-
-Acceptance Notes
-- All sounds map 1:1 to manifest asset ids; no magic strings outside manifest.
-- Event→Audio mapping binds to ECS events verbatim.
-- Bus graph, emitter categories, voice rules, and collapse windows must honor manifest.globals (buses, categoryLimits, polyphony).
-- Collapse windows match manifest.globals.polyphony.collapseWindowsMs exactly.
+- Runtime alignment: Phaser 3 (WebAudio)
+- Cross-refs:
+  - docs/combat-systems/combat-design.md (§17 Audio & VFX Bridges)
+  - docs/technology-systems/crafting-design.md (§7/§11 Events & Bridges)
+  - docs/world-generation/cave-gen-algorithm.md (§12 Output & flags)
+  - docs/core-systems/ecs-architecture.md (§9 System Order — AudioEventBridge)
+  - data/core/component-schemas.json (Renderable.depth)
+  - docs/audio-systems/music-direction.md (dynamic layers)
+  - data/world/biome-crystal-caverns.json (biome id)
+  - Forthcoming: src/audio/audio-system.js (runtime)
 
 
 
-## 2) Bus Graph & Categories (Authoritative)
+## 2) Goals & MVP Scope
 
-Buses (from manifest.globals.buses)
-- master: root bus, receives all program audio.
-- music: child of master. Hosts music loops and stingers.
-- sfx: child of master. Hosts mining, combat, drill, and general SFX.
-- ambient: child of master. Hosts environmental loops.
-- ui: child of master. Hosts UI click/tooltip/crafting cues.
-- Initial gains: read exactly from manifest.globals.buses[*].gain (linear 0..1). Do not override in code. Assets specify linear gain 0..1; bus trims are applied multiplicatively on top.
+Goals
+- Audible, readable feedback for mining/combat/UI.
+- Ambient bed that sells Crystal Caverns.
+- Deterministic, event-driven triggers with sane polyphony.
+- Simple but musical ducking.
+- Minimal debug overlay.
 
-Category Limits (from manifest.globals.categoryLimits)
-- music: 4 voices
-- sfx: 16 voices
-- ambient: 4 voices
-- ui: 8 voices
-- Enforced per-category; overflow triggers voice steal rules below.
-
-Ducking Rules (from manifest.globals.ducking.rules)
-- Rule 1: sfx ducks music. Purpose: let impacts/swing telegraphs cut through. Attack/release envelopes per manifest; fast attack, moderate release.
-- Rule 2: combat overlay/hits further duck music (stronger than generic sfx). Purpose: increase combat clarity. Attack fast; release slower than Rule 1.
-- Rule 3: stingers duck both music base and ambient. Purpose: spotlight transitions. Attack immediate; release long tail to avoid pumping.
-- Rule 4: ui lightly ducks music (never ducks sfx). Purpose: tactile responsiveness without masking core action. Short attack and quick release.
-- Implementation: envelopes are defined in manifest (amount, attackMs, holdMs, releaseMs). Audio engine reads them verbatim and applies on target buses.
+Scope (Sprint 1)
+- Biomes: Crystal Caverns + Tavern only.
+- Events: mining.*, combat.*, poise.*, basic UI, crafting.complete.
+- Out of scope: VO, convolution reverb, positional occlusion.
 
 
 
-## 3) Asset/ID Conventions and Preload Strategy
+## 3) Runtime Architecture (Buses & Mixer)
 
-Representative Asset IDs (reference-only; actual metadata from manifest)
-- Ambient:
-  - ambient.mine.drip.loopA
-  - ambient.mine.steam.hiss.loopA
-  - ambient.tavern.loopA
+Bus topology (logical)
+- Master → [Music, Ambience, SFX, UI].
+  - Music: -14 LUFS target, limiter ceiling -1 dBFS, sidechain keyed by SFX hits.
+  - Ambience: -20 LUFS target, wide stereo, slow AGC.
+  - SFX: -16 LUFS target, transient-friendly, limiter with 3 ms attack/60 ms release.
+  - UI: -18 LUFS target, always on top, no duck receive.
+
+Ducking rules
+- SFX sidechain ducks Music by -4 dB (attack 20 ms, release 220 ms).
+- Parry/PoiseBreak stingers push Music -6 dB, shorter release 140 ms.
+- Mining loop beds never duck SFX; Ambience ducks -2 dB during dense combat.
+
+Voice limits
+- Master 48; SFX 24; Ambience 8; Music 4; UI 6.
+- Stealing: category-local, oldest-lowest-priority first; Music protected by priority unless in transition.
+
+Implementation notes (Phaser 3 / WebAudio)
+- We maintain logical buses as category gain scalars applied per-sound.
+- For smooth duck/AGC: interpolate category target gains per frame using time constants (approx attack/release).
+- WebAudio graph:
+  - Access audio context via game.sound.context. If environment allows, create bus gain nodes:
+    - MasterGain → [MusicBus, AmbienceBus, SFXBus, UIBus] → Destination.
+    - Route each WebAudioSound.gainNode into its category bus. If direct rewire is not supported in the Phaser build, fall back to per-sound gain multiplication: finalGain = authoringVolume × categoryBusGain × emitterGain × distanceGain.
+- Limiters:
+  - Use DynamicsCompressorNode as a soft limiter per bus:
+    - Music: threshold -3 dB, ratio 12:1, attack 5 ms, release 120 ms.
+    - SFX: threshold -6 dB, ratio 8:1, attack 3 ms, release 60 ms.
+    - Ambience: gentle: threshold -12 dB, ratio 3:1, attack 50 ms, release 600 ms.
+  - If sidechain unavailable, emulate ducking by scheduling Music bus gain envelope on qualifying SFX triggers.
+
+Envelope scheduling (duck)
+- On qualifying SFX play:
+  - target = -4 dB or -6 dB (convert to linear).
+  - Apply: gain → min(target, current) with attack 20 ms (or 10 ms for parry), then relax to 0 dB with release 220 ms (or 140 ms).
+- Overlapping ducks stack by taking the minimum target and the longest outstanding release.
+
+
+
+## 4) Spatialization & 2D Mix Rules
+
+- Panning law: equal-power stereo (use StereoPannerNode or azimuth pan math). Emitter.x vs camera center x → pan ∈ [-1..1], clamp.
+- Distance curve (screen-space proxy):
+  - dPx = distance in pixels between emitter and camera center.
+  - gain = 1 / (1 + 0.0015 × dPx^2), clamped to [0.25..1].
+- Spatialization:
+  - Mining/impacts use spatialization.
+  - UI, Music, and most Ambience are non-positional (center).
+- Depth scalar:
+  - depthMix ∈ [0..1]: derive from Renderable.depth normalized across scene (see §13).
+  - Use depthMix to bias ambience sends and subtle LPF:
+    - LPF cutoff = lerp(17 kHz, 9.5 kHz, depthMix).
+    - Low-shelf EQ gain = lerp(0 dB, -3 dB, depthMix) @ 200 Hz.
+
+
+
+## 5) Categories & Subcategories
+
+Ambience
+- biome.base.loop
+- biome.layer.drip
+- biome.layer.steam
+- biome.layer.crystal_hum
+- tavern.loop
+
+SFX
 - Mining:
-  - sfx.mining.swing.pick.light
-  - sfx.mining.hit.rock
-  - sfx.mining.hit.ore
-  - sfx.mining.break.stone
-- Drill:
-  - sfx.drill.spinUp
-  - sfx.drill.bite.loopA
-  - sfx.drill.coolDown
+  - swing.pick
+  - swing.drill
+  - hit.rock
+  - hit.ore.copper
+  - hit.ore.iron
+  - hit.ore.quartz
+  - break.rock
+  - break.ore
+  - deny.insufficient_power
+  - deny.no_stamina
 - Combat:
-  - sfx.combat.telegraph.swing
-  - sfx.combat.hit.light
-  - sfx.combat.block
-  - sfx.combat.poiseBreak
-- UI:
-  - ui.click
-  - ui.inventory.move
-  - ui.craft.start
-  - ui.craft.complete
-  - ui.tooltip.warn
-- Music:
-  - music.explore.base.loopA
-  - music.explore.sparkle.loopA
-  - music.combat.overlay.perc.loopA
-  - music.stinger.enterCombat
-  - music.stinger.exitCombat
+  - telegraph.whoosh
+  - swing.whoosh.light
+  - hit.light
+  - block.impact
+  - parry.ring
+  - poise.break
+  - enemy.vocal.goblin
+  - burrower.surface (stub parity)
+- Foley:
+  - step.gravel (optional MVP-1)
+  - ui.confirm, ui.cancel (routed to UI)
 
-Preload Strategy (from manifest.globals.preload)
-- onBoot: preload exactly the ids listed in manifest.globals.preload.onBoot (typically UI core, base music bed, minimal SFX). No extra ids.
-- onScene: on scene enter, preload manifest.globals.preload.onScene for that scene key (e.g., “Mine”), including ambient loops and primary interaction SFX.
-- Lazy loading: future biomes load their ambient/music/SFX packs upon first entry; evict least-recent packs on memory pressure. Do not lazy-load during combat entry—ensure combat overlay and stingers are either onBoot or pre-warmed onScene.
+Music
+- See docs/audio-systems/music-direction.md for layer ids and flows (we reference for duck hooks only).
 
+UI
+- click
+- confirm
+- error
+- craft.complete
 
 
-## 4) Event Bridge — Domain→Audio Mapping (Contracts)
 
-Source Events (payloads verbatim; see cross-refs)
-- MiningSystem emits:
-  - mining.Swing { toolId, tileType, oreType|null, eligible }
-  - mining.Progress { toolId, tileType, oreType|null, applied }
-  - mining.Break { toolId, tileType, oreType|null, pos:{x,y} }
-  - mining.Deny { reason:"hardness|stamina|angle", toolId }
-- CombatSystem emits:
-  - combat.TelegraphStart { attackerId, attackId, windupMs }
-  - combat.AttackActivate { attackerId, attackId, ... }
-  - combat.Hit { attackerId, victimId, attackId, blocked, damage:{health,poise}, poiseBreak }
-  - combat.PoiseBreak { entityId, breakDurationMs }
-  - combat.AttackEnd { attackerId, attackId }
+## 6) Event Bridge Contract (Authoritative Triggers)
 
-Mapping Rules (MVP)
-- mining.Swing:
-  - If eligible === true: play sfx.mining.swing.pick.light (collapse key: mine.swing).
-  - If eligible === false: silence for MVP (soft tick out-of-scope).
-- mining.Progress:
-  - If oreType is null: no immediate sound (let hit event handle).
-  - If applied > 0 and tileType rock and oreType is null: play sfx.mining.hit.rock (collapse key: hits).
-  - If oreType present: play sfx.mining.hit.ore (collapse key: hits).
-- mining.Break: play sfx.mining.break.stone (highest mining priority).
-- mining.Deny:
-  - If reason === "stamina": play ui.tooltip.warn on UI bus.
-  - If reason === "hardness": play ui.tooltip.warn on UI bus (MVP).
-  - If reason === "angle": silent (MVP).
-- combat.TelegraphStart: play sfx.combat.telegraph.swing (global; non-positional; collapse key may share with swings tier).
+Source events and payloads
+- mining.Swing { playerId, toolId, tileX, tileY, eligible }
+- mining.Progress { playerId, toolId, tileX, tileY, added, total, threshold }
+- mining.Break { playerId, toolId, tileX, tileY, tileType, oreType }
+- mining.Deny { playerId, toolId, tileX, tileY, reason }
+- combat.TelegraphStart { attackerId, attackId, ... }
+- combat.Hit { attackerId, victimId, attackId, damage, poiseDamage, wasBlocked, wasParried, hitStop }
+- combat.AttackEnd { attackerId, attackId, ... }
+- poise.Break { entityId, breakMs }
+- poise.Recover { entityId, recoveredAtMs }
+- ui.* (strings from UI system: ui.click, ui.confirm, ui.error, crafting.complete)
+
+Mapping rules
+- mining.Swing → sfx.mine.{pick|drill}.swing (toolId prefix detects pick vs drill). If eligible=false, route to sfx.mine.deny.soft (alias of deny.no_stamina at -3 dB).
+- mining.Progress (eligible) → sfx.mine.hit.{rock|ore.copper|ore.iron|ore.quartz}
+  - Throttle: max 7 Hz per-emitter.
+  - Coalesce: identical materials within 40 ms collapse.
+- mining.Break → sfx.mine.break.{rock|ore} with slightly higher priority; optional debris whoosh tail (if present in manifest tagged debris).
+- mining.Deny.reason → sfx.mine.deny.{insufficient_power|no_stamina|out_of_range}
+- combat.TelegraphStart → sfx.combat.telegraph.whoosh (120–180 ms; pan to attacker).
 - combat.Hit:
-  - If blocked === true: play sfx.combat.block (collapse key: combat.block).
-  - Else: play sfx.combat.hit.light (collapse key: combat.hit.light).
-  - If poiseBreak === true: also play sfx.combat.poiseBreak (do not collapse with hit).
-- Drill state machine: see §7 for transitions and timings (spinUp → bite loop start/stop → coolDown).
+  - If wasParried → sfx.parry.ring (ducks Music -6 dB).
+  - Else if wasBlocked → sfx.block.impact (ducks Music -4 dB).
+  - Else → sfx.combat.hit.light (ducks Music -4 dB).
+- poise.Break → sfx.combat.poise.break (distinct glass/gear crack; -6 dB duck).
+- ui.* map 1:1 to sfx.ui.*; crafting.complete → ui.craft.complete.
 
-Quick-Reference Mapping List (aligned to manifest IDs)
-- mining.Swing → sfx.mining.swing.pick.light
-- mining.Progress (rock/ore) → sfx.mining.hit.rock / sfx.mining.hit.ore
-- mining.Break → sfx.mining.break.stone
-- mining.Deny (stamina|hardness) → ui.tooltip.warn
-- combat.TelegraphStart → sfx.combat.telegraph.swing
-- combat.Hit (blocked:false) → sfx.combat.hit.light
-- combat.Hit (blocked:true) → sfx.combat.block
-- combat.PoiseBreak → sfx.combat.poiseBreak
-- Drill SpinUp/Bite/CoolDown → sfx.drill.spinUp / sfx.drill.bite.loopA / sfx.drill.coolDown
-- UI: click/inventory/craft start/complete → ui.click / ui.inventory.move / ui.craft.start / ui.craft.complete
+Debounce/Spam rules
+- Global: identical Hit sounds within 30 ms collapse to 1.
+- Telegraph per-attacker: max 1 every 300 ms.
+- Mining per-cell (24 px) hit cap 2 concurrent (see §10).
 
-
-
-## 5) Ambient Layering — Depth‑Based Mix Plan
-
-Mine Scene (MVP)
-- Active loops (ambient bus):
-  - ambient.mine.drip.loopA
-  - ambient.mine.steam.hiss.loopA
-- Depth scalar input: normalized depth d ∈ [0..1] supplied by world/renderer (0 = shallow, 1 = deepest). Single scalar only; no per-axis panning in MVP.
-- Per-loop gain trims (applied multiplicatively with bus gain):
-  - dripGain(d) = lerp(0.75, 0.95, d)
-  - steamGain(d) = lerp(0.80, 0.90, d)
-- Start both loops on scene enter (after preload). Adjust gains each render-second (≤10 Hz rate) to avoid zippering.
-- Tavern Scene: play ambient.tavern.loopA only, fixed gain from manifest; no depth modulation in MVP.
-
-Future Biomes
-- Hook: ambient-controller swaps loop IDs based on biome tag; depth scalar reused if biome defines depth-linked layers.
+Throttling and coalescing sketch
+```
+shouldPlay(key, emitterId, nowMs):
+  // global collapse
+  if recentGlobal[key] within 30ms: return false
+  // per-emitter throttle tables
+  if key.startsWith('sfx.mine.hit'):
+    if nowMs - lastHitTime[emitterId] < 143ms: return false // ~7 Hz
+    if dupWithin(emitterId, 40ms, material): return false
+  if key == 'sfx.combat.telegraph.whoosh':
+    if nowMs - lastTelegraph[attackerId] < 300ms: return false
+  return true
+```
 
 
 
-## 6) Drill Hysteresis — Audio State Machine
+## 7) Layering System — Depth- and Biome-driven Ambience
 
-States
-- Idle → SpinUp → Bite(looping) → CoolDown → Idle
+Biome L1 (Crystal Caverns)
+- Base loop: amb.biome.crystal_caverns.base.loopA (broadband cave air + distant machinery hum).
+- Layers:
+  - amb.layer.drip.sparse
+  - amb.layer.steam.hiss
+  - amb.layer.crystal.resonance
 
-Triggers
-- Enter SpinUp: tool hold begins on eligible tile; MiningSystem reports bite engagement.
-- Transition to Bite: SpinUp one-shot completes OR bite engagement persists beyond debounce.
-- Leave Bite: on release or ineligible contact loss > debounce window (120–180 ms). Immediately stop Bite loop.
-- Enter CoolDown: on Bite end (one-shot).
-- Return Idle: after CoolDown completion.
+Activation rules
+- On biomeId = biome.crystal_caverns:
+  - Start base.loopA at scene load; crossfade 1500 ms.
+  - Lamps nearby (Tile.flags LAMP_ANCHOR within 5 tiles):
+    - Add subtle steam hiss send; fade 400 ms on enter/exit.
+  - Room size proxy (flood-fill or nav sample in camera frustum):
+    - If area > threshold (tune: ~8–12 tiles radius), increase drip scheduler density.
+  - Depth tint (depthMix):
+    - Drive low shelf EQ (-1..-3 dB @ 200 Hz) and add 5–10% LPF as depth increases.
 
-Assets
-- sfx.drill.spinUp (one-shot; category sfx; priority “drill tier”)
-- sfx.drill.bite.loopA (loop:true; category sfx; polyphony key drill.bite)
-- sfx.drill.coolDown (one-shot)
+Tavern
+- amb.tavern.loopA (steady, no duck receive).
+- Crossfade to/from mine over 2.5 s on scene change.
+- Preserve music continuity; only ambience switches.
 
-Behavior Notes
-- Debounce window: 120–180 ms; implement as manifest.globals.polyphony.collapseWindowsMs.drill.bite for suppression of flaps and as loop stop grace.
-- pulseIntervalMs = 160 ms (gameplay timing) informs animation/hit-stop; audio bite remains continuous and should not be retriggered by each bite pulse.
-- Hit-stop does not pause bite loop (see §11).
-
-
-
-## 7) Polyphony, Priority, and Collapse Windows
-
-Collapse Windows (from manifest.globals.polyphony.collapseWindowsMs)
-- mine.swing: 120 ms
-- hits: 40 ms
-- drill.bite: 60 ms
-- combat.hit.light: 35 ms
-- combat.block: 35 ms
-- ui.*: 30 ms
-
-Mechanics
-- Each asset maps to a polyphonyKey (examples):
-  - sfx.mining.swing.pick.light → mine.swing
-  - sfx.mining.hit.rock / sfx.mining.hit.ore → hits
-  - sfx.drill.bite.loopA (start) → drill.bite
-  - sfx.combat.hit.light → combat.hit.light
-  - sfx.combat.block → combat.block
-  - ui.* → ui.*
-- Subsequent triggers within the window for the same key are dropped. Optional behavior “retrim instead of drop” is disabled for MVP unless specified in manifest.
-- Windows are checked before voice allocation to avoid churn.
-
-Priority Tiers (from manifest notes; compare on [0..100])
-- Stingers: 100
-- Break (e.g., sfx.mining.break.stone): 90
-- Drill: 86
-- Hit/Block: 84–86
-- Swings/Telegraphs: ~70
-- UI: mid‑50s
-- Ambient: mid‑40s
-- Base Music Beds: 80–82 (never stolen by stingers; see below)
-
-Voice Stealing
-- Within a category over limit: steal the lowest priority, then oldest if tie.
-- Music category: stingers never steal base beds; beds sidechain-duck under stingers per ducking rule.
-- SFX category: swings can be stolen before blocks/hits; drill one‑shots protected above swings.
+Stochastic layer scheduler
+- Drips: Poisson process with mean interval baseline 2200 ms; scale by room size (bigger room → shorter intervals).
+- Crystal resonance: low-probability one-shots gated by camera stillness (no movement > 30 px for 2 s).
 
 
 
-## 8) Spatialization & Emitters (MVP-simple)
+## 8) Mining Rhythm & Musicality
 
-MVP Playback (non-positional)
-- All playback is non-positional; emitters accept pos but it is ignored in MVP.
-- Flat stereo, no panning/attenuation; clarity first.
-
-Emitter/API Contracts (forward-compatible)
-- Audio.play(id: string, opts?: { pos?: { x: number, y: number }, variations?: string[], gain?: number }): Promise<VoiceHandle>
-- Audio.stop(id: string): void
-- Audio.setBusGain(busId: "master"|"music"|"sfx"|"ambient"|"ui", gain: number): void
-- Notes:
-  - gain is linear [0..1] scalar applied per instance; multiplied by asset default gain and bus trims.
-  - variations (if provided by manifest) allow pick from variant list; MVP may ignore if not present.
+- Pick swing precedence:
+  - Ensure swing lands slightly ahead of Progress hits; swing whoosh length ≈ windupMs.
+  - Timing: for player light swing at 300 ms windup, schedule whoosh start at t0+(windup-300 ms), overlap such that whoosh crest hits contact -40 ms.
+- Progress tick accents:
+  - Small transient chinks alternate pan L/C on rapid sequences to avoid flamming; implement via left-center alternator per-emitter when inter-hit ≤ 200 ms.
+- Breaks:
+  - Insert silence tail (10–20 ms) post-last chink before debris burst to heighten release impression.
 
 
 
-## 9) Music Conductor & Intensity Rules (MVP)
+## 9) Combat Intensity & Hit-Stop Cohesion
 
-Loops
-- Base: music.explore.base.loopA (persistent in exploration)
-- Sparkle: music.explore.sparkle.loopA (optional layer; toggled by exploration intensity)
-- Combat Overlay: music.combat.overlay.perc.loopA (enabled during combat state)
+Intensity meter I ∈ [0..1]
+- Inputs: combat.Hit weight 1.0, combat.TelegraphStart weight 0.4, poise.Break weight 1.2.
+- Window: 6 s exponential decay, τ = 2.2 s. Sum weights, normalize to [0..1] with soft clamp.
+- Drives:
+  - Music layer gains per docs/audio-systems/music-direction.md (map I to layer crossfades).
+  - Ambience duck -2 dB when I > 0.6 (release with τ=600 ms).
 
-Stingers
-- Enter Combat: music.stinger.enterCombat on first combat.TelegraphStart when not already in combat.
-- Exit Combat: music.stinger.exitCombat when combat ends after calm hysteresis.
-
-Bar Alignment
-- Assets with align:"bar" in manifest must start/stop on next bar boundary.
-- Conductor uses a default project tempo/grid defined in music-direction.md (MVP placeholder; quantize = 1 bar).
-- Stingers queue to the next bar; overlay in/out crossfades aligned to bar.
-
-Hysteresis
-- Combat state remains active for ≥4 bars after the last combat event (Telegraph/Hit/AttackEnd). After hysteresis:
-  - Fade out music.combat.overlay.perc.loopA over 1 bar (unless manifest specifies a different crossfade).
-  - Trigger music.stinger.exitCombat queued to next bar.
-- If new combat event arrives during fade, re-enable overlay at next bar (cancel exit stinger).
+Hit-stop cohesion
+- Do not globally pause audio during hit-stop; allow tails to ring.
+- For wasParried:
+  - Play bell-like ring with short pre-delay (10 ms) to align with visual flash.
+  - Trigger -6 dB Music duck envelope with faster attack (10 ms).
 
 
 
-## 10) Ducking & Hit‑Stop Interactions
+## 10) Priority, Polyphony, and Stealing
 
-Ducking Recap
-- Apply the four manifest-defined rules exactly (see §2). Envelopes are attack/hold/release time-domain gain trims on target buses.
-- Ordering: ducking is applied after voice routing and before final bus output; multiple ducks sum in dB domain (or multiply linearly) per engine implementation, clamped to floor.
+Priority ladder (high → low)
+- parry.ring
+- poise.break
+- break.ore
+- combat.hit
+- block.impact
+- mining.hit
+- telegraph.whoosh
+- ambience.layers
+- UI
+- footsteps
 
-Hit‑Stop
-- Hit-stop does not pause audio playback; no time-stretch or pitch freeze in MVP.
-- Short SFX cut through via category priority and ducking on music/ambient. Ensure impacts remain audible during freeze frames.
+Stealing policy
+- Category-local caps (SFX 24, Ambience 8, Music 4, UI 6).
+- On exceed:
+  - Evict oldest among the lowest-priority group in that category.
+  - Protect currently duck-keying SFX until 80 ms have elapsed (avoid cutting transient heads).
+- Coalesce rules:
+  - Multiple mining.hit in same 24 px cell coalesce; per-cell concurrent cap 2.
+  - Per-entity telegraph cap 1 active.
 
-
-
-## 11) Debug & Telemetry Hooks
-
-Dev Overlay (recommendation)
-- Active voices by bus (count + per-voice id).
-- Recent Event→Asset mapping (ring buffer of 16).
-- Polyphony counters per key and last-trigger timestamps.
-- Conductor bar/beat display; next-quantize ETA.
-
-Logging (dev builds)
-- Warn once if an event arrives with unknown mapping key or asset id not found in manifest.
-- Include the offending event name and indicative payload keys; no spam (rate-limit).
-
-
-
-## 12) Quick-Reference Mapping Table (Engineer-facing)
-
-- mining.Swing → sfx.mining.swing.pick.light
-- mining.Progress rock/ore → sfx.mining.hit.rock / sfx.mining.hit.ore
-- mining.Break → sfx.mining.break.stone
-- mining.Deny(stamina|hardness) → ui.tooltip.warn
-- combat.TelegraphStart → sfx.combat.telegraph.swing
-- combat.Hit(blocked:false) → sfx.combat.hit.light
-- combat.Hit(blocked:true) → sfx.combat.block
-- combat.PoiseBreak → sfx.combat.poiseBreak
-- drill: SpinUp/Bite/CoolDown → sfx.drill.spinUp / sfx.drill.bite.loopA / sfx.drill.coolDown
-- UI: click/inventory/craft start/complete → ui.click / ui.inventory.move / ui.craft.start / ui.craft.complete
+Suggested manifest priority values (guidance)
+- parry.ring 95, poise.break 92, break.ore 88, combat.hit 80, block.impact 75, mining.hit 60, telegraph.whoosh 55, ambience.layers 40, UI 50, footsteps 30.
 
 
 
-## 13) Integration Notes & Order of Operations
+## 11) Asset & Manifest Conventions
 
-Systems Order (runtime)
-- ECS emits domain event
-- AudioEventBridge resolves mapping → asset id(s), category, polyphonyKey
-- Polyphony check and collapse window gating
-- Voice allocation by category with priority; apply voice steal if required
-- Route to bus; apply per-instance gain; engage ducking envelopes if any
+File format
+- OGG (Vorbis) primary or WAV for ultra-short UI.
+- 44.1 kHz. Mono for SFX. Stereo for loops.
+- Loop points: provide sample-accurate loopStart/loopEnd in manifest where needed.
 
-Scene Lifecycle
-- On Scene enter:
-  - Preload manifest.globals.preload.onScene set for the scene.
-  - Start ambient base loops (Mine: drip + steam; Tavern: tavern loop).
-  - Start exploration base music bed(s) as per music-direction.md.
-- On Scene exit:
-  - Stop ambient gracefully (short fade).
-  - Maintain music bed continuity if next scene shares context; else fade per manifest.
+Naming
+- audio/{amb|sfx|ui|music}/.../id.ogg matched to manifest ids.
 
-Audio System Contracts (src/audio/audio-system.js)
-- init(manifest: ManifestV1): void
-  - Build bus graph from manifest.globals.buses; set initial gains.
-  - Register category limits, priorities, ducking rules, and polyphony windows.
-- handleEvent(name: string, payload: object): void
-  - Implement mappings in §4; forbid non-manifest ids.
-- setDepthScalar(depth01: number): void
-  - Apply ambient gain trims per §5 (clamped [0..1], update at ≤10 Hz).
-- conductor.tick(timeMs: number): void
-  - Maintain bar grid; quantize starts/stops for align:"bar" assets; enforce hysteresis in §9.
+Manifest schema (authoritative for data/audio/sound-manifest.json)
+- Fields:
+  - id
+  - filename
+  - category: "ambience" | "sfx" | "music" | "ui"
+  - subcategory?: string
+  - triggerKey: string
+  - priority: int (0..100)
+  - volume: number (0..1)
+  - loop: bool
+  - maxVoices: int
+  - spatialized: bool
+  - bus: "Music" | "Ambience" | "SFX" | "UI"
+  - duckSends?: { music: number, ambience: number }
+  - tags?: [string]
+  - notes?: [string]
+  - loopStart?: int
+  - loopEnd?: int
+
+Domain event → triggerKey patterns (concise mapping)
+- mining.Swing → sfx.mine.pick.swing | sfx.mine.drill.swing
+- mining.Progress (rock) → sfx.mine.hit.rock
+- mining.Progress (ore.copper) → sfx.mine.hit.ore.copper
+- mining.Progress (ore.iron) → sfx.mine.hit.ore.iron
+- mining.Progress (ore.quartz) → sfx.mine.hit.ore.quartz
+- mining.Break (rock) → sfx.mine.break.rock
+- mining.Break (ore) → sfx.mine.break.ore
+- mining.Deny.insufficient_power → sfx.mine.deny.insufficient_power
+- mining.Deny.no_stamina → sfx.mine.deny.no_stamina
+- mining.Deny.out_of_range → sfx.mine.deny.out_of_range
+- combat.TelegraphStart → sfx.combat.telegraph.whoosh
+- combat.Hit (parried) → sfx.parry.ring
+- combat.Hit (blocked) → sfx.block.impact
+- combat.Hit (normal) → sfx.combat.hit.light
+- poise.Break → sfx.combat.poise.break
+- ui.click → ui.click
+- ui.confirm → ui.confirm
+- ui.error → ui.error
+- crafting.complete → ui.craft.complete
+
+Ducking tags in manifest
+- For SFX that should key duck: set duckSends.music to 1.0 (weight); parry/poise break set to 1.5. Ambience duck only via intensity system, not per-SFX.
 
 
 
-## 14) Acceptance Checklist
+## 12) Emitter API & Integration Notes
 
-- All mappings point to ids that exist in data/audio/sound-manifest.json.
-- Bus graph, category limits, ducking rules, and collapse windows match manifest.globals exactly.
-- Drill hysteresis states and triggers are defined and unambiguous; debounce 120–180 ms respected.
-- Bar-aligned music rules with 4‑bar combat hysteresis are documented.
-- Ambient depth plan specified with a single normalized depth scalar input and gain formulas.
-- Concise quick-reference mapping provided for engineers (see §§4 and 12).
+Emitter attachment
+- For spatial SFX, anchor to entityId with fallback to world XY. When entity is destroyed, decay emitter (fade 120 ms) then release.
+- Camera listener: one listener at camera center; update panner each frame.
+
+Bridge adapter (AudioEventBridge)
+- Runs after gameplay event emitters and before frame end (see §13 System Order).
+- Translates domain events into playOneShot / ensureLoop with resolved triggerKey via manifest.
+
+Core API (pseudo-signatures)
+```
+playOneShot(triggerKeyOrId: string, opts?: {
+  entityId?: number,
+  position?: { x: number, y: number },
+  gain?: number,           // 0..1; default 1
+  pitchVar?: number,       // ± percentage; default 0.03 (3%)
+  startAtMs?: number,      // offset into buffer
+  priorityOverride?: number,
+  tags?: string[]
+}): VoiceHandle
+
+ensureLoop(id: string, opts?: {
+  entityId?: number,
+  position?: { x: number, y: number },
+  gain?: number,
+  spatialized?: boolean
+}): LoopHandle
+
+stopLoop(idOrHandle: string | LoopHandle, opts?: { fadeMs?: number }): void
+
+attachEmitter(entityId: number, initialXY: { x: number, y: number }): void
+updateEmitter(entityId: number, xy: { x: number, y: number }): void
+releaseEmitter(entityId: number): void
+```
+
+Per-frame update
+- AudioSystem.update(dt):
+  - Update camera listener position and depthMix.
+  - For each emitter: compute pan (equal-power), distance gain, and apply to active voices.
+  - Resolve bus duck envelopes (SFX → Music).
+  - Enforce voice limits and stealing.
+  - Advance ambience layer schedulers.
+
+Pitch variation
+- Default ±3% random pitch per one-shot (except UI). Cap pitch var for parry/poise to ±1% to preserve tonal identity.
+
+Mining timing assist
+- When both mining.Swing and mining.Progress are received for same playerId and tile within 120 ms, schedule Progress SFX at swingContactTime + 0..15 ms jitter to avoid exact coincidence (musical glue).
 
 
 
-— Echoheart Bellowsong, Audio Systems — Zeta
+## 13) Handshakes & Dependencies
+
+Events
+- Confirm exact event names/payloads as listed in §6 (alpha/gamma/delta). AudioEventBridge relies on consistent naming; mismatch logs a dev-only warning.
+
+Depth scalar source
+- Primary: use Renderable.depth (data/core/component-schemas.json) normalized per scene to [0..1] as depthMix.
+- Alternate: expose Audio.depthMix [0..1] from player/camera system for camera-centric ambience when scene lacks stable depth range.
+
+Biome id source
+- From scene meta or worldgen output meta.biomeId (docs/world-generation/cave-gen-algorithm.md §12). Must equal "biome.crystal_caverns" for L1 ambience set.
+
+System order (ECS)
+- AudioEventBridge executes after Combat/Mining logic emit events and before Render submission:
+  - See docs/core-systems/ecs-architecture.md (§9): place AudioEventBridge after StateResolutionSystem and before VFXSystem to keep A/V sync.
+- src/audio/audio-system.js will expose AudioEventBridge hooks and run its update late in the frame to capture final camera position.
+
+
+
+## 14) Debug & Tooling
+
+Minimal overlay
+- Shows:
+  - Last 12 resolved events → sound ids (with timestamps).
+  - Per-bus meters (RMS + peak), voice counts per category.
+  - Current combat intensity I and active duck envelope on Music.
+  - depthMix and current biome id.
+
+Performance/log gate
+- Dev-only; sampling at 10 Hz for overlay and logs.
+- Toggle via URL param ?audioDebug=1 or localStorage.audioDebug=true.
+- Truncate spam: coalesced events show a small ×n badge.
+
+
+
+## 15) Risks & Dials
+
+Risks
+- Loudness and duck balances require in-engine tuning per hardware.
+- Phaser node access differences across versions may constrain hard bus routing (fallback to per-sound gain multipliers).
+
+Dials (tunable ranges)
+- Duck amounts ±2 dB.
+- Voice caps ±25%.
+- Hit coalesce window 20–50 ms.
+- Mining tick throttle 5–9 Hz.
+- Intensity τ 1.6–3.0 s; ambience duck threshold I 0.5–0.7.
+
+
+
+## 16) Acceptance Checklist
+
+- Event→SFX rules cover MVP mining/combat/UI and ambience (Crystal Caverns + Tavern).
+- Bus/ducking/polyphony documented and feasible in Phaser/WebAudio with graceful fallbacks.
+- Manifest schema defined and aligned with triggerKey ids used in domain docs.
+- Handshakes (events, depth source, biome id, system order) explicit and implementable.
+- Ready to implement src/audio/audio-system.js MVP and author data/audio/sound-manifest.json next.
+
+Echo the caverns, steady and true; let every strike, step, and shimmer sing in time with the stone.
