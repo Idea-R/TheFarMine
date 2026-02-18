@@ -1,90 +1,84 @@
 {
   "version": 1,
-  "sequence": [
+  "messages": [
     {
-      "id": "welcome.step1.warm_greeting",
-      "delaySec": 0,
-      "channelId": "{{channel.tavern_talk}}",
-      "content": "Ho there, new delver! I'm Brewmaster Alehart, Keeper of the Far Mine tavern. The Far Mine is a cozy dwarf-made sim about digging, tinkering, and tales. Step to the hearth - say hello and share a favorite mining game or comfy sim you enjoy.",
-      "embeds": [],
-      "reactions": ["🍻","👋"],
-      "mentions": {
-        "roleIds": [],
-        "userIds": []
+      "id": "welcome",
+      "sendTo": "channel",
+      "channelToken": "{{channel.welcome}}",
+      "delayMs": 0,
+      "content": "Ho there, traveler! I’m Brewmaster Alehart, keeping the hearth warm for The Far Mine. Grab a stool, take a sip, and drop a quick hello in {{channel.tavern_talk}} so the crew can welcome you proper. When you share images or clips, add short alt-text so every dwarf can follow the tale.",
+      "links": {
+        "tavern_talk": "{{channel.tavern_talk}}"
       },
-      "cta": {
-        "label": "Say hello",
-        "url": null,
-        "action": "open_thread"
-      }
+      "reactions": [
+        "👋"
+      ]
     },
     {
-      "id": "welcome.step2.house_rules",
-      "delaySec": 15,
-      "channelId": "{{channel.tavern_talk}}",
-      "content": "House rules: be kind, keep it SFW, get consent and give credit. Spoilers go in threads with a clear tag. Add alt text to images and gifs. Full rules live in {{channel.announcements}}. Action: read them and react on the rules post.",
-      "embeds": [],
-      "reactions": ["📜"],
-      "mentions": {
-        "roleIds": [],
-        "userIds": []
+      "id": "rules",
+      "sendTo": "channel",
+      "channelToken": "{{channel.welcome}}",
+      "delayMs": 1500,
+      "content": "House rules are simple: be kind, debate ideas not folks, and leave slurs or harassment outside the gate. Tag spoilers so fresh delvers aren’t blindsided, and add alt-text on images and clips. The full code of conduct lives in {{channel.rules}}—give it a quick read before you clink mugs.",
+      "links": {
+        "rules": "{{channel.rules}}"
       },
-      "cta": {
-        "label": "Read the rules",
-        "url": null,
-        "action": "open_thread"
-      }
+      "reactions": [
+        "📜"
+      ]
     },
     {
-      "id": "welcome.step3.how_to_contribute",
-      "delaySec": 25,
-      "channelId": "{{channel.build_in_public}}",
-      "content": "We build in public. Share WIPs in this hall: {{channel.build_in_public}}. A fresh weekly thread opens Fri 17:00 UTC. Start a subthread for your post; devs reply in threads to keep tidy. Action: drop your first reaction on the latest weekly thread.",
-      "embeds": [],
-      "reactions": ["🛠️","✨"],
-      "mentions": {
-        "roleIds": [],
-        "userIds": []
+      "id": "contribute",
+      "sendTo": "channel",
+      "channelToken": "{{channel.welcome}}",
+      "delayMs": 1500,
+      "content": "Want to pitch in? Share progress threads in {{channel.build_in_public}}, and sign up for playtests in {{channel.playtest_queue}}. Post short clips or screenshots with brief alt-text so feedback lands true.",
+      "links": {
+        "build_in_public": "{{channel.build_in_public}}",
+        "playtest_queue": "{{channel.playtest_queue}}"
       },
-      "cta": {
-        "label": "Visit weekly thread",
-        "url": null,
-        "action": "open_thread"
-      }
+      "reactions": [
+        "🛠️",
+        "⛏️"
+      ]
     },
     {
-      "id": "welcome.step4.current_sprint",
-      "delaySec": 35,
-      "channelId": "{{channel.patch_notes}}",
-      "content": "Sprint 1: single mine level, basic mining and combat, 2 enemies, 3 crafting recipes, plus the tavern hub. See notes and tiny clips in {{channel.patch_notes}}. Action: skim the pinned sprint post so you know what's in-bounds.",
-      "embeds": [],
-      "reactions": ["🗒️","⛏️"],
-      "mentions": {
-        "roleIds": [],
-        "userIds": []
+      "id": "sprint",
+      "sendTo": "channel",
+      "channelToken": "{{channel.welcome}}",
+      "delayMs": 1500,
+      "content": "Sprint 1 focus: core loop, basic combat, and mining feel—hammer to anvil. Watch {{channel.announcements}} for weekly threads, sign-ups, and patch notes so you can swing where it counts.",
+      "links": {
+        "announcements": "{{channel.announcements}}"
       },
-      "cta": {
-        "label": "Open sprint post",
-        "url": null,
-        "action": "open_thread"
-      }
+      "reactions": [
+        "🧭"
+      ]
     },
     {
-      "id": "welcome.step5.feedback_and_bugs",
-      "delaySec": 45,
-      "channelId": "{{channel.feedback_mine}}",
-      "content": "Feedback welcome! Tags: [ui],[combat],[worldgen],[crafting],[audio],[lore]. Bug mini-format: version, seed, expected vs actual, clip if possible. We'll acknowledge within 48h. For repros, visit {{channel.bug_reports}}. Action: share one insight or bug.",
-      "embeds": [],
-      "reactions": ["💡","🪓"],
-      "mentions": {
-        "roleIds": [],
-        "userIds": []
+      "id": "feedback",
+      "sendTo": "channel",
+      "channelToken": "{{channel.welcome}}",
+      "delayMs": 1500,
+      "content": "For feedback in {{channel.feedback_mine}}, start with clear notes and tags like [ui], [combat], [worldgen], [crafting], [audio], [lore]. For bugs in {{channel.bug_reports}}, include version/hash, seed, repro steps, and a 10–20s clip or GIF. Keep it friendly and concrete—helps us fix faster than a goblin can blink.",
+      "links": {
+        "feedback_mine": "{{channel.feedback_mine}}",
+        "bug_reports": "{{channel.bug_reports}}"
       },
-      "cta": {
-        "label": "Submit feedback",
-        "url": null,
-        "action": "open_form"
-      }
+      "reactions": [
+        "🧪",
+        "✅"
+      ]
     }
-  ]
+  ],
+  "meta": {
+    "owner": "@theta",
+    "notes": [
+      "Authoritative v1 onboarding; bot posts five messages to {{channel.welcome}} in order.",
+      "Use delayMs to space posts: first at 0, then wait 1500ms between the rest.",
+      "After each post, add the listed reactions in order.",
+      "Replace {{channel.*}} tokens in channelToken, content, and links with server-specific channel mentions or IDs during deployment.",
+      "sendTo is fixed to channel for MVP; schema and key order are stable for simple parsing."
+    ]
+  }
 }
