@@ -1,217 +1,92 @@
-{
-  "version": 1,
-  "npcId": "npc.tavern.keeper",
-  "name": "Tavern Keeper",
-  "lines": [
-    {
-      "id": "tavern.keeper.rookie_rules",
-      "text": "Three-Wide, always. Leave space to sprint, and mind your lamp - the dark eats the careless.",
-      "tags": ["tutorial","safety"],
-      "mood": "concerned",
-      "conditions": {
-        "once": true,
-        "minDepth": 0,
-        "hasToolId": null,
-        "afterQuestId": null
-      },
-      "ui": {
-        "maxWidthChars": 120,
-        "tooltipSafe": true
-      },
-      "audio": {
-        "ambientId": "ambient.tavern.loopA",
-        "sfxId": "ui.tooltip.warn"
-      },
-      "hooks": ["hook.tavern.rookie_rules","lore.law.three_wide"]
-    },
-    {
-      "id": "tavern.keeper.ore_gates",
-      "text": "Basic pick bites rock and copper; reinforced takes iron; steam drill sings through quartz.",
-      "tags": ["tutorial","crafting"],
-      "mood": "neutral",
-      "conditions": {
-        "once": false,
-        "minDepth": 0,
-        "hasToolId": null,
-        "afterQuestId": null
-      },
-      "ui": {
-        "maxWidthChars": 120,
-        "tooltipSafe": true
-      },
-      "audio": {
-        "ambientId": "ambient.tavern.loopA",
-        "sfxId": null
-      },
-      "hooks": ["hook.tavern.ore_gates","tool.pick.t1.basic","tool.pick.t2.reinforced","tool.drill.t3.steam"]
-    },
-    {
-      "id": "tavern.keeper.goblins_lane_law",
-      "text": "See amber arcs sweep? That's a goblin's lane - step out, let it hiss past, then clout it.",
-      "tags": ["tutorial","combat"],
-      "mood": "wry",
-      "conditions": {
-        "once": false,
-        "minDepth": 0,
-        "hasToolId": null,
-        "afterQuestId": null
-      },
-      "ui": {
-        "maxWidthChars": 120,
-        "tooltipSafe": true
-      },
-      "audio": {
-        "ambientId": "ambient.tavern.loopA",
-        "sfxId": null
-      },
-      "hooks": ["hook.tavern.goblins_lane_law","mapping.telegraph.arc.amber"]
-    },
-    {
-      "id": "tavern.keeper.singing_stone",
-      "text": "Hear the Singing Stone hum? Colors deepen as ye descend; level zero's a soft tint yet.",
-      "tags": ["lore","audio","visual"],
-      "mood": "boastful",
-      "conditions": {
-        "once": false,
-        "minDepth": 0,
-        "hasToolId": null,
-        "afterQuestId": null
-      },
-      "ui": {
-        "maxWidthChars": 120,
-        "tooltipSafe": false
-      },
-      "audio": {
-        "ambientId": "ambient.tavern.loopA",
-        "sfxId": null
-      },
-      "hooks": ["hook.tavern.singing_stone","mapping.depthTint.l0","ambient.mine.drip.loopA"]
-    },
-    {
-      "id": "tavern.keeper.underloom_whisper",
-      "text": "They say the Underloom isn't bottomless; it's hungry. It weaves new ways when no one looks.",
-      "tags": ["lore"],
-      "mood": "neutral",
-      "conditions": {
-        "once": true,
-        "minDepth": 0,
-        "hasToolId": null,
-        "afterQuestId": null
-      },
-      "ui": {
-        "maxWidthChars": 120,
-        "tooltipSafe": false
-      },
-      "audio": {
-        "ambientId": "ambient.tavern.loopA",
-        "sfxId": null
-      },
-      "hooks": ["lore.artifact.underloom"]
-    },
-    {
-      "id": "tavern.keeper.guilds_rivalry",
-      "text": "Brassbound brag of frames, Steamwrights of pressure, Runecarvers of glyphs. Buy 'em a round.",
-      "tags": ["lore","factions"],
-      "mood": "boastful",
-      "conditions": {
-        "once": false,
-        "minDepth": 0,
-        "hasToolId": null,
-        "afterQuestId": null
-      },
-      "ui": {
-        "maxWidthChars": 120,
-        "tooltipSafe": false
-      },
-      "audio": {
-        "ambientId": "ambient.tavern.loopA",
-        "sfxId": null
-      },
-      "hooks": ["guild.brassbound","guild.steamwrights","guild.runecarvers"]
-    },
-    {
-      "id": "tavern.keeper.stations_chain",
-      "text": "Bench it, forge it, steam it: Workbench to Forge to Steamworks. Skip steps, and gear sulks.",
-      "tags": ["tutorial","crafting"],
-      "mood": "neutral",
-      "conditions": {
-        "once": false,
-        "minDepth": 0,
-        "hasToolId": null,
-        "afterQuestId": null
-      },
-      "ui": {
-        "maxWidthChars": 120,
-        "tooltipSafe": true
-      },
-      "audio": {
-        "ambientId": "ambient.tavern.loopA",
-        "sfxId": null
-      },
-      "hooks": ["station.workbench.t1","station.forge.t2","station.steamworks.t3"]
-    },
-    {
-      "id": "tavern.keeper.stamina_wisdom",
-      "text": "Stamina's stout but finite. Swinging bites more than blocking; breathe in cover to get it back.",
-      "tags": ["tutorial","combat"],
-      "mood": "concerned",
-      "conditions": {
-        "once": false,
-        "minDepth": 0,
-        "hasToolId": null,
-        "afterQuestId": null
-      },
-      "ui": {
-        "maxWidthChars": 120,
-        "tooltipSafe": true
-      },
-      "audio": {
-        "ambientId": "ambient.tavern.loopA",
-        "sfxId": "ui.tooltip.warn"
-      },
-      "hooks": ["ecs.component.Stamina","ui.tooltip.warn"]
-    },
-    {
-      "id": "tavern.keeper.return_loop",
-      "text": "Back to tavern: sell your haul, mend and upgrade, thumb the quest board, then dive again.",
-      "tags": ["tutorial","loop"],
-      "mood": "neutral",
-      "conditions": {
-        "once": false,
-        "minDepth": 0,
-        "hasToolId": null,
-        "afterQuestId": null
-      },
-      "ui": {
-        "maxWidthChars": 120,
-        "tooltipSafe": true
-      },
-      "audio": {
-        "ambientId": "ambient.tavern.loopA",
-        "sfxId": null
-      },
-      "hooks": ["loop.return_to_tavern"]
-    },
-    {
-      "id": "tavern.keeper.farewell_rhyme",
-      "text": "Stone be steady, ale be ready - off ye go, and back before the barrels run dry.",
-      "tags": ["flavor"],
-      "mood": "wry",
-      "conditions": {
-        "once": false,
-        "minDepth": 0,
-        "hasToolId": null,
-        "afterQuestId": null
-      },
-      "ui": {
-        "maxWidthChars": 120,
-        "tooltipSafe": false
-      },
-      "audio": {
-        "ambientId": "ambient.tavern.loopA",
-        "sfxId": null
-      },
-      "hooks": []
-    }
-  ]
-}
+[
+  {
+    "id": "dlg.tavern.keeper.welcome_first_mug",
+    "speakerId": "npc.tavern.keeper",
+    "speakerName": "Tavern Keeper",
+    "mood": "warm",
+    "text": "Welcome, delver. Hear the Mine hum under the boards? Sip, breathe steady, let the stone know your name.",
+    "tags": ["tutorial.intro", "tavern.welcome"],
+    "audioId": "amb.tavern.loopA"
+  },
+  {
+    "id": "dlg.tavern.keeper.three_wide_law",
+    "speakerId": "npc.tavern.keeper",
+    "speakerName": "Tavern Keeper",
+    "mood": "wry",
+    "text": "Mind the Three-Wide Law: keep lanes three across, so panic and falling stone can't pinch a soul.",
+    "tags": ["lore.three_wide", "worldgen.safety"],
+    "audioId": null
+  },
+  {
+    "id": "dlg.tavern.keeper.lamps_spacing",
+    "speakerId": "npc.tavern.keeper",
+    "speakerName": "Tavern Keeper",
+    "mood": "busy",
+    "text": "Lamps at measured spans, like beats on a drum. When brass keeps time, shadows mind their manners.",
+    "tags": ["worldgen.lamps", "safety.proverb"],
+    "audioId": null
+  },
+  {
+    "id": "dlg.tavern.keeper.copper_then_iron",
+    "speakerId": "npc.tavern.keeper",
+    "speakerName": "Tavern Keeper",
+    "mood": "warm",
+    "text": "Copper bites first, iron after. Tools rise as the seam hardens; patience pays.",
+    "tags": ["mining.gates", "crafting.tools"],
+    "audioId": null
+  },
+  {
+    "id": "dlg.tavern.keeper.quartz_whispers",
+    "speakerId": "npc.tavern.keeper",
+    "speakerName": "Tavern Keeper",
+    "mood": "hushed",
+    "text": "Crystal Caverns hum like a choir; deeper quartz keeps its counsel for keener teeth.",
+    "tags": ["biome.crystal_caverns", "lore.crystal_resonance"],
+    "audioId": null
+  },
+  {
+    "id": "dlg.tavern.keeper.guilds_roll_call",
+    "speakerId": "npc.tavern.keeper",
+    "speakerName": "Tavern Keeper",
+    "mood": "warm",
+    "text": "Steamwrights, Stonebinders, Emberwatch—three guilds. My bell ends disputes; your coin ends thirst.",
+    "tags": ["factions.overview", "tavern.law"],
+    "audioId": null
+  },
+  {
+    "id": "dlg.tavern.keeper.goblin_warning",
+    "speakerId": "npc.tavern.keeper",
+    "speakerName": "Tavern Keeper",
+    "mood": "wry",
+    "text": "Goblins swing wide and light; watch the shoulder, not the sneer.",
+    "tags": ["enemy.goblin", "combat.telegraph"],
+    "audioId": null
+  },
+  {
+    "id": "dlg.tavern.keeper.burrower_signs",
+    "speakerId": "npc.tavern.keeper",
+    "speakerName": "Tavern Keeper",
+    "mood": "hushed",
+    "text": "Burrowers—floor trembles, then teeth; give them room to lunge, then clip their courage.",
+    "tags": ["enemy.burrower", "combat.ambush"],
+    "audioId": null
+  },
+  {
+    "id": "dlg.tavern.keeper.crafting_stations",
+    "speakerId": "npc.tavern.keeper",
+    "speakerName": "Tavern Keeper",
+    "mood": "busy",
+    "text": "Workbench for first makes, Forge for iron's temper, Steamworks for brass that breathes.",
+    "tags": ["crafting.stations", "ui.tip"],
+    "audioId": "ui.confirm"
+  },
+  {
+    "id": "dlg.tavern.keeper.neutral_ground",
+    "speakerId": "npc.tavern.keeper",
+    "speakerName": "Tavern Keeper",
+    "mood": "solemn",
+    "text": "The Hearth & Anvil is neutral—songs high, tempers low. Leave feuds at the lintel.",
+    "tags": ["tavern.law", "community.tone"],
+    "audioId": "amb.tavern.loopA"
+  }
+]
