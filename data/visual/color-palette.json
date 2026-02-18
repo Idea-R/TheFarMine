@@ -4,94 +4,710 @@
     "author": "eta",
     "updated": "2026-02-18T00:00:00Z",
     "notes": [
-      "Schema v1: authoritative token map for terrain, UI, characters, effects, materials, and mapping.",
-      "WCAG-ish contrast: primary/secondary/inverted text validated against panel backgrounds.",
-      "Metals include brass/copper/iron with dark/light siblings for specular highlights.",
-      "Telegraph arcs (amber/red/green) tuned for readability over dark cave floors at ≤0.6 opacity.",
-      "Crystal accents (cyan/amethyst) coordinated to avoid conflict with damage telegraph amber."
+      "Sprint 1 master palette for brass-and-crystal HUD on cool slate terrain.",
+      "Minimap hues maximize 1-px separation for rock/floor/ore and player/enemy/exit.",
+      "Text tokens meet WCAG targets on specified panel backgrounds; see wcag fields.",
+      "Effects.* reserved for particle/light tinting; not intended for text."
     ]
   },
-  "categories": [
-    "terrain",
-    "ui",
-    "characters",
-    "effects",
-    "materials",
-    "mapping"
-  ],
-  "colors": {
-    "terrain": {
-      "terrain.rock.base": "#3A3732",
-      "terrain.rock.shadow": "#2A2724",
-      "terrain.rock.deep": "#1B1917",
-      "terrain.floor.dust": "#4A443E",
-      "terrain.ore.copper": "#B4653A",
-      "terrain.ore.iron": "#6C6F73",
-      "terrain.ore.quartz": "#D9D1C8",
-      "terrain.lamp.glow": "#8A6F2E"
+  "tokens": {
+    "ui.panel.bg": {
+      "id": "ui.panel.bg",
+      "hex": "#151A1E",
+      "role": "bg",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "HUD base slate",
+        "Matte, reduces glare"
+      ]
     },
-    "ui": {
-      "ui.panel.bg": "#161A1C",
-      "ui.panel.bg_inverted": "#F0F2F4",
-      "ui.panel.border": "#3A3F45",
-      "ui.separator": "#2B3035",
-      "ui.text.primary": "#E6E6E6",
-      "ui.text.secondary": "#B7BEC7",
-      "ui.text.inverted": "#1B1D1F",
-      "ui.accent.brass": "#E3C35A",
-      "ui.accent.copper": "#D07A4A",
-      "ui.accent.crystal": "#60B9C6",
-      "ui.health.bar": "#C64A4A",
-      "ui.stamina.bar": "#4AA06B",
-      "ui.warning": "#D99A2B",
-      "ui.ok": "#57A85A"
+    "ui.panel.bg_inverted": {
+      "id": "ui.panel.bg_inverted",
+      "hex": "#F2E7D0",
+      "role": "bg",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Alt panels/prompt backdrops",
+        "Warm parchment"
+      ]
     },
-    "characters": {
-      "characters.player.base": "#5C666E",
-      "characters.player.beard": "#7A4A2A",
-      "characters.player.brass_trim": "#C29A3A",
-      "characters.goblin.base": "#6A8F3A",
-      "characters.goblin.accent": "#8F3A2A",
-      "characters.burrower.base": "#6B5848"
+    "ui.panel.frame.brass": {
+      "id": "ui.panel.frame.brass",
+      "hex": "#B08C3C",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Bezel/frame metal",
+        "Pairs with accent.brass"
+      ]
     },
-    "effects": {
-      "effects.hit.flash": "#FFF2E0",
-      "effects.mine.spark": "#FFB547",
-      "effects.smoke.steam": "#A9B2B9",
-      "effects.light.warm": "#EAB55C",
-      "effects.light.cold": "#7EC7E8",
-      "effects.ui.select": "#5FD1D9"
+    "ui.panel.frame.rivet": {
+      "id": "ui.panel.frame.rivet",
+      "hex": "#7A5F26",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Rivet/fastener dots",
+        "Darker brass"
+      ]
     },
-    "materials": {
-      "material.metal.brass": "#C29A3A",
-      "material.metal.copper": "#B4653A",
-      "material.metal.iron": "#6C6F73",
-      "material.crystal.cyan": "#5FD1D9",
-      "material.crystal.amethyst": "#8C6AD9",
-      "material.leather.brown": "#7A5A3A",
-      "material.metal.brass.dark": "#8B6F2E",
-      "material.metal.brass.light": "#E3C35A",
-      "material.metal.copper.dark": "#8A4C2A",
-      "material.metal.copper.light": "#D78A5A",
-      "material.metal.iron.dark": "#4A4D50",
-      "material.metal.iron.light": "#8E9398",
-      "material.crystal.cyan.dark": "#2F9AA5",
-      "material.crystal.cyan.light": "#89E3EA",
-      "material.crystal.amethyst.dark": "#5D3FB0",
-      "material.crystal.amethyst.light": "#B19BE8",
-      "material.leather.brown.dark": "#5A3F2A",
-      "material.leather.brown.light": "#A37C56"
+    "ui.accent.brass": {
+      "id": "ui.accent.brass",
+      "hex": "#D4B25A",
+      "role": "accent",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Primary HUD accent",
+        "Spec tie-in to brass"
+      ]
     },
-    "mapping": {
-      "mapping.telegraph.arc.amber": "#D99A2B",
-      "mapping.telegraph.arc.red": "#D04A3A",
-      "mapping.telegraph.arc.green": "#57A85A",
-      "mapping.minimap.floor": "#2A2E33",
-      "mapping.minimap.rock": "#40464C",
-      "mapping.minimap.door": "#A67C3A",
-      "mapping.minimap.ore.copper": "#C47749",
-      "mapping.minimap.ore.iron": "#8A8F96",
-      "mapping.minimap.ore.quartz": "#C4D6DA"
+    "ui.accent.crystal": {
+      "id": "ui.accent.crystal",
+      "hex": "#5FD7F2",
+      "role": "accent",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Secondary HUD accent",
+        "Crystal cyan glow"
+      ]
+    },
+    "ui.health.bar": {
+      "id": "ui.health.bar",
+      "hex": "#C93A3A",
+      "role": "highlight",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Health fill",
+        "Warm danger tone"
+      ]
+    },
+    "ui.health.bar_shadow": {
+      "id": "ui.health.bar_shadow",
+      "hex": "#6E2222",
+      "role": "shadow",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Health depth",
+        "Multiply-friendly"
+      ]
+    },
+    "ui.stamina.bar": {
+      "id": "ui.stamina.bar",
+      "hex": "#3EBB6A",
+      "role": "highlight",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Stamina fill",
+        "Readable on dark"
+      ]
+    },
+    "ui.stamina.bar_shadow": {
+      "id": "ui.stamina.bar_shadow",
+      "hex": "#1E5E36",
+      "role": "shadow",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Stamina depth"
+      ]
+    },
+    "ui.text.primary": {
+      "id": "ui.text.primary",
+      "hex": "#F0F3F8",
+      "role": "text",
+      "contrastOn": "ui.panel.bg",
+      "wcag": {
+        "ratio": 13.8,
+        "level": "AAA"
+      },
+      "notes": [
+        "Main HUD copy",
+        "High contrast on panel.bg"
+      ]
+    },
+    "ui.text.secondary": {
+      "id": "ui.text.secondary",
+      "hex": "#B7C2CF",
+      "role": "text",
+      "contrastOn": "ui.panel.bg",
+      "wcag": {
+        "ratio": 7.1,
+        "level": "AAA"
+      },
+      "notes": [
+        "Subdued HUD copy",
+        "Use sparingly"
+      ]
+    },
+    "ui.text.inverted": {
+      "id": "ui.text.inverted",
+      "hex": "#2A2E32",
+      "role": "text",
+      "contrastOn": "ui.panel.bg_inverted",
+      "wcag": {
+        "ratio": 9.6,
+        "level": "AAA"
+      },
+      "notes": [
+        "Text on light panels",
+        "For prompts/tooltips"
+      ]
+    },
+    "ui.icon.slot.bg": {
+      "id": "ui.icon.slot.bg",
+      "hex": "#0F1418",
+      "role": "bg",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Inventory/slot fill",
+        "Low-contrast well"
+      ]
+    },
+    "ui.icon.slot.border": {
+      "id": "ui.icon.slot.border",
+      "hex": "#2A3038",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Slot stroke",
+        "1–2 px lines"
+      ]
+    },
+    "ui.cursor.highlight": {
+      "id": "ui.cursor.highlight",
+      "hex": "#FFC84A",
+      "role": "highlight",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Cursor/hover glow",
+        "Additive OK"
+      ]
+    },
+    "terrain.rock.base": {
+      "id": "terrain.rock.base",
+      "hex": "#4B5561",
+      "role": "base",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Cave slate",
+        "Neutral mid"
+      ]
+    },
+    "terrain.rock.shadow": {
+      "id": "terrain.rock.shadow",
+      "hex": "#2F353C",
+      "role": "shadow",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Rock occlusion",
+        "Deep creases"
+      ]
+    },
+    "terrain.floor.dust": {
+      "id": "terrain.floor.dust",
+      "hex": "#7A6E5F",
+      "role": "base",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Dusty ground",
+        "Warm neutral"
+      ]
+    },
+    "terrain.floor.edge": {
+      "id": "terrain.floor.edge",
+      "hex": "#5F5548",
+      "role": "shadow",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Floor rim/edge",
+        "AO accent"
+      ]
+    },
+    "terrain.ore.copper": {
+      "id": "terrain.ore.copper",
+      "hex": "#C8793B",
+      "role": "accent",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Copper lode",
+        "Warm pop"
+      ]
+    },
+    "terrain.ore.iron": {
+      "id": "terrain.ore.iron",
+      "hex": "#8A95A1",
+      "role": "accent",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Iron vein",
+        "Cool metallic"
+      ]
+    },
+    "terrain.ore.quartz": {
+      "id": "terrain.ore.quartz",
+      "hex": "#DDE4F2",
+      "role": "accent",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Quartz seam",
+        "Pale spark"
+      ]
+    },
+    "material.metal.brass": {
+      "id": "material.metal.brass",
+      "hex": "#C8A24A",
+      "role": "highlight",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Specular tint ref",
+        "HUD brass match"
+      ]
+    },
+    "material.metal.copper": {
+      "id": "material.metal.copper",
+      "hex": "#C96B3C",
+      "role": "highlight",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Specular tint ref"
+      ]
+    },
+    "material.metal.iron": {
+      "id": "material.metal.iron",
+      "hex": "#9A9FA8",
+      "role": "highlight",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Specular tint ref",
+        "Cool steel"
+      ]
+    },
+    "material.crystal.cyan": {
+      "id": "material.crystal.cyan",
+      "hex": "#62E6FF",
+      "role": "highlight",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Crystal glow ref"
+      ]
+    },
+    "material.crystal.amethyst": {
+      "id": "material.crystal.amethyst",
+      "hex": "#8D6CE8",
+      "role": "highlight",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Crystal glow ref",
+        "Magical cue"
+      ]
+    },
+    "characters.player.base": {
+      "id": "characters.player.base",
+      "hex": "#2E6D9E",
+      "role": "base",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Player primary tint"
+      ]
+    },
+    "characters.player.accent": {
+      "id": "characters.player.accent",
+      "hex": "#E0BC5B",
+      "role": "accent",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Player trim",
+        "Brass tie-in"
+      ]
+    },
+    "characters.goblin.base": {
+      "id": "characters.goblin.base",
+      "hex": "#5E8A3C",
+      "role": "base",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Enemy: goblin body"
+      ]
+    },
+    "characters.goblin.accent": {
+      "id": "characters.goblin.accent",
+      "hex": "#8C6B2B",
+      "role": "accent",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Enemy: goblin gear"
+      ]
+    },
+    "characters.burrower.base": {
+      "id": "characters.burrower.base",
+      "hex": "#7A4E2A",
+      "role": "base",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Enemy: burrower hide"
+      ]
+    },
+    "characters.burrower.accent": {
+      "id": "characters.burrower.accent",
+      "hex": "#B77F45",
+      "role": "accent",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Enemy: burrower claws"
+      ]
+    },
+    "effects.light.warm": {
+      "id": "effects.light.warm",
+      "hex": "#FFB75E",
+      "role": "particle",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Warm light sprite",
+        "Glow additive"
+      ]
+    },
+    "effects.light.cold": {
+      "id": "effects.light.cold",
+      "hex": "#7FDBFF",
+      "role": "particle",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Cold light sprite",
+        "Glow additive"
+      ]
+    },
+    "effects.hit.flash": {
+      "id": "effects.hit.flash",
+      "hex": "#FFF3C4",
+      "role": "particle",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Damage flash",
+        "Short-lived"
+      ]
+    },
+    "effects.mine.spark.copper": {
+      "id": "effects.mine.spark.copper",
+      "hex": "#FFA166",
+      "role": "particle",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Copper sparks"
+      ]
+    },
+    "effects.mine.spark.iron": {
+      "id": "effects.mine.spark.iron",
+      "hex": "#C9E0FF",
+      "role": "particle",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Iron sparks",
+        "Cool tone"
+      ]
+    },
+    "effects.mine.spark.quartz": {
+      "id": "effects.mine.spark.quartz",
+      "hex": "#E8D7FF",
+      "role": "particle",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Quartz shards",
+        "Soft glow"
+      ]
+    },
+    "effects.smoke.steam": {
+      "id": "effects.smoke.steam",
+      "hex": "#BFC8D0",
+      "role": "particle",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Steam/smoke tint"
+      ]
+    },
+    "mapping.telegraph.arc.amber": {
+      "id": "mapping.telegraph.arc.amber",
+      "hex": "#FFB64D",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Warning arc",
+        "High salience"
+      ]
+    },
+    "mapping.telegraph.arc.red": {
+      "id": "mapping.telegraph.arc.red",
+      "hex": "#FF4D4D",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Danger arc"
+      ]
+    },
+    "mapping.telegraph.arc.green": {
+      "id": "mapping.telegraph.arc.green",
+      "hex": "#52E07A",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Safe/OK arc"
+      ]
+    },
+    "mapping.minimap.bg": {
+      "id": "mapping.minimap.bg",
+      "hex": "#0A0D10",
+      "role": "bg",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Minimap backdrop",
+        "Max contrast"
+      ]
+    },
+    "mapping.minimap.player": {
+      "id": "mapping.minimap.player",
+      "hex": "#5FE0FF",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Player ping"
+      ]
+    },
+    "mapping.minimap.enemy": {
+      "id": "mapping.minimap.enemy",
+      "hex": "#FF3B3B",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Enemy ping"
+      ]
+    },
+    "mapping.minimap.rock": {
+      "id": "mapping.minimap.rock",
+      "hex": "#6A727A",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Walls/rock mass"
+      ]
+    },
+    "mapping.minimap.floor": {
+      "id": "mapping.minimap.floor",
+      "hex": "#1D2328",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Walkable"
+      ]
+    },
+    "mapping.minimap.ore.copper": {
+      "id": "mapping.minimap.ore.copper",
+      "hex": "#FF9A4A",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Copper node"
+      ]
+    },
+    "mapping.minimap.ore.iron": {
+      "id": "mapping.minimap.ore.iron",
+      "hex": "#6FB3FF",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Iron node"
+      ]
+    },
+    "mapping.minimap.exit": {
+      "id": "mapping.minimap.exit",
+      "hex": "#FFD84D",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Exit/goal"
+      ]
+    },
+    "lighting.ambient.cave": {
+      "id": "lighting.ambient.cave",
+      "hex": "#1A1E24",
+      "role": "bg",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Cave ambient"
+      ]
+    },
+    "lighting.ambient.tavern": {
+      "id": "lighting.ambient.tavern",
+      "hex": "#2A2218",
+      "role": "bg",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Warm indoor ambient"
+      ]
+    },
+    "lighting.lamp.glow": {
+      "id": "lighting.lamp.glow",
+      "hex": "#FFDE8A",
+      "role": "particle",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Point-light halo"
+      ]
+    },
+    "debug.bounds": {
+      "id": "debug.bounds",
+      "hex": "#FF00FF",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Non-shipping overlay"
+      ]
+    },
+    "debug.hitbox": {
+      "id": "debug.hitbox",
+      "hex": "#00FFFF",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Collision viz"
+      ]
+    },
+    "debug.path": {
+      "id": "debug.path",
+      "hex": "#FFFF00",
+      "role": "line",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": [
+        "Nav/path viz"
+      ]
     }
+  },
+  "groups": {
+    "ui": [
+      "ui.panel.bg",
+      "ui.panel.bg_inverted",
+      "ui.panel.frame.brass",
+      "ui.panel.frame.rivet",
+      "ui.accent.brass",
+      "ui.accent.crystal",
+      "ui.health.bar",
+      "ui.health.bar_shadow",
+      "ui.stamina.bar",
+      "ui.stamina.bar_shadow",
+      "ui.text.primary",
+      "ui.text.secondary",
+      "ui.text.inverted",
+      "ui.icon.slot.bg",
+      "ui.icon.slot.border",
+      "ui.cursor.highlight"
+    ],
+    "terrain": [
+      "terrain.rock.base",
+      "terrain.rock.shadow",
+      "terrain.floor.dust",
+      "terrain.floor.edge",
+      "terrain.ore.copper",
+      "terrain.ore.iron",
+      "terrain.ore.quartz"
+    ],
+    "materials": [
+      "material.metal.brass",
+      "material.metal.copper",
+      "material.metal.iron",
+      "material.crystal.cyan",
+      "material.crystal.amethyst"
+    ],
+    "characters": [
+      "characters.player.base",
+      "characters.player.accent",
+      "characters.goblin.base",
+      "characters.goblin.accent",
+      "characters.burrower.base",
+      "characters.burrower.accent"
+    ],
+    "effects": [
+      "effects.light.warm",
+      "effects.light.cold",
+      "effects.hit.flash",
+      "effects.mine.spark.copper",
+      "effects.mine.spark.iron",
+      "effects.mine.spark.quartz",
+      "effects.smoke.steam"
+    ],
+    "mapping": [
+      "mapping.telegraph.arc.amber",
+      "mapping.telegraph.arc.red",
+      "mapping.telegraph.arc.green",
+      "mapping.minimap.bg",
+      "mapping.minimap.player",
+      "mapping.minimap.enemy",
+      "mapping.minimap.rock",
+      "mapping.minimap.floor",
+      "mapping.minimap.ore.copper",
+      "mapping.minimap.ore.iron",
+      "mapping.minimap.exit"
+    ],
+    "lighting": [
+      "lighting.ambient.cave",
+      "lighting.ambient.tavern",
+      "lighting.lamp.glow"
+    ],
+    "debug": [
+      "debug.bounds",
+      "debug.hitbox",
+      "debug.path"
+    ]
   }
 }
