@@ -1,358 +1,275 @@
-# Build-in-Public — Weekly Thread Template (Sprint 1)
+# Build-in-Public Template — Weekly Taproom Update (Sprint 1)
 
-Provenance
-- Owner: @theta (Community — Brewmaster Alehart)
-- Voice: Brewmaster Alehart, your stout host of the Far Mine taproom.
+Owner/Provenance: @theta (Community — Brewmaster Alehart)
 
-Cross-references
-- docs/community/engagement-playbook.md
-- data/community/welcome-sequence.json
-- docs/visual-systems/ui-framework.md
-- docs/technology-systems/crafting-design.md
-- docs/combat-systems/combat-design.md
-- docs/world-generation/cave-gen-algorithm.md
+Cross-refs:
+- docs/community/engagement-playbook.md (§7 Weekly Rituals, §10 Moderation Rota)
+- data/community/welcome-sequence.json (for channel tokens like {{channel.announcements}})
+- docs/technology-systems/crafting-design.md (clip/PR examples)
+- docs/combat-systems/combat-design.md (telegraphs, tuning notes)
+- docs/visual-systems/style-guide.md (§Accessibility for alt-text)
+- data/visual/color-palette.json (token mentions optional in copy)
 
-
-## 2) Usage Notes (Moderator Quick Start)
-
-- Who posts: @theta or backup mod on duty.
-- When: Fridays 17:00 UTC (cadence per playbook).
-- Where: Post in {{channel.build_in_public}} as a new weekly thread; cross-link in {{channel.announcements}}.
-- How:
-  - Paste the Top Post Template.
-  - Fill placeholders and dates.
-  - Attach 1–3 short clips or GIFs with alt-text.
-  - Add the Reaction Kit to the top post.
-  - Pin the thread.
-- Media guidance:
-  - Duration/size: 10–20 s MP4/WebM, or <4 MB GIF.
-  - Pixel art clarity: export at 3×–4× scale.
-  - Alt-text: include 1–2 sentences describing action, UI, and outcome.
+Brewmaster’s note: Keep it warm, keep it crisp. Post within 10 minutes or it’s on me keg tab.
 
 
-## 3) Reaction Kit
+## 2) Posting Cadence & Where
 
-- Default reactions on top post: ["🛠️","✨","📜","🍻","✅"]
-- Optional domain emojis by section:
-  - Mining ⛏️, Combat ⚔️, Worldgen 🗺️, Crafting 🔧, UI 🧰, Audio 🎧, Lore 📖
+- When: Tuesdays, 18:00 UTC (Sprint 1).
+- Where:
+  - Root post in {{channel.announcements}}
+  - Link a new thread in {{channel.build_in_public}} (this is the long-form opener)
+  - Cross-share a one-line invite in {{channel.tavern_talk}}
+- Permissions:
+  - @dev and @brewmaster can post in announcements
+  - Everyone else: reply and discuss in the linked {{channel.build_in_public}} thread
+- After posting: add {{thread_link}} back into the announcement and the tavern teaser.
 
 
-## 4) Top Post Template (Thread Opener)
+## 3) Placeholder Tokens (authoritative)
 
-Copy-paste block:
+Use these exactly as written:
+- {{date_utc}} — ISO-like date in UTC (e.g., 2026-02-17)
+- {{sprint}} — Sprint number (e.g., 1)
+- {{week_index}} — Week number in the sprint or overall cadence (e.g., 03)
+- {{clip1_url}} — Primary clip link (10–20s)
+- {{clip2_url}} — Secondary clip link (optional)
+- {{img1_url}} — Image/screenshot link (optional)
+- {{alt1}} — Alt-text for clip/image 1
+- {{alt2}} — Alt-text for clip/image 2
+- {{pr_links_bullets}} — Bullet list of up to 5 PRs/commits in markdown link format
+- {{next_goals_bullets}} — Bullet list of 3–5 next steps
+- {{blockers_bullets}} — Bullet list of 1–3 risks or blockers
+- {{spotlight_member}} — Community member handle
+- {{spotlight_summary}} — One-line credit/thanks
+- {{cta_line}} — One clear ask (vote, try a build, answer a question)
+- {{hash_or_version}} — Build version or short git hash
+- {{playtest_signups_url}} — Optional link to playtest signups
+- {{thread_link}} — Link to the build-in-public thread (fill after posting)
+- {{channel.*}} — Channel tokens from data/community/welcome-sequence.json (e.g., {{channel.announcements}}, {{channel.build_in_public}}, {{channel.tavern_talk}})
+
+
+## 4) Short Variant (Announcements root — 4–6 lines max)
+
+Use this for the Discord announcement. Keep it tidy, 6 lines max.
+
+Paste-ready block:
 ```
-Week {{YYYY-MM-DD}} — Stone, Steam, and Small Victories
-
-Pull a stool, miners! The kettles sing, the gears turn, and we’ve shaved new edges on old stone. Reply in subthreads by section so the ledger stays tidy—and mind your alt-text on any clips so every dwarf at the table can follow.
-
-Jump to: ⛏️ Core Loop | 🔧 Mining & Crafting | ⚔️ Combat | 🗺️ Worldgen | 🧰 UI & Visuals | 🎧 Audio | 📖 Lore & Tavern | ✨ Community Spotlight | 🛠️ Playtest | 📜 Feedback
-
-CTA: Tell us your favorite moment this week or drop a clip in a subthread. First round of root-ale goes to the spiciest bug squash!
-```
-Anchors for the jump list when posted in Markdown:
-- ⛏️ [Core Loop — End-to-End](#core-loop--end-to-end)
-- 🔧 [Mining & Crafting](#mining--crafting)
-- ⚔️ [Combat](#combat)
-- 🗺️ [Worldgen](#worldgen)
-- 🧰 [UI & Visuals](#ui--visuals)
-- 🎧 [Audio](#audio)
-- 📖 [Lore & Tavern](#lore--tavern)
-- ✨ [Community Spotlight](#community-spotlight)
-- 🛠️ [Call for Playtesters](#call-for-playtesters-inline-snippet)
-- 📜 [Feedback Prompt](#feedback-prompt-guided)
-
-
-## 5) Section Templates (Fill-in Blocks)
-
-Note: When filled, keep each section within 800–1200 characters for readability.
-
-
-### 5a) Core Loop Progress (General)
-
-Header: Core Loop — End-to-End
-
-Template:
-```
-Core Loop — End-to-End
-
-- Built: {{one-liner on mine → craft → return checks; eg. “copper pick to furnace to anvil to stash validated across two seeds.”}}
-- Next: {{immediate next stones to lay; eg. “hook stash to shop UI; add return-to-camp prompt”}}
-- Risks/unknowns: {{quick note; eg. “desync on stash write when host migrates; mining fatigue timing TBD”}}
-
-Media: [Clip/PNG] (Alt-text: {{1–2 sentences describing start-to-finish path, any blockers, and success criteria}})
+Howdy, Taproom! Week {{week_index}} — Sprint {{sprint}} ({{date_utc}})
+Shipped: [add 1–2 short fragments here, e.g., “Three‑Wide lanes”, “Burrower telegraphs”]
+Next: [one line on the upcoming focus — e.g., “Tune pickfeel + UI polish on crafting.”]
+Clips/Images: {{clip1_url}} {{clip2_url}} {{img1_url}} (alt-text added: {{alt1}} / {{alt2}})
+Spotlight: {{spotlight_member}} — {{spotlight_summary}}
+Join the thread → {{thread_link}} • {{cta_line}} {{playtest_signups_url}}
 ```
 
 
-### 5b) Mining & Crafting
+## 5) Long Variant (Thread opener in {{channel.build_in_public}})
 
-Header: Mining & Crafting
+Open the thread with this fuller breakdown. Keep bullets crisp.
 
-Template:
+Paste-ready block:
 ```
-Mining & Crafting
+Week {{week_index}} — {{date_utc}} [Sprint {{sprint}}]
 
-- Tools: {{T1/T2/T3 status; ids: tool.pick.t1.basic / tool.pick.t2.reinforced / tool.drill.t3.steam}}
-- Hardness gates: {{rock 3, copper 4, iron 5, quartz 6–7 — feel checks; eg. “reinforced hits iron in 6 swings; feels fair?”}}
-- Recipes: {{crafted items + timings; eg. “copper bar 6s smelt; iron 10s; steam head 15s assemble”}}
+WHAT WE BUILT THIS WEEK
+- [worldgen] …
+- [combat] …
+- [crafting/tech] …
+- [ui/audio/lore] …
 
-Media: [Clip/PNG] (Alt-text: {{tool tier used, node type, swing count to break, craft UI feedback}})
-Refs: see docs/technology-systems/crafting-design.md for schema and IDs.
+WHAT’S NEXT
+{{next_goals_bullets}}
+
+BLOCKERS / RISKS
+{{blockers_bullets}}
+
+FRESH POURS (CLIPS/SCREENS)
+- Clip/Image A: {{clip1_url}}
+  Alt: {{alt1}}
+- Clip/Image B: {{clip2_url}} {{img1_url}}
+  Alt: {{alt2}}
+
+PRs / COMMITS OF NOTE (≤5)
+{{pr_links_bullets}}
+
+COMMUNITY SPOTLIGHT
+- {{spotlight_member}} — {{spotlight_summary}}
+
+CALL TO ACTION
+- {{cta_line}} {{playtest_signups_url}}
+
+VERSION / HASH
+- {{hash_or_version}}
 ```
+Notes:
+- Keep PRs ≤5. If more, provide a single compare link in {{pr_links_bullets}}.
+- Alt-text guidance: see docs/visual-systems/style-guide.md (§Accessibility for alt-text) and Section 7 below.
 
 
-### 5c) Combat
+## 6) Asset Ask Checklist (lightweight)
 
-Header: Combat
+Prep under 10 minutes:
+- 1–2 short clips (10–20s) or 1–2 screenshots.
+- 1–2 sentence summary per active domain this week (worldgen/combat/tech/art/audio/lore).
+- 1–3 PR links (optional) or a single compare link.
+- One community spotlight (optional; skip if none this week).
+- One clear CTA line.
+Note: If any domain is under crunch, skip clips; text-only is acceptable per the playbook.
 
-Template:
+
+## 7) Alt-text Guidance (accessibility must-do)
+
+- Be compact (1–2 sentences). Describe key motion, visible UI text, and the purpose of the clip/screen. Avoid “image of” redundancy.
+- Name critical feedback cues (e.g., hit sparks, warning telegraphs, resource counters) and outcomes (success/fail, gain/loss).
+- If color is the only differentiator, mention it; palette tokens (from data/visual/color-palette.json) can be referenced if helpful.
+
+Example alt-text snippets:
+- Mining clip: “First-person pickaxe strikes on iron seam; spark VFX and +3 Iron counter pop in top-right; stamina ring dips to 40% on third swing; vein collapses clean.”
+- Goblin telegraph: “Goblin raises torch; orange cone telegraph widens for 0.6s, then lunge forward; player sidesteps left, no damage taken; ‘Perfect Dodge’ text flashes.”
+
+
+## 8) Tag & Threading Guidance
+
+- Required thread title: Week {{week_index}} — {{date_utc}} [Sprint {{sprint}}]
+- Suggested tags in first line: [worldgen], [combat], [crafting], [ui], [audio], [lore] (only what applies)
+- Reminders:
+  - Keep all replies in the thread.
+  - Pin the opener within the thread.
+  - Add {{thread_link}} back to the announcement and tavern teaser once created.
+
+
+## 9) Snippet Library (ready-to-paste)
+
+Announcements — Short opener:
 ```
-Combat
-
-- Enemy tuning: {{what changed; eg. “Goblin Grunt wind-up +6f; recovery -4f”}}
-- Telegraphs/readability: {{notes on silhouettes, flashes, trails}}
-- Hit-stop & stamina: {{observations; eg. “6f hit-stop on heavy feels chunky; stamina regen stalls at 30% under guard”}}
-
-Media: [Clip/PNG] (Alt-text: {{attack seen, dodge window in frames, damage/stagger outcome}})
-```
-
-
-### 5d) Worldgen & Biomes
-
-Header: Worldgen
-
-Template:
-```
-Worldgen
-
-- Crystal Caverns: {{room/door validation; ore seeding observations; eg. “L-shaped rooms place 2 doors avg; quartz veins cluster depth 3–5”}}
-- Three‑Wide Law: {{compliance checks; eg. “main corridors ≥3 tiles; 2-tile choke found at seed 81293”}}
-
-Media: [Screenshot/Minimap] (Alt-text: {{room shapes, door counts, corridor widths, ore density summary}})
-```
-
-
-### 5e) UI & Visuals
-
-Header: UI & Visuals
-
-Template:
-```
-UI & Visuals
-
-- HUD: {{bars, hotbar, minimap updates; eg. “stamina bar gains tick marks; hotbar numbers at 3× scale”}}
-- Palette/tokens: {{sprite reads at 3×–4×; icon contrast; particle pass}}
-
-Media: [PNG] (Alt-text: {{UI elements shown, scale factor, legibility outcome}})
-```
-
-
-### 5f) Audio
-
-Header: Audio
-
-Template:
-```
-Audio
-
-- Mining cadence: {{swing layers; drill hysteresis behavior}}
-- Ambience: {{cave beds, steam vents, tavern underbed routing}}
-- Music: {{stingers/overlay state behavior in tests; eg. “combat overlay fades 600ms after last tag”}}
-
-Media: [Short clip with audio] (Alt-text: {{what layers are audible, transitions, perceived loudness}})
-```
-
-
-### 5g) Lore & Tavern
-
-Header: Lore & Tavern
-
-Template:
-```
-Lore & Tavern
-
-- Hooks added: {{Keeper lines; glossary seeds in tooltips/dialog}}
-- UI tooltip hooks: {{where deployed; eg. “ore names link to codex entry; 2/6 localized”}}
-
-Media: [PNG/Text] (Alt-text: {{snippet of lines, who speaks, trigger condition}})
+Howdy, Taproom! Week {{week_index}} — Sprint {{sprint}} ({{date_utc}})
+Shipped: [add 1–2 short fragments here, e.g., “Three‑Wide lanes”, “Burrower telegraphs”]
+Next: [one line on the upcoming focus — e.g., “Tune pickfeel + UI polish on crafting.”]
+Clips/Images: {{clip1_url}} {{clip2_url}} {{img1_url}} (alt-text added: {{alt1}} / {{alt2}})
+Spotlight: {{spotlight_member}} — {{spotlight_summary}}
+Join the thread → {{thread_link}} • {{cta_line}} {{playtest_signups_url}}
 ```
 
-
-## 6) Community Spotlight (Template)
-
+Build-in-public — Thread opener:
 ```
-Community Spotlight ✨
+Week {{week_index}} — {{date_utc}} [Sprint {{sprint}}]
 
-- Miner: {{name/handle}}
-- Share: {{screenshot/idea/clip summary}}
-- Consent: {{on-file/DM permission received on {{YYYY-MM-DD}}}}
+WHAT WE BUILT THIS WEEK
+- [worldgen] …
+- [combat] …
+- [crafting/tech] …
+- [ui/audio/lore] …
 
-Media: [Community share, rehosted or embedded] (Alt-text: {{describe content and credit}})
-```
+WHAT’S NEXT
+{{next_goals_bullets}}
 
+BLOCKERS / RISKS
+{{blockers_bullets}}
 
-## 7) Call for Playtesters (Inline Snippet)
+FRESH POURS (CLIPS/SCREENS)
+- Clip/Image A: {{clip1_url}}
+  Alt: {{alt1}}
+- Clip/Image B: {{clip2_url}} {{img1_url}}
+  Alt: {{alt2}}
 
-```
-Playtest Call 🛠️
+PRs / COMMITS OF NOTE (≤5)
+{{pr_links_bullets}}
 
-Windows: Sat/Sun 18:00–20:00 UTC in {{channel.playtest_queue}}. React with ✅ if you can make it; we’ll DM a calendar block. Fresh builds, friendly goblins (mostly).
-```
+COMMUNITY SPOTLIGHT
+- {{spotlight_member}} — {{spotlight_summary}}
 
+CALL TO ACTION
+- {{cta_line}} {{playtest_signups_url}}
 
-## 8) Feedback Prompt (Guided)
-
-```
-Guided Feedback 📜
-
-This week’s focus: {{e.g., “How do iron-gated veins feel with the Reinforced Pick? Too stingy, just right, or generous?”}}
-
-Post in {{channel.feedback_mine}} with tags: [ui], [combat], [worldgen], [crafting], [audio], [lore].
-Bugs to {{channel.bug_reports}} with version, seed, and a short clip or screenshot (alt-text included).
-```
-
-
-## 9) Moderator Checklist (Pre/Post)
-
-- Pre-post
-  - Gather 1–3 clips (10–20 s) or <4 MB GIFs.
-  - Confirm alt-text is present and descriptive.
-  - Update dates/placeholders.
-  - Verify cross-links and file references.
-  - Prepare Reaction Kit and assign owners for subthread replies.
-- Post
-  - Add default reactions to top post.
-  - Pin the thread.
-  - Cross-link in {{channel.announcements}}.
-  - Start subthreads per section with the starter prompts prefilled.
-
-
-## 10) Subthread Starter Templates
-
-Copy-paste one-liners to seed replies (remember alt-text on images/clips):
-
-- Mining Clip Thread — tell us if the cadence hammers or hinders. ⛏️
-- Combat Timing Thread — could you read the jab vs sweep in time? ⚔️
-- Worldgen Room Fits — doors in threes behaving? 🗺️
-- Crafting Bench Talk — recipes too dear or just right? 🔧
-- UI Readability — does the HUD sing at 3×–4×? 🧰
-- Audio Ears-On — layers muddy or meaty? 🎧
-- Lore Sips — Keeper lines land or need more foam? 📖
-
-
-## 11) Example Filled Thread (Annotated)
-
-Note: Fictitious, compact example using placeholders and tone. No internal doc links.
-
-Top Post (example)
-```
-Week 2026-03-06 — Stone, Steam, and Small Victories
-
-Pull a stool, miners! We tightened bolts on the core loop and taught goblins some manners. Reply in subthreads and add alt-text to any shiny you share.
-
-Jump to: ⛏️ Core Loop | 🔧 Mining & Crafting | ⚔️ Combat | 🗺️ Worldgen | 🧰 UI & Visuals | 🎧 Audio | 📖 Lore & Tavern | ✨ Community Spotlight | 🛠️ Playtest | 📜 Feedback
-
-Tell us your favorite moment this week or drop a clip in a subthread.
+VERSION / HASH
+- {{hash_or_version}}
 ```
 
-Core Loop — End-to-End (example)
+Tavern cross-post teaser (one-liner):
 ```
-- Built: Copper → Furnace → Anvil → Stash path clean across seeds 101 and 81293.
-- Next: Hook stash to shop UI; add return-to-camp prompt after craft complete.
-- Risks/unknowns: Host migration can drop stash write (1/20 repro).
-
-Media: [Clip] (Alt-text: Player mines copper, smelts bar in 6s, crafts pick upgrade, deposits in stash; UI confirms.)
+Taproom Tuesday is up! Thread → {{thread_link}} • React: 👍 shipped • 🧪 testing • 💡 ideas • 🪓 mining
 ```
 
-Mining & Crafting (example)
-```
-- Tools: tool.pick.t1.basic ✅ / tool.pick.t2.reinforced ✅ / tool.drill.t3.steam ⏳ (fx pass pending)
-- Hardness gates: rock 3, copper 4 feel brisk; iron 5 at 6 swings w/ T2 feels fair; quartz 7 too spiky at 12 swings.
-- Recipes: copper bar 6s, iron bar 10s, steam head 15s; anvil tooltip shows costs.
+Reaction key suggestion:
+- 👍 on shipped items
+- 🧪 for testing/try-it
+- 💡 for ideas/suggestions
+- 🪓 for mining/worldgen love
 
-Media: [GIF] (Alt-text: Reinforced pick breaks iron in 6 hits; sparks show tier; anvil recipe lights up on bar deposit.)
-```
 
-Combat (example)
-```
-- Enemy tuning: Goblin Grunt wind-up +6f; recovery -4f; damage -1.
-- Telegraphs/readability: Added red trail to sweep; jab keeps white flicker only.
-- Hit-stop & stamina: Heavy hit-stop 6f chunky-good; stamina regen too stingy under guard (stalls at ~30%).
+## 10) Examples (filled samples for Sprint 1)
 
-Media: [Clip] (Alt-text: Player blocks jab, rolls through sweep on red trail cue; counter heavy staggers grunt.)
+Announcements — Filled sample:
 ```
-
-Worldgen (example)
-```
-- Crystal Caverns: L-rooms place 2 doors avg; quartz veins cluster depth 3–5; copper sparse at spawn.
-- Three‑Wide Law: 2-tile choke at seed 81293, depth 2; flagged for fix.
-
-Media: [Minimap] (Alt-text: Overlay shows ≥3-tile corridors except one choke; ore heatmap highlights quartz cluster.)
+Howdy, Taproom! Week 03 — Sprint 1 (2026-02-17)
+Shipped: Three‑Wide lanes in early mines, Burrower telegraphs tuned
+Next: Lock pickaxe timing + polish crafting UI pass (slots + hover help).
+Clips/Images: https://clips.example.com/three-wide-lanes.mp4 https://clips.example.com/burrower-telegraph.mp4 (alt-text added: See thread A/B)
+Spotlight: @quartzling — Surfaced a repro of the stuck-node bug with a clean video + logs. Cheers!
+Join the thread → https://discord.com/channels/000/000/1234567890 • Try the nightly and tell us how the new tunnels feel: https://play.example.com/signup
 ```
 
-UI & Visuals (example)
+Build-in-public — Thread opener (filled sample):
 ```
-- HUD: Stamina ticks added; hotbar numerals at 3×; minimap border softens.
-- Palette/tokens: Goblin silhouette thicker outline; spark particles toned down 10%.
+Week 03 — 2026-02-17 [Sprint 1]
 
-Media: [PNG] (Alt-text: HUD at 3× scale with ticked stamina bar; icons remain legible.)
-```
+WHAT WE BUILT THIS WEEK
+- [worldgen] Early shafts now generate Three‑Wide lanes; improved pathability and camera clearance.
+- [combat] Burrower lunge telegraphs retimed to 0.6s windup; cone VFX clarified; dodge window consistent.
+- [crafting/tech] recipes.json schema locked; added validation on load and error surfacing in UI.
+- [ui] Context hover help for crafting slots; focus order cleaned for keyboard.
+- [audio] New pickaxe hit layers on stone vs. ore; subtle stamina dip cue.
 
-Audio (example)
-```
-- Mining cadence: Pick swing layers align at 110 BPM; drill hysteresis smooths spin-up.
-- Ambience: Low cave bed + distant drip; tavern underbed -6dB on dialogue.
-- Music: Combat overlay fades 600ms after last tag; no clash heard.
+WHAT’S NEXT
+- Tune pickaxe impact timing and stamina cost curve (short playtest).
+- Wire compare-link bot into {{channel.build_in_public}} for PR digests.
+- First pass on accessibility labels for crafting slots and error toasts.
+- Add Burrower “near miss” audio to reinforce dodge window.
 
-Media: [Clip] (Alt-text: Hear steady pick rhythm, brief combat swell, clean fade back to ambience.)
-```
+BLOCKERS / RISKS
+- Perf spikes in dense ore rooms under particle load (investigating emitter pooling).
+- Rare stuck-node in cave graph when backfilling collapsed veins (repro improving).
 
-Lore & Tavern (example)
-```
-- Hooks added: Keeper greets first iron craft; glossary stub for “Steamhead.”
-- UI tooltip hooks: Ore names link to codex; 2/6 localized.
+FRESH POURS (CLIPS/SCREENS)
+- Clip A: https://clips.example.com/three-wide-lanes.mp4
+  Alt: First-person run through new Three‑Wide tunnel; camera clears beams cleanly; pathing nodes show smooth turns.
+- Clip B: https://clips.example.com/burrower-telegraph.mp4
+  Alt: Goblin Burrower raises torch; orange cone widens ~0.6s then lunge; player dodges left; “Perfect Dodge” flashes.
 
-Media: [PNG] (Alt-text: Dialogue box: “Iron’s a stern friend—treat it warm.” triggers on first iron bar.)
-```
+PRs / COMMITS OF NOTE (≤5)
+- [PR #241 — Three‑Wide generator + navmesh pass](https://git.example.com/farmine/game/pull/241)
+- [PR #244 — Burrower telegraph timing + VFX cone](https://git.example.com/farmine/game/pull/244)
+- [Compare — crafting schema lock](https://git.example.com/farmine/game/compare/0.1.0-alpha.2...0.1.0-alpha.3)
 
-Community Spotlight (example)
-```
-- Miner: @shale_whisper
-- Share: Quartz seam route screenshot with safe torches.
-- Consent: DM permission received on 2026-03-05
+COMMUNITY SPOTLIGHT
+- @quartzling — Clear repro + logs for stuck-node cave graph; unblocked our test pass. Thank you!
 
-Media: [Screenshot] (Alt-text: Curved corridor with quartz glint; torches mark safe path; credit @shale_whisper.)
-```
+CALL TO ACTION
+- Try the nightly in the test branch and rate tunnel “feel” (1–5) in the thread. 🧪 https://play.example.com/signup
 
-Playtest Call (example)
-```
-Sat/Sun 18:00–20:00 UTC in {{channel.playtest_queue}} — React ✅ and we’ll DM a calendar block.
-```
-
-Guided Feedback (example)
-```
-This week: Do iron-gated veins feel fair with the Reinforced Pick?
-
-Post in {{channel.feedback_mine}} with tags; bugs to {{channel.bug_reports}} with version/seed/clip (alt-text too).
+VERSION / HASH
+- 0.1.0-alpha.3 (hash 7f3a2c1)
 ```
 
-
-## 12) ID Placeholders & Conventions
-
-- Reserved tokens:
-  - {{channel.build_in_public}}
-  - {{channel.announcements}}
-  - {{channel.feedback_mine}}
-  - {{channel.bug_reports}}
-  - {{channel.playtest_queue}}
-- Date formatting: {{YYYY-MM-DD}} (ISO 8601)
+Alt-text (as referenced “See thread A/B” in the announcement):
+- A: “First-person run through new Three‑Wide tunnel; camera clears beams cleanly; pathing nodes show smooth turns.”
+- B: “Goblin Burrower raises torch; orange cone widens ~0.6s then lunge; player dodges left; ‘Perfect Dodge’ flashes.”
 
 
-## 13) Acceptance Checklist (for this template)
+## 11) Roles & Handoff
 
-- Copy-paste ready for moderators.
-- Each section designed to fit within ≤1200 chars when filled.
-- Dwarven tavern voice throughout (Brewmaster Alehart).
-- Alt-text reminders present in Usage, Top Post, and Media slots.
-- Reaction Kit specified with defaults and domain emojis.
-- Subthread starter one-liners included.
-- Channel placeholders used; no internal dev-only links in example section.
+- Prepare draft (Mon): @brewmaster + @dev domain leads gather clips, bullets, and CTA.
+- Post/pin (Tue 18:00 UTC): @brewmaster (backup: on-duty mod).
+- Monitor thread (Tue–Thu): rota per engagement-playbook §10; acknowledge questions within 24h; collect actionables for next sprint review.
+
+
+## 12) Acceptance Checklist
+
+- Template is copy-pasteable with clear placeholders (tokens listed, blocks provided).
+- Short and long variants present and Discord-suitable.
+- Accessibility alt-text guidance included with examples.
+- Asset ask is lightweight and respects developer load.
+- Cross-refs and channel tokens align with engagement-playbook.md and welcome-sequence.json.
+
+Brewmaster’s closing: Keep the pours fresh and the notes honest. See you Tuesday at 18:00 UTC in {{channel.announcements}} and down-thread in {{channel.build_in_public}}.
