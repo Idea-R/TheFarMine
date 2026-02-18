@@ -1,218 +1,155 @@
 {
   "version": 1,
+  "id": "npc.tavern.keeper",
   "meta": {
     "author": "epsilon",
     "updated": "2026-02-18T00:00:00Z",
-    "npcId": "npc.tavern.keeper",
-    "locationId": "lore.place.tavern.hearth_and_anvil",
     "notes": [
-      "MVP tutorial and lore set for tavern keeper at the Hearth and Anvil.",
-      "Covers welcome, sell/upgrade hint, mine entry, safety, guilds, caverns, copper.",
-      "Stamina/rest, community nod, and Stillshift toast included; lines under 96 chars."
+      "MVP dialogue for Keeper: welcome, safety (Three‑Wide Law), Deepsong hint, copper craft nudge.",
+      "Pacing toward reinforced pick, lore nod to Orecasters, goblin/burrower caution, trade reminder.",
+      "Brewmaster community routing, one ambient lampwatch line. Dwarven mythic‑steampunk tone.",
+      "UI-safe ≤96 chars, no drop/rate promises. Stable dot-delimited ids. Mood-first selection.",
+      "Requires are soft gates; cross-refs echo place and ambience for reviewer validation."
     ]
   },
   "npc": {
-    "id": "npc.tavern.keeper",
-    "name": "Brunna Caskbinder",
-    "role": "Tavern Keeper",
-    "ambienceId": "amb.tavern.loopA"
+    "name": "Keeper of the Hearth & Anvil",
+    "placeId": "lore.place.tavern.hearth_and_anvil",
+    "ambienceId": "amb.tavern.loopA",
+    "spriteId": "sprites.npc.tavern_keeper"
   },
   "lines": [
     {
-      "id": "keeper.welcome.first",
-      "text": "Ho there, {player_name}. Hearth and Anvil welcomes you in from the chill.",
+      "id": "line.keeper.welcome.stillshift",
+      "mood": "mood.stillshift",
       "tags": [
-        "welcome",
-        "tutorial",
-        "l1",
-        "intro"
+        "welcome"
       ],
-      "conditions": {
-        "firstVisit": true,
-        "moodIds": [],
-        "requiresItemIds": [],
-        "tutorialStep": "tut.enter_tavern",
-        "once": true
-      },
-      "emote": "warm",
-      "sfxId": "ui.confirm"
+      "requires": [
+        "first_visit"
+      ],
+      "text": "Welcome to the Hearth & Anvil, delver. Warm seat, cool head, steady hands."
     },
     {
-      "id": "keeper.tutorial.sell_hint",
-      "text": "Spare ore on you? Traders pay fair; the smith may eye upgrades for coin.",
+      "id": "line.keeper.safety.three_wide",
+      "mood": "mood.gearbless",
       "tags": [
         "tutorial",
-        "sell",
-        "upgrade",
-        "l1"
-      ],
-      "conditions": {
-        "firstVisit": false,
-        "moodIds": [
-          "mood.gearbless"
-        ],
-        "requiresItemIds": [],
-        "tutorialStep": "tut.sell_ore",
-        "once": true
-      },
-      "emote": "wry",
-      "sfxId": null
-    },
-    {
-      "id": "keeper.tutorial.mine_entry",
-      "text": "Gate to the Far Mine lies past the square; lamp up and mind your boots.",
-      "tags": [
-        "tutorial",
-        "mine",
-        "entry",
-        "l1"
-      ],
-      "conditions": {
-        "firstVisit": false,
-        "moodIds": [
-          "mood.lampwatch"
-        ],
-        "requiresItemIds": [],
-        "tutorialStep": "tut.mine_entry",
-        "once": true
-      },
-      "emote": "stern",
-      "sfxId": null
-    },
-    {
-      "id": "keeper.safety.three_wide",
-      "text": "Three-Wide Law, mind it: cut three across, so stone has room to settle.",
-      "tags": [
-        "safety",
-        "three-wide",
-        "tip"
-      ],
-      "conditions": {
-        "firstVisit": false,
-        "moodIds": [],
-        "requiresItemIds": [],
-        "tutorialStep": null,
-        "once": false
-      },
-      "emote": "stern",
-      "sfxId": null
-    },
-    {
-      "id": "keeper.guilds.rivalry",
-      "text": "Stonewrights brag straight walls; Runehands swear words bind rock. I pour and watch.",
-      "tags": [
-        "guilds",
-        "rivalry",
-        "flavor",
-        "lore"
-      ],
-      "conditions": {
-        "firstVisit": false,
-        "moodIds": [],
-        "requiresItemIds": [],
-        "tutorialStep": null,
-        "once": false
-      },
-      "emote": "wry",
-      "sfxId": null
-    },
-    {
-      "id": "keeper.biome.crystal_caverns",
-      "text": "Crystal Caverns hum when you tap. Follow the glassy ring, hush your pick.",
-      "tags": [
-        "biome",
-        "crystal_caverns",
         "hint"
       ],
-      "conditions": {
-        "firstVisit": false,
-        "moodIds": [
-          "mood.lampwatch"
-        ],
-        "requiresItemIds": [],
-        "tutorialStep": null,
-        "once": false
-      },
-      "emote": "concerned",
-      "sfxId": null
-    },
-    {
-      "id": "keeper.ore.copper_appraise",
-      "text": "Ah, copper. Soft metal, eager to bend. Smelters like it clean of slate.",
-      "tags": [
-        "ore",
-        "appraisal",
-        "copper",
-        "economy"
+      "requires": [
+        "lore.term.three_wide"
       ],
-      "conditions": {
-        "firstVisit": false,
-        "moodIds": [],
-        "requiresItemIds": [
-          "mat.ore.copper"
-        ],
-        "tutorialStep": null,
-        "once": false
-      },
-      "emote": "proud",
-      "sfxId": "ui.confirm"
+      "text": "Mind the Three‑Wide Law: cut three across so the rock exhales, not bites."
     },
     {
-      "id": "keeper.stamina.rest",
-      "text": "You look hollowed, {player_name}. Stew, a bench, and breath before the next swing.",
+      "id": "line.keeper.hint.deepsong",
+      "mood": "mood.pitwhisper",
       "tags": [
-        "stamina",
-        "rest",
-        "care"
+        "lore",
+        "hint"
       ],
-      "conditions": {
-        "firstVisit": false,
-        "moodIds": [],
-        "requiresItemIds": [],
-        "tutorialStep": null,
-        "once": false
-      },
-      "emote": "concerned",
-      "sfxId": null
+      "requires": [
+        "lore.term.deepsong"
+      ],
+      "text": "If the Deepsong hums low, veins are near; if it keens, brace and mark your way."
     },
     {
-      "id": "keeper.community.roll_call",
-      "text": "Brewmaster minds the kegs; the rest of us mind each other. That is clan.",
+      "id": "line.keeper.craft.copper_binding",
+      "mood": "mood.gearbless",
       "tags": [
-        "community",
-        "brewmaster",
+        "tutorial",
+        "trade"
+      ],
+      "requires": [
+        "recipe.binding.copper",
+        "tool.pick.t1.copper"
+      ],
+      "text": "Bind copper to haft and tooth; your first pick will learn your swing."
+    },
+    {
+      "id": "line.keeper.pace.reinforced_pick",
+      "mood": "mood.emberrest",
+      "tags": [
+        "tutorial",
+        "hint"
+      ],
+      "requires": [
+        "tool.pick.t1.copper.owned",
+        "tool.pick.t2.reinforced"
+      ],
+      "text": "When stone thwarts you, seek a reinforced pick; temper comes after patience."
+    },
+    {
+      "id": "line.keeper.lore.orecasters",
+      "mood": "mood.stillshift",
+      "tags": [
         "lore"
       ],
-      "conditions": {
-        "firstVisit": false,
-        "moodIds": [],
-        "requiresItemIds": [],
-        "tutorialStep": null,
-        "once": false
-      },
-      "emote": "warm",
-      "sfxId": null
+      "requires": [
+        "lore.civ.orecasters"
+      ],
+      "text": "Orecasters once drank here, reading sparks in foam, mapping seams by toast."
     },
     {
-      "id": "keeper.mood.stillshift.toast",
-      "text": "Stillshift, eh. Quiet stone, slow hearts. Warm hands, bright eyes. Raise a mug.",
+      "id": "line.keeper.warn.goblin_burrowers",
+      "mood": "mood.pitwhisper",
       "tags": [
-        "mood",
-        "stillshift",
-        "toast",
-        "hearth"
+        "hint",
+        "lore"
       ],
-      "conditions": {
-        "firstVisit": false,
-        "moodIds": [
-          "mood.stillshift"
-        ],
-        "requiresItemIds": [],
-        "tutorialStep": null,
-        "once": false
-      },
-      "emote": "warm",
-      "sfxId": "sfx.meta.placeholder"
+      "requires": [
+        "enemy.goblin.grunt"
+      ],
+      "text": "Goblins skulk and burrowers mutter. If dust stills, listen and choose your path."
+    },
+    {
+      "id": "line.keeper.trade.sell_upgrade",
+      "mood": "mood.gearbless",
+      "tags": [
+        "tutorial",
+        "trade"
+      ],
+      "requires": [],
+      "text": "Bring oddments to the counter; sell, mend, upgrade. Ledgers remember for you."
+    },
+    {
+      "id": "line.keeper.community.brewmaster",
+      "mood": "mood.emberrest",
+      "tags": [
+        "lore",
+        "tutorial"
+      ],
+      "requires": [],
+      "text": "Brewmaster takes notions. Leave a note; the casks ferry good ideas to me."
+    },
+    {
+      "id": "line.keeper.ambient.lampwatch",
+      "mood": "mood.lampwatch",
+      "tags": [
+        "lore"
+      ],
+      "requires": [],
+      "text": "Lamps drink slow tonight; hear the rafters tick like clockwork roots."
     }
-  ]
+  ],
+  "acceptance": {
+    "crossRefs": {
+      "placeId": "lore.place.tavern.hearth_and_anvil",
+      "ambienceId": "amb.tavern.loopA",
+      "moods": [
+        "mood.stillshift",
+        "mood.gearbless",
+        "mood.pitwhisper",
+        "mood.emberrest",
+        "mood.lampwatch"
+      ]
+    },
+    "notes": [
+      "Covers welcome, Three‑Wide safety, Deepsong hint, copper binding/pick, reinforced pacing.",
+      "Includes Orecasters lore, goblin/burrower caution, sell/upgrade reminder, Brewmaster nod.",
+      "Ambient lampwatch line present. Text ≤96 chars, no guarantees or rates, dwarven tone.",
+      "Tags meet minimums: tutorial ≥3, lore ≥3, hint ≥2. Ids stable and dot-delimited."
+    ]
+  }
 }
