@@ -1,107 +1,41 @@
-{
-  "version": 1,
-  "tools": [
-    {
-      "id": "tool.pick.t1.basic",
-      "name": "Basic Pickaxe",
-      "kind": "pick",
-      "tier": 1,
-      "stats": {
-        "miningPower": 3,
-        "miningSpeed": 6,
-        "swingIntervalMs": 520,
-        "staminaCost": 12,
-        "durabilityMax": 120,
-        "durabilityPerSwing": 1
-      },
-      "allowedTiles": [
-        "rock",
-        "rock.ore"
-      ],
-      "ui": {
-        "iconKey": "ui/icon.tools.pick_t1_24",
-        "colorToken": "ui.frame.brass"
-      },
-      "audio": {
-        "swingId": "sfx.mining.pick.swing",
-        "hitRockId": "sfx.mining.pick.hitRock",
-        "hitOreId": "sfx.mining.pick.hitOre",
-        "breakId": "sfx.mining.break.stone",
-        "drill": {
-          "spinUpId": "",
-          "biteLoopId": "",
-          "coolDownId": ""
-        }
-      },
-      "notes": []
-    },
-    {
-      "id": "tool.pick.t2.reinforced",
-      "name": "Reinforced Pickaxe",
-      "kind": "pick",
-      "tier": 2,
-      "stats": {
-        "miningPower": 5,
-        "miningSpeed": 10,
-        "swingIntervalMs": 480,
-        "staminaCost": 12,
-        "durabilityMax": 180,
-        "durabilityPerSwing": 1
-      },
-      "allowedTiles": [
-        "rock",
-        "rock.ore"
-      ],
-      "ui": {
-        "iconKey": "ui/icon.tools.pick_t2_24",
-        "colorToken": "ui.frame.brass"
-      },
-      "audio": {
-        "swingId": "sfx.mining.pick.swing",
-        "hitRockId": "sfx.mining.pick.hitRock",
-        "hitOreId": "sfx.mining.pick.hitOre",
-        "breakId": "sfx.mining.break.stone",
-        "drill": {
-          "spinUpId": "",
-          "biteLoopId": "",
-          "coolDownId": ""
-        }
-      },
-      "notes": []
-    },
-    {
-      "id": "tool.drill.t3.steam",
-      "name": "Steam Drill",
-      "kind": "drill",
-      "tier": 3,
-      "stats": {
-        "miningPower": 7,
-        "miningSpeed": 22,
-        "swingIntervalMs": 140,
-        "staminaCost": 6,
-        "durabilityMax": 220,
-        "durabilityPerSwing": 1
-      },
-      "allowedTiles": [
-        "rock",
-        "rock.ore"
-      ],
-      "ui": {
-        "iconKey": "ui/icon.tools.drill_t3_24",
-        "colorToken": "mapping.lighting.lampWarm"
-      },
-      "audio": {
-        "swingId": null,
-        "hitRockId": "sfx.mining.pick.hitRock",
-        "hitOreId": "sfx.mining.pick.hitOre",
-        "breakId": "sfx.mining.break.stone",
-        "drill": {
-          "spinUpId": "sfx.mining.drill.spinUp",
-          "biteLoopId": "sfx.mining.drill.bite.loop",
-          "coolDownId": "sfx.mining.drill.coolDown"
-        }
-      },
-      "notes": []
-    }
-  ]
-}
+[
+  {
+    "id": "tool.pick.t1.basic",
+    "name": "Basic Pickaxe",
+    "tier": 1,
+    "kind": "pick",
+    "miningPower": 4,
+    "miningSpeed": 1.0,
+    "staminaCost": 16,
+    "durabilityMax": 60,
+    "durabilityPerHit": 1,
+    "swingMs": 300,
+    "notes": ["Gates: rock(3), copper(4)"]
+  },
+  {
+    "id": "tool.pick.t2.reinforced",
+    "name": "Reinforced Pickaxe",
+    "tier": 2,
+    "kind": "pick",
+    "miningPower": 5,
+    "miningSpeed": 1.15,
+    "staminaCost": 15,
+    "durabilityMax": 120,
+    "durabilityPerHit": 1,
+    "swingMs": 300,
+    "notes": ["Adds iron(5)"]
+  },
+  {
+    "id": "tool.drill.t3.steam",
+    "name": "Steam Drill",
+    "tier": 3,
+    "kind": "drill",
+    "miningPower": 7,
+    "miningSpeed": 1.35,
+    "staminaCost": 12,
+    "durabilityMax": 200,
+    "durabilityPerHit": 1,
+    "swingMs": 220,
+    "notes": ["Adds quartz(7)", "Craft requires Steam Core; no runtime fuel in MVP"]
+  }
+]
