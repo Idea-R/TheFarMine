@@ -1,104 +1,102 @@
 {
   "version": 1,
-  "meta": {
-    "name": "Brass, Stone, and Crystal — v1",
-    "notes": [
-      "All in-engine tints must reference these tokens; no hard-coded hex in code.",
-      "Primary UI text contrast ≥4.5:1 over ui.panel.bg; secondary ≥3:1; gauge fills ≥3:1 over their bgs.",
-      "Telegraph and lighting tokens are non-UI and may use additive blend in-engine."
-    ]
-  },
-  "palette": {
-    "terrain": {
-      "rock.base": "#3a2f2a",
-      "rock.shadow": "#251e1a",
-      "rock.highlight": "#4b3e38",
-      "floor.base": "#2c2420",
-      "ore.copper.base": "#9c5b2e",
-      "ore.copper.spark": "#f2a35a",
-      "ore.iron.base": "#6a717a",
-      "ore.iron.spark": "#c6d0da",
-      "ore.quartz.base": "#7bd3e6",
-      "ore.quartz.spark": "#c5f2ff"
+  "notes": "Steampunk dwarven palette: coal/indigo panels, brass/copper trims, parchment/ash text; ui.text.primary on panel ≥4.5:1 and secondary ≥3:1; minimap luminance steps rock < floor < ores (quartz brightest); health crimson vs stamina aquamarine with luminance separation; amber telegraphs readable on stone.",
+  "ui": {
+    "panel": {
+      "bg": "#0E1218",
+      "shadow": "#000000"
     },
-    "ui": {
-      "panel.bg": "#1b1512",
-      "panel.border": "#3e2f25",
-      "text.primary": "#f2eadb",
-      "text.secondary": "#c6bcae",
-      "text.error": "#ff5e4d",
-      "gauge.health.bg": "#4a2222",
-      "gauge.health.fill": "#d54a3a",
-      "gauge.stamina.bg": "#263a33",
-      "gauge.stamina.fill": "#3fb07a",
-      "hotbar.slot.bg": "#2a211c",
-      "hotbar.slot.active": "#c7a348",
-      "frame.brass": "#b88d2d",
-      "frame.copper": "#a7642c",
-      "frame.crystal": "#57c0d4",
-      "icon.tint": "#e6d7b8"
+    "frame": {
+      "brass": "#C6A646",
+      "copper": "#B66A45",
+      "crystal": "#5FD2E2"
     },
-    "characters": {
-      "player.base": "#6d5242",
-      "player.beard": "#9e6b3a",
-      "player.metal": "#c4b088",
-      "goblin.skin": "#6a7e3b",
-      "goblin.cloth": "#3a4a2d",
-      "outline.light": "#f2eadb",
-      "outline.dark": "#0f0c0a"
+    "text": {
+      "primary": "#E9E1C8",
+      "secondary": "#B7C2CA",
+      "muted": "#7E8892",
+      "warning": "#E0A63C"
     },
-    "effects": {
-      "hitFlash": "#ffffff",
-      "poiseBreakFlash": "#c7f0ff",
-      "debris.rockA": "#4b3e38",
-      "debris.rockB": "#2c2420",
-      "smokePuff": "#675b52"
+    "gauge": {
+      "health": {
+        "bg": "#3A0E12",
+        "fill": "#C43C3C"
+      },
+      "stamina": {
+        "bg": "#0B2123",
+        "fill": "#2AB3A8"
+      },
+      "tick": "#C5CFD8"
     },
-    "minimap": {
-      "bg": "#0e0b09",
-      "tile.rock": "#2a221d",
-      "tile.floor": "#6e5b4e",
-      "tile.ore.copper": "#cf7b3a",
-      "tile.ore.iron": "#93a1ad",
-      "tile.ore.quartz": "#9adfed",
-      "player": "#f2eadb",
-      "enemy": "#f05a4a",
-      "lamp": "#e3b95a"
-    },
-    "mapping": {
-      "telegraph.arc.amber": "#f0b14a",
-      "lighting.lampWarm": "#ffdd99",
-      "lighting.crystalCool": "#8fe8ff",
-      "depthTint.l0": "#000000"
+    "iconAndSlots": {
+      "iconTint": "#E6E0D1",
+      "slotBg": "#1A2028",
+      "slotBorder": "#3D4754",
+      "hotbar": {
+        "slot": {
+          "active": "#C9A24D",
+          "inactive": "#2A313A"
+        }
+      }
     }
   },
-  "accessibility": {
-    "requirements": [
-      { "pair": ["ui.text.primary", "ui.panel.bg"], "contrastRatioMin": 4.5 },
-      { "pair": ["ui.text.secondary", "ui.panel.bg"], "contrastRatioMin": 3.0 },
-      { "pair": ["ui.gauge.health.fill", "ui.gauge.health.bg"], "contrastRatioMin": 3.0 },
-      { "pair": ["ui.gauge.stamina.fill", "ui.gauge.stamina.bg"], "contrastRatioMin": 3.0 }
-    ],
-    "notes": [
-      "Engineers: do not opacity-wash primary text below 90% alpha; preserve contrast.",
-      "Hover/active states may brighten frame.* by +8–12% in shader; keep text unchanged.",
-      "Verify stated contrast pairs with the automated checker in the dev HUD; flag if any fall below thresholds."
-    ]
-  },
-  "integration": {
-    "phaser": {
-      "tintUsage": [
-        "Sprite base tint via sprite.setTint for subtle palette modulation.",
-        "Flash effects use setTintFill with effects.hitFlash for 1–2 frames.",
-        "Telegraph arcs draw with Graphics strokeStyle using mapping.telegraph.arc.amber."
-      ]
+  "minimap": {
+    "panel": {
+      "bg": "#0B0F14",
+      "border": "#3A4754"
     },
-    "ecs": {
-      "field": "Renderable.tintToken",
-      "examples": [
-        { "token": "characters.outline.light", "hex": "#f2eadb" },
-        { "token": "ui.frame.brass", "hex": "#b88d2d" }
-      ]
+    "tiles": {
+      "rock": "#2A2F36",
+      "floor": "#3B424B",
+      "ore": {
+        "copper": "#D8844A",
+        "iron": "#B8C4D0",
+        "quartz": "#F1FBFF"
+      }
+    },
+    "markers": {
+      "lamp": "#FFC857",
+      "player": "#49E3D6",
+      "enemy": "#E05858"
     }
+  },
+  "mapping": {
+    "telegraph": {
+      "arc": {
+        "amber": "#FFB547"
+      }
+    }
+  },
+  "characters": {
+    "goblin": {
+      "base": "#6FA24D"
+    },
+    "burrower": {
+      "base": "#8E6E4F"
+    },
+    "player": {
+      "base": "#BCA57A"
+    }
+  },
+  "terrain": {
+    "rock": "#505862",
+    "ore": {
+      "copper": "#C77A47",
+      "iron": "#AAB8C4",
+      "quartz": "#E4F2FB"
+    },
+    "floor": "#444B55"
+  },
+  "effects": {
+    "hit": {
+      "light": "#FFD486"
+    },
+    "parry": {
+      "ring": "#96E6FF"
+    }
+  },
+  "lighting": {
+    "lampWarm": "#F2B257",
+    "crystalCool": "#78D4F5"
   }
 }
