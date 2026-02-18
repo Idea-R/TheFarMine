@@ -1,189 +1,273 @@
-# The Far Mine — Audio Design v0.1 (Sprint 1)
+# The Far Mine — Audio System & Sound Design (Sprint 1)
 
 Owner: Echoheart Bellowsong (Zeta)  
-Version: 0.1 — 2026-02-18  
-Scope: Vertical slice Mine Level 1 (L1). Engine-agnostic audio design mapped to Bevy ECS events/resources and an AudioEventBridge layer.  
-References:  
-- data/audio/sound-manifest.json (source of truth for asset ids, polyphony, priority)  
-- docs/audio-systems/music-direction.md (music palette and motifs; to be provided)
+Version: Sprint 1 v0.1 • Date: 2026-02-18
 
 ## 1) Title & Scope
-- This brief defines the MVP audio implementation for Sprint 1: ambience bed(s), mining, core combat, footsteps, core UI, basic scene/biome/DepthScalar-driven layers.
-- Contract-first: ECS events → AudioEventBridge → manifest ids. Bevy-agnostic audio backend (Wwise/FMOD/Bevy_kira ok) via adapter traits.
+- Scope (MVP): establish audio pillars; define event routing map ECS→Audio; initial SFX IDs/manifest placeholders; buses/mix with ducking; runtime budgets/polyphony; toolchain hooks.  
+- Target stack: Rust + Bevy; keep bridge/interfaces engine-agnostic.
+
+Deliverables this sprint:
+- Stable triggerKey namespace (event.*) and manifest IDs (sfx.*, ui.*, amb.*) aligned to data/audio/sound-manifest.json.
+- AudioEventBridge mapping for P4 ECS events.
+- Preload set (top-10 SFX + 1 ambience bed).
+- Mix/duck policy and category priorities.
 
 ## 2) Audio Pillars & Style Notes
-- Atmosphere-as-instrument
-  - Cave as choir; brass and bellows textures; restrained reverb (early reflections + short tails, <1.4 s).
-  - Do: emphasize resonant drones with subtle modulation; keep tails short to avoid smearing clarity.
-  - Don’t: stack long lush pads; avoid washy high-frequency reverbs that mask pick strikes.
+- Dwarven work-song rhythm: steady, purposeful pulses that support cadence of mining and combat.
+- Brass/steam timbres: subdued brass, valves, breathy bellows; warm but not blaring.
+- Crystal harmonics: runic shimmer, hammered dulcimer-esque transients for ore/quartz feedback.
+- Restraint in mix for readability: dynamic yet uncluttered; one-shot clarity over bed density.
+- Dynamic but legible layers: ambience layers react to depth/biome; combat readable at all times.
 
-- Readability over roar
-  - Clear telegraphs; distinct mining timbres per material; UI never masked.
-  - Do: carve midrange for telegraphs (1.5–3 kHz) and clicks (2–5 kHz) via sidechain/EQ.
-  - Don’t: let ambience overlap 1–4 kHz excessively; avoid layered hits that blur transient edges.
+Instrumentation adjectives:
+- Percussion as pick rhythms; breathy bellows; hammered dulcimer; subdued brass; runic crystal shimmer.
 
-- Depth-breathing ambience
-  - Layers fade with DepthScalar; minimal fatigue; slow, sparse details.
-  - Do: gate layers with hysteresis and low duty cycle; keep variation subtle.
-  - Don’t: introduce rapid/bright motifs that feel “surface-y” deeper down.
+## 3) Buses & Mix Diagram
+Buses:
+- Master
+- Ambience (beds + layers)
+- Music
+- SFX (combat, mining, footsteps)
+- UI
 
-- Dwarven cadence
-  - Mining and combat share a rhythmic grid (steady work-song feel); avoid clutter.
-  - Do: align swing/telegraph/smash accents to implied 90–100 BPM grid where feasible.
-  - Don’t: trigger flams from stacked variants; suppress micro-latency multiples.
+Signal flow and duck sends:
+```
+[Inputs] --> [SFX] ----->\
+                          \---> [Master] --> Output
+[Inputs] --> [UI] ------>/
+[Inputs] --> [Ambience] -/     ^ 
+                               | (Headroom -6 dBFS)
+[Inputs] --> [Music] ----/     |
+                   ^           |
+                   | Duck Send from SFX:
+                   |  - to Ambience (-3 dB, atk 10ms/hold 250ms/rel 120ms)
+                   |  - to Music (disabled in MVP; hook exists)
+```
+Music layer note (forward hook): bar-aligned layer switches (quantize to next bar; 4/4 default, 120 BPM default; scheduling window ≥ 50 ms).
 
-## 3) Mix & Bus Diagram
-- Buses: Master > Ambience, Music, SFX, UI
-  - Optional sub-buses: SFX/Mining, SFX/Combat
-- Target loudness:
-  - Ambience/Music loops: ~ -14 LUFS integrated (pre-bus trims)
-  - SFX one-shots: peak ≤ -1 dBFS; short-term LU ~ -16 to -12
-  - UI: normalized to peak ≤ -6 dBFS; playback gain +2 dB vs SFX bed to cut through
-- Ducking:
-  - Strong hits and poise breaks duck Ambience by ~3 dB for 250 ms (attack 10 ms, release 120 ms). Hold resets on retrigger.
-- Voice budget (MVP):
-  - Total hard cap 24 voices
-  - SFX active target ≤ 12 concurrent (steal on priority)
-  - Per-id maxPoly set in manifest
-  - Ambience layers 2–3; Music 1; UI 1–2
-- Priority ranges (0–100; higher wins on steal):
-  - Combat critical: 80–90
-  - Mining: 60–70
-  - UI: 55–70 (confirm high end)
-  - Music: 30
-  - Ambience beds: 20–35
+Nominal trims (relative to SFX bus at 0 dB):
+- Ambience: -4 dB
+- Music: -3 dB
+- UI: -2 dB
+- Master headroom policy: target true-peak ≤ -6 dBFS; integrated loudness guidance: SFX anchor around -16 to -18 LUFS short-term; Ambience -20 LUFS; Music -18 to -19 LUFS. These are guidance, not hard constraints.
 
-ASCII bus + duck sends:
-- [Master]
-  - [Ambience]  <—(sidechain duck -3 dB, 10/120 ms, 250 ms)— [SFX/Combat strong hits, poise.break]
-  - [Music]
-  - [SFX]
-    - [SFX/Mining]
-    - [SFX/Combat]
-  - [UI]
+## 4) Runtime Budgets & Polyphony
+Memory:
+- Per-scene preloaded SFX budget: ≤ 12–16 MB (44.1 kHz/16-bit PCM; consider ADPCM/FLAC where available).
+- Streaming: Ambience beds and Music stream from disk (Ogg Vorbis/Opus), 128–160 kbps target.
 
-## 4) Spatialization & Rolloff
-- Spatial=true assets pan/attenuate; UI/Music/Ambience base are non-spatial (ambi beds are stereo images).
-- Rolloff: linear to -12 dB at 18 tiles; hard mute at 28 tiles. Pan law: -3 dB.
-- Clamp non-finite positions/distances to safe defaults (0,0,0) with no pan offset; log once per id.
-- Footstep rate limit: ≥ 100 ms between same-entity steps (see Section 7 for jittered cooldown).
+Concurrency caps (global):
+- SFX total: 24 voices
+  - Combat: cap 8
+  - Mining (hits): cap 6 (max 3 per material)
+  - Footsteps: cap 3 (max 1 per material)
+- UI: cap 6
+- Ambience: beds cap 2; layers cap 4
+- Music: cap 2 (main + optional layer; MVP uses 1)
+Per-ID maxPoly (manifest defaults):
+- sfx.footstep.* maxPoly 1 per material (rate-limit 90 ms)
+- sfx.mine.hit.* maxPoly 3 per material
+- sfx.combat.hit.light maxPoly 4
+- sfx.combat.parry.success maxPoly 1
+- sfx.combat.block.impact maxPoly 2
+- sfx.combat.telegraph.whoosh maxPoly 2
+Priorities (see §7).
 
-## 5) Event Map (ECS → AudioEventBridge)
-Bridge consumes ECS events/resources and resolves to manifest triggerKey strings (bridge applies routing, spatial, priority, duck, variants).
+Preload list (MVP top-10 SFX + 1 ambience bed; manifest preload: true):
+1) sfx.combat.hit.light
+2) sfx.combat.parry.success
+3) sfx.combat.block.impact
+4) sfx.combat.telegraph.whoosh
+5) sfx.combat.poise.break
+6) sfx.mine.hit.rock.v1
+7) sfx.mine.hit.copper.v1
+8) sfx.mine.hit.iron.v1
+9) sfx.mine.hit.quartz.v1
+10) ui.craft.complete
+Ambience bed: amb.biome.crystal_caverns.base.loopA
 
-- MineHitEvent { pos, tool, power, tile.material }
-  - Routes:
-    - rock → sfx.mine.hit.rock.v[1..3]
-    - copper → sfx.mine.hit.copper.v[1..3]
-    - iron → sfx.mine.hit.iron.v[1..3]
-    - quartz → sfx.mine.hit.quartz.v[1..3]
-  - Variant/power: pitch ±2–4% and gain ±1–2 dB scaled by power in [0..1]; cap at ±5%/±3 dB. Spatial=true (pos).
+## 5) Event Map (ECS→AudioEventBridge→Manifest.triggerKey)
+Bridge resolves ECS events to triggerKey (event.*). Manifests map triggerKey to one or more manifest IDs (sfx.*, ui.*, amb.*), selecting variants by var/random/material.
 
-- FootstepEvent { entity, material, pos }
-  - Routes: sfx.footstep.{stone|dirt|metal}
-  - Per-entity cooldown gate (110–140 ms jitter). Spatial=true.
+Mappings (exact ECS names/payloads):
+- MineHitEvent { pos, tool, power }  
+  → triggerKey: event.MineHit.{rock|copper|iron|quartz}  
+  Material resolved from tile/tags at pos. Spatialized at pos. Example IDs: sfx.mine.hit.rock.v1..v3, sfx.mine.hit.copper.v1..v3, sfx.mine.hit.iron.v1..v3, sfx.mine.hit.quartz.v1..v3.
 
-- DamageEvent { source, target, amount, type, pos? }
-  - On resolved hit: sfx.combat.hit.light at impact pos (or target pos). Type may select future variants; MVP single id.
+- FootstepEvent { entity, material }  
+  → triggerKey: event.Footstep.{rock|dust|metal}  
+  Spatial at entity.pos. Example IDs: sfx.footstep.rock.v1..v3, sfx.footstep.dust.v1..v3, sfx.footstep.metal.v1..v2.
 
-- UiCommand { action, payload }
-  - Routes:
-    - navigate → ui.navigate
-    - confirm → ui.confirm
-    - error → ui.error
-    - craft.complete → ui.craft.complete
-  - Non-spatial, bus=UI.
+- DamageEvent { source, target, amount, type }  
+  → triggerKey: event.Combat.hit.light (MVP single variant; future heavies/elementals in later sprint).  
+  Example ID: sfx.combat.hit.light.
 
-- PlaySfxEvent { tag, pos? }
-  - Direct manifest id. Spatial iff pos provided and asset.spatial=true. Honors per-id maxPoly/priority.
+- TelegraphStartEvent { source, target, windup_ms }  
+  → triggerKey: event.Combat.telegraph.start  
+  Example ID: sfx.combat.telegraph.whoosh.
 
-- CombatTimingService hooks (telegraph/attacks)
-  - Start telegraph: sfx.combat.telegraph.whoosh (non-spatial or spatial by attacker pos; MVP spatial=true)
-  - Swing: sfx.combat.swing
-  - Block: sfx.combat.block.impact
-  - Parry: sfx.combat.parry.success
-  - Poise break: sfx.combat.poise.break (flags ducking trigger)
+- PlaySfxEvent { tag, pos }  
+  → Direct passthrough: if tag matches manifest.id or triggerKey, play accordingly. Spatial if pos provided.
 
-- Scene/Depth/Biome
-  - SceneLoad:tavern → amb.tavern.loopA
-  - SceneLoad:mine_l1 → music.track.l1.sketchA (placeholder) + amb.biome.mine.base.loopA
-  - BiomeLoad:crystal_caverns → amb.biome.crystal_caverns.base.loopA
-  - DepthScalar d∈[0..1]:
-    - d ≥ 0.20 → amb.layer.drip.sparse ON (off below 0.18)
-    - d ≥ 0.35 → amb.layer.crystal.resonance ON (off below 0.33)
+- UiCommand { action, payload }  
+  → action mapping:  
+    - Navigate → triggerKey: event.UI.navigate → ui.navigate  
+    - Confirm → triggerKey: event.UI.confirm → ui.confirm  
+    - Error → triggerKey: event.UI.error → ui.error  
+    - CraftComplete → triggerKey: event.UI.craft.complete → ui.craft.complete
 
-Note: triggerKey strings in manifest mirror these routes; bridge performs actual logic (priority, polyphony, spatial, duck).
+- Test hook: TestPingEvent {}  
+  → triggerKey: event.Test.ping → sfx.test.ping
 
-## 6) Layering & Transitions
-- Ambience layers: crossfade 800 ms on start/stop; hysteresis thresholds as above to prevent chatter.
-- Music: single loop MVP; bar-aligned swaps reserved for later. Intro-skip flag support deferred.
-- Combat intensity: none MVP; no dynamic mixing beyond ducking and per-cue priorities.
+Compact routing (ECS [predicate] → triggerKey → example manifest ids):
+- MineHitEvent [mat=rock] → event.MineHit.rock → sfx.mine.hit.rock.v1..v3
+- MineHitEvent [mat=copper] → event.MineHit.copper → sfx.mine.hit.copper.v1..v3
+- MineHitEvent [mat=iron] → event.MineHit.iron → sfx.mine.hit.iron.v1..v3
+- MineHitEvent [mat=quartz] → event.MineHit.quartz → sfx.mine.hit.quartz.v1..v3
+- FootstepEvent [mat=rock] → event.Footstep.rock → sfx.footstep.rock.v1..v3
+- FootstepEvent [mat=dust] → event.Footstep.dust → sfx.footstep.dust.v1..v3
+- FootstepEvent [mat=metal] → event.Footstep.metal → sfx.footstep.metal.v1..v2
+- DamageEvent [any] → event.Combat.hit.light → sfx.combat.hit.light
+- TelegraphStartEvent [any] → event.Combat.telegraph.start → sfx.combat.telegraph.whoosh
+- PlaySfxEvent [tag="sfx.combat.swing.light"] → passthrough → sfx.combat.swing.light
+- PlaySfxEvent [tag="event.Combat.hit.light"] → passthrough to event → sfx.combat.hit.light
+- UiCommand [Confirm] → event.UI.confirm → ui.confirm
+Ambience references for scene loads: amb.tavern.loopA, amb.biome.crystal_caverns.base.loopA, amb.layer.drip.sparse, amb.layer.crystal.resonance.
 
-## 7) Concurrency, Polyphony, and Suppression
-- Mining:
-  - Per-material maxPoly=3.
-  - Coalesce same-cell impacts within 40 ms to one playback (strongest power wins).
-- Footsteps:
-  - Per-entity cooldown 110–140 ms (uniform jitter) to humanize and avoid flam.
-- Telegraph vs swing:
-  - Allow both; telegraph must not be stolen by swing. If contention, raise telegraph priority by +5 transiently or use tie-break “older keeps, newer steals only if higher by ≥5”.
+## 6) Layering & Ambience Rules
+- Structure: base bed + optional layers, controlled by on/off events (amb.layer.*.{on|off}).
+- Hysteresis: debounce 250 ms between toggles; fade times 500–1200 ms (bed crossfades 1200 ms; layers 600 ms).
+- Scene loads:
+  - Tavern: amb.tavern.loopA (bed only).
+  - Mine L1: amb.biome.crystal_caverns.base.loopA (bed) + amb.layer.drip.sparse (layer on).
+  - Crystal resonance layer (amb.layer.crystal.resonance) comes on near crystal clusters; auto-off when far (10 m hysteresis).
+- One-shots do not hard-duck Music; combat one-shots duck Ambience -3 dB briefly (see §7).
 
-## 8) Asset List (MVP summary)
-Source of truth: data/audio/sound-manifest.json  
-- Ambience: 4
-  - amb.biome.mine.base.loopA, amb.layer.drip.sparse, amb.layer.crystal.resonance, amb.tavern.loopA
-- Mining: 12 variants (4 materials × 3 var): sfx.mine.hit.(rock|copper|iron|quartz).v1–v3
-- Footsteps: 3: sfx.footstep.stone, sfx.footstep.dirt, sfx.footstep.metal
-- Combat core: 6: sfx.combat.hit.light, .swing, .block.impact, .parry.success, .telegraph.whoosh, .poise.break
-- UI: 4: ui.navigate, ui.confirm, ui.error, ui.craft.complete
-- Passthrough: 1: sfx.debug.ping (PlaySfxEvent testing)
-- Music: 1: music.track.l1.sketchA
-Naming/versioning: lowercase; folders by role; variants suffixed vN (v1..v3). No spaces; use dots.
+Bridge behaviors:
+- Ensures single instance per bed (restarts via musical bar-align not required in MVP).
+- Debounce and smooth fades on layer state changes.
+- Spatialize layer one-shots lightly (min spread), beds are non-spatial stereo.
 
-## 9) Top-10 Priority SFX (explicit for acceptance)
-- sfx.combat.hit.light — Core feedback for successful hits; tight, woody-metallic transient with brief low-mid thump.
-- sfx.combat.parry.success — High-skill cue; bright, bell-brass chime with fast transient and short tail.
-- sfx.combat.block.impact — Defensive clarity; heavier, damped metallic thunk with lower-pitched ring.
-- sfx.combat.telegraph.whoosh — Anticipation/readability; low-noise air/bellows sweep, midrange-focused.
-- sfx.combat.poise.break — State change; impactful crack + descending brass burst, brief sidechain duck trigger.
-- sfx.mine.hit.rock.v1 — Baseline mining; gritty stone chip, dry transient, minimal tail.
-- sfx.mine.hit.copper.v1 — Material readability; softer malleable metallic ping with warm mid tone.
-- sfx.mine.hit.iron.v1 — Heavier metallic snap with darker ring; more weight than copper.
-- sfx.mine.hit.quartz.v1 — Brittle, glassy tick with crystalline overtones; higher brightness.
-- ui.craft.complete — Positive reinforcement; short pentatonic bell dyad, clear and unobtrusive.
+## 7) Ducking & Priority
+Ducking sends:
+- Combat hits, parry, poise break send to Ambience duck bus: -3 dB, attack 10 ms, hold 250 ms, release 120 ms.
+- UI never ducks.
+- Music ducking disabled in MVP (send path exists for later).
 
-## 10) Toolchain & Implementation Notes
-- Assets:
-  - 44.1 kHz / 24-bit WAV
-  - Mono: SFX/UI
-  - Stereo: Ambience/Music
-- Runtime:
-  - AudioEventBridge (Bevy system set) reads: MineHitEvent, FootstepEvent, DamageEvent, UiCommand, PlaySfxEvent; subscribes to CombatTimingService hooks; observes DepthScalar, SceneLoad, BiomeLoad.
-  - Applies variant selection (test-seeded RNG optional), spatialization flags, priority, duck sends, per-id maxPoly, cooldown/coalesce.
-- Memory:
-  - Decoded SFX total ≤ 8 MB
-  - Ambience/Music streamed from disk
-  - Preload: Top-10 SFX + one ambience bed (amb.biome.mine.base.loopA)
-- Testing hooks:
-  - Bridge exposes counters per route (event→cue map)
-  - Fixed-seed RNG toggle (test-only) for deterministic variant/pitch
-  - Debug: sfx.debug.ping via PlaySfxEvent { tag, pos? }
+Priority ranges (manifest-aligned):
+- Combat: 80–90 (e.g., hit.light=85, parry.success=90, poise.break=88)
+- Mining: 60–70 (mine.hit.*=65)
+- UI: 55–70 (confirm=65, error=70, navigate=58, craft.complete=66)
+- Ambience beds: 20–35 (beds=30, layers=35)
+- Music: 30
 
-## 11) Acceptance, Test Plan, Risks
-- Acceptance:
-  - All MVP interactions mapped via ECS→AudioEventBridge
-  - Top-10 SFX identified and referenced by id
-  - Implementable with provided events/resources; ducking and DepthScalar layering functional
-- Tests:
-  - Unit: event→id resolution (material→mining variants; UI commands)
-  - Mining coalesce: impacts within 40 ms in same cell collapse to one
-  - Ducking: poise.break and strong hits trigger Ambience duck parameters
-  - Depth hysteresis: layers on at 0.20/0.35; off at 0.18/0.33; crossfade ~800 ms
-  - Footstep cooldown: per-entity jittered window respected
-- Risks:
-  - ECS payload drift (e.g., missing tile.material) can break routing; mitigate with defaults + logging
-  - In-engine balance requires trims despite LUFS targets; provide per-bus trims in config
-  - Bevy audio backend differences (kira vs. custom) bridged by adapter; verify sidechain/duck emulation
-  - Voice cap contention in combat clusters; tune priorities and per-id maxPoly early
+Voice-steal policy:
+- Prefer stealing lowest-priority, oldest; never steal beds/Music unless forced.
 
-— Echoheart Bellowsong, keeping the mine singing softly and the picks speaking clearly.
+## 8) Initial SFX List & Placeholders
+Preload true (see §4):
+1) sfx.combat.hit.light — Layered leather/wood smack + low brass thud; transient limited for clarity.
+2) sfx.combat.parry.success — Bright metallic ring + crystal shimmer tail; subtle stereo widening.
+3) sfx.combat.block.impact — Heavy shield/body thunk; damped resonance; short tail.
+4) sfx.combat.telegraph.whoosh — Airy whoosh with breathy bellows texture; fast rise.
+5) sfx.combat.poise.break — Crack + falling chime cluster; brief sub hit.
+6) sfx.mine.hit.rock.v1 — Slate crack + granular grit burst.
+7) sfx.mine.hit.copper.v1 — Brighter ping, soft metallic ring.
+8) sfx.mine.hit.iron.v1 — Darker, weightier ring; longer decay.
+9) sfx.mine.hit.quartz.v1 — Brittle chime + airy sparkle.
+10) ui.craft.complete — Soft dulcimer triad + bellows puff; short.
+
+File naming/versioning:
+- audio/sfx/<domain>/<name>_vN.wav (e.g., audio/sfx/mine/mine_hit_iron_v1.wav)
+- Manifest IDs: sfx.<domain>.<name>.vN (e.g., sfx.mine.hit.iron.v1)
+- Loops end with _loop.wav; manifest IDs: *.loopA/B (e.g., amb.biome.crystal_caverns.base.loopA)
+
+## 9) Toolchain & Integration Notes
+Engine:
+- Primary: Bevy (Rust). Keep AudioEventBridge engine-agnostic.
+
+AudioEventBridge API (Rust pseudocode):
+- fn route_event(ev: &EcsEvent, assets: &SoundManifest) -> Option<PlayRequest>
+- struct PlayRequest {
+    id: String,           // manifest.id chosen (e.g., "sfx.mine.hit.iron.v1")
+    bus: AudioBus,        // SFX, UI, Ambience, Music
+    spatial: bool,
+    pos: Option<Vec3>,    // world position if spatial
+    volume: f32,          // linear 0.0–1.0
+    priority: u8,         // 0–100
+    var: Option<String>,  // variant/material (e.g., "iron")
+    duck_sends: DuckMask, // flags for Ambience/Music ducks
+}
+
+JS prototype hook (for tools/sandbox):
+- function routeEvent(ev, manifest) -> PlayRequest | null
+
+Data sources:
+- data/audio/sound-manifest.json (source of truth for IDs, buses, priorities, maxPoly, preload)
+- docs/combat-systems/combat-design.md (event contracts)
+- data/visual/color-palette.json (telegraph color tokens for alignment only)
+Testing hooks:
+- sfx.test.ping via triggerKey "event.Test.ping" to validate routing path.
+
+## 10) Mixing Targets & QA Plan
+Targets:
+- SFX are anchors; no clipping; Master true-peak ≤ -6 dBFS.
+- Relative balance: SFX 0 dB, Music -3 dB, Ambience -4 dB, UI -2 dB trims (adjust in-engine).
+
+In-engine audition checklist:
+- Mining cadence clarity: three rapid hits do not smear; per-material timbre distinct.
+- Telegraph readability: whoosh audible over beds without harshness.
+- Parry sparkle does not mask immediate follow-up hit.
+- Footsteps rate-limit sane at sprint speed; no machine-gunning.
+- Ambience layers fade cleanly with hysteresis; no flange at crossfades.
+- Ducking envelopes feel natural; Ambience recovers smoothly.
+
+Unit tests (bridge):
+- Event→triggerKey mapping correctness (per event in §5).
+- Material resolution from tile tags for MineHitEvent.
+- Preload set presence in manifest (IDs in §4).
+- Polyphony clamps respected per-ID and per-category.
+- Passthrough PlaySfxEvent resolves IDs and triggerKeys.
+- Spatial routing assigns entity.pos where applicable.
+
+## 11) Risks & Assumptions
+Assumptions:
+- P4 ECS event names/payloads remain stable; if they change, only bridge table requires update.
+- data/audio/sound-manifest.json will adopt IDs and maxPoly/priority ranges as specified.
+
+Risks and mitigation:
+- Mix trims/ducking may require iteration without in-engine audition. Mitigate with:
+  - Debug overlay: show active voices, priorities, duck gains.
+  - Counters on voice steals per category.
+  - Per-ID meters (peak/short-term LUFS) and recent-play histograms.
+  - Test scene with spam toggles for amb.layer.* and bursty combat.
+
+---
+
+## Appendix A) Quick Reference Table
+ECS → triggerKey → manifest ID(s)
+- MineHitEvent [rock] → event.MineHit.rock → sfx.mine.hit.rock.v1..v3
+- MineHitEvent [copper] → event.MineHit.copper → sfx.mine.hit.copper.v1..v3
+- MineHitEvent [iron] → event.MineHit.iron → sfx.mine.hit.iron.v1..v3
+- MineHitEvent [quartz] → event.MineHit.quartz → sfx.mine.hit.quartz.v1..v3
+- FootstepEvent [rock] → event.Footstep.rock → sfx.footstep.rock.v1..v3
+- FootstepEvent [dust] → event.Footstep.dust → sfx.footstep.dust.v1..v3
+- FootstepEvent [metal] → event.Footstep.metal → sfx.footstep.metal.v1..v2
+- DamageEvent → event.Combat.hit.light → sfx.combat.hit.light
+- TelegraphStartEvent → event.Combat.telegraph.start → sfx.combat.telegraph.whoosh
+- PlaySfxEvent [tag="sfx.combat.swing.light"] → passthrough → sfx.combat.swing.light
+- PlaySfxEvent [tag="event.Combat.hit.light"] → passthrough → sfx.combat.hit.light
+- UiCommand [Navigate] → event.UI.navigate → ui.navigate
+- UiCommand [Confirm] → event.UI.confirm → ui.confirm
+- UiCommand [Error] → event.UI.error → ui.error
+- UiCommand [CraftComplete] → event.UI.craft.complete → ui.craft.complete
+Ambience scenes/layers:
+- Tavern scene → amb.tavern.loopA
+- Mine L1 bed → amb.biome.crystal_caverns.base.loopA
+- Layer optional → amb.layer.drip.sparse, amb.layer.crystal.resonance
+
+Buses/priorities (quick):
+- Combat 80–90; Mining 60–70; UI 55–70; Ambience beds 20–35; Music 30.
+Ducking (quick):
+- Combat one-shots duck Ambience -3 dB (10/250/120 ms). UI/Music no duck in MVP.
