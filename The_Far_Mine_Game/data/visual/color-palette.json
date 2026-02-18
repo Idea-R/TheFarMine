@@ -1,0 +1,557 @@
+{
+  "version": 1,
+  "meta": {
+    "author": "eta",
+    "updated": "2026-02-18T12:00:00Z",
+    "notes": [
+      "Steampunk dwarven palette emphasizing brass/copper metals, controlled cyan/amethyst crystals, and deep slate terrain.",
+      "Dark slate panels for HUD; parchment-toned inverted panels for overlays/tooltips; accents avoid UI glare.",
+      "Telegraph arcs tuned to Gamma semantics: amber (attention), red (danger), green (parry/future).",
+      "Minimap colors separated for 1px readability at 3x–4x scale: rock vs floor vs ore clearly distinct; player bright, enemy distinct.",
+      "Lighting helpers balance warm lamp glow with cold cave ambient; effects include neutral hit flash and ore-colored sparks.",
+      "Contrast audit pending; target ratios listed in docs/visual-systems/style-guide.md"
+    ]
+  },
+  "tokens": {
+    "ui.panel.bg": {
+      "id": "ui.panel.bg",
+      "hex": "#1B1E23",
+      "role": "ui/panel/bg dark slate",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Primary dark background for HUD panels and menus."
+    },
+    "ui.panel.bg_inverted": {
+      "id": "ui.panel.bg_inverted",
+      "hex": "#E8E1D4",
+      "role": "ui/panel/bg inverted parchment",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Light parchment overlay/tooltip background."
+    },
+    "ui.panel.frame.brass": {
+      "id": "ui.panel.frame.brass",
+      "hex": "#8A6B2A",
+      "role": "ui/frame/brass edge",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Muted brass frame metal; readable on dark panels."
+    },
+    "ui.panel.frame.rivet": {
+      "id": "ui.panel.frame.rivet",
+      "hex": "#C99A3A",
+      "role": "ui/frame/rivet highlight",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Brighter brass pop for rivets and small highlights."
+    },
+    "ui.accent.brass": {
+      "id": "ui.accent.brass",
+      "hex": "#D1A24A",
+      "role": "ui/accent/brass highlight",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Warm brass accent for focus and callouts."
+    },
+    "ui.accent.crystal": {
+      "id": "ui.accent.crystal",
+      "hex": "#3AA6B8",
+      "role": "ui/accent/crystal cyan",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Controlled cyan accent; pairs with amethyst without glare."
+    },
+    "ui.health.bar": {
+      "id": "ui.health.bar",
+      "hex": "#9C1F2E",
+      "role": "ui/health/bar fill",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Deep ruby fill for health."
+    },
+    "ui.health.bar_shadow": {
+      "id": "ui.health.bar_shadow",
+      "hex": "#4A0E15",
+      "role": "ui/health/track shadow",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Dark ruby track/shadow under health fill."
+    },
+    "ui.stamina.bar": {
+      "id": "ui.stamina.bar",
+      "hex": "#1F8A6B",
+      "role": "ui/stamina/bar fill",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Verdant-teal stamina fill."
+    },
+    "ui.stamina.bar_shadow": {
+      "id": "ui.stamina.bar_shadow",
+      "hex": "#0D3F30",
+      "role": "ui/stamina/track shadow",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Deep teal track/shadow under stamina fill."
+    },
+    "ui.text.primary": {
+      "id": "ui.text.primary",
+      "hex": "#E4E0D8",
+      "role": "ui/text/primary on dark",
+      "contrastOn": "ui.panel.bg",
+      "wcag": null,
+      "notes": "Primary HUD/body text on dark panels."
+    },
+    "ui.text.secondary": {
+      "id": "ui.text.secondary",
+      "hex": "#A9AFB7",
+      "role": "ui/text/secondary on dark",
+      "contrastOn": "ui.panel.bg",
+      "wcag": null,
+      "notes": "Secondary/quiet text on dark panels."
+    },
+    "ui.text.inverted": {
+      "id": "ui.text.inverted",
+      "hex": "#2B2E33",
+      "role": "ui/text/primary on light",
+      "contrastOn": "ui.panel.bg_inverted",
+      "wcag": null,
+      "notes": "Primary text for light (inverted) panels."
+    },
+    "ui.icon.slot.bg": {
+      "id": "ui.icon.slot.bg",
+      "hex": "#22262C",
+      "role": "ui/icon/slot background",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Slot background; subtly lighter than panel bg."
+    },
+    "ui.icon.slot.border": {
+      "id": "ui.icon.slot.border",
+      "hex": "#6B5324",
+      "role": "ui/icon/slot border brass-tint",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Low-chroma brass-tinted slot border."
+    },
+    "ui.cursor.highlight": {
+      "id": "ui.cursor.highlight",
+      "hex": "#F0C55A",
+      "role": "ui/cursor/highlight",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Attention highlight for cursor and focus rings."
+    },
+    "terrain.rock.base": {
+      "id": "terrain.rock.base",
+      "hex": "#2A2F35",
+      "role": "terrain/rock/base",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Deep slate base for mine walls."
+    },
+    "terrain.rock.shadow": {
+      "id": "terrain.rock.shadow",
+      "hex": "#1A1F25",
+      "role": "terrain/rock/shadow",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Cooler shadow for rock crevices."
+    },
+    "terrain.floor.dust": {
+      "id": "terrain.floor.dust",
+      "hex": "#3D3A34",
+      "role": "terrain/floor/dust",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Slightly lighter, dusty floor tone."
+    },
+    "terrain.floor.edge": {
+      "id": "terrain.floor.edge",
+      "hex": "#5A4F3A",
+      "role": "terrain/floor/edge warm",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Warm edge highlight for floor tiles."
+    },
+    "terrain.ore.copper": {
+      "id": "terrain.ore.copper",
+      "hex": "#B55A2A",
+      "role": "terrain/ore/copper",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Reddy copper ore vein color."
+    },
+    "terrain.ore.iron": {
+      "id": "terrain.ore.iron",
+      "hex": "#7B8A94",
+      "role": "terrain/ore/iron",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Cool iron ore veins against slate."
+    },
+    "terrain.ore.quartz": {
+      "id": "terrain.ore.quartz",
+      "hex": "#DAD7D0",
+      "role": "terrain/ore/quartz",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Pale neutral quartz seams."
+    },
+    "material.metal.brass": {
+      "id": "material.metal.brass",
+      "hex": "#A67C2B",
+      "role": "material/metal/brass",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Base brass metal tint for props."
+    },
+    "material.metal.copper": {
+      "id": "material.metal.copper",
+      "hex": "#B66A3C",
+      "role": "material/metal/copper",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Base copper metal for machinery and ore."
+    },
+    "material.metal.iron": {
+      "id": "material.metal.iron",
+      "hex": "#6B7780",
+      "role": "material/metal/iron",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Neutral iron steel tint."
+    },
+    "material.crystal.cyan": {
+      "id": "material.crystal.cyan",
+      "hex": "#3FB3C6",
+      "role": "material/crystal/cyan",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Cyan crystal body, saturation controlled."
+    },
+    "material.crystal.amethyst": {
+      "id": "material.crystal.amethyst",
+      "hex": "#7A5DAA",
+      "role": "material/crystal/amethyst",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Amethyst crystal body; complements cyan."
+    },
+    "characters.player.base": {
+      "id": "characters.player.base",
+      "hex": "#7C5A3A",
+      "role": "character/player/base",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Dwarven leather/garb base."
+    },
+    "characters.player.accent": {
+      "id": "characters.player.accent",
+      "hex": "#C49A48",
+      "role": "character/player/accent brass",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Brass accents for player gear."
+    },
+    "characters.goblin.base": {
+      "id": "characters.goblin.base",
+      "hex": "#4A6B3A",
+      "role": "character/goblin/base",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Desaturated goblin green skin."
+    },
+    "characters.goblin.accent": {
+      "id": "characters.goblin.accent",
+      "hex": "#9BBF3E",
+      "role": "character/goblin/accent",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Sickly yellow-green accents/eyes."
+    },
+    "characters.burrower.base": {
+      "id": "characters.burrower.base",
+      "hex": "#5B4636",
+      "role": "character/burrower/base",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Earthy chitin base for burrower."
+    },
+    "characters.burrower.accent": {
+      "id": "characters.burrower.accent",
+      "hex": "#C07E2A",
+      "role": "character/burrower/accent",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Warm amber claws/eyes."
+    },
+    "effects.light.warm": {
+      "id": "effects.light.warm",
+      "hex": "#F2C26A",
+      "role": "effects/light/warm",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Lamp glow; warm and diffuse."
+    },
+    "effects.light.cold": {
+      "id": "effects.light.cold",
+      "hex": "#78B7D1",
+      "role": "effects/light/cold",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Cold cave/bioluminescent glow."
+    },
+    "effects.hit.flash": {
+      "id": "effects.hit.flash",
+      "hex": "#FFF4E6",
+      "role": "effects/hit/flash neutral",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Bright neutral hit impact flash."
+    },
+    "effects.mine.spark.copper": {
+      "id": "effects.mine.spark.copper",
+      "hex": "#FF7A3D",
+      "role": "effects/mine/spark copper",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Coppery orange sparks while mining."
+    },
+    "effects.mine.spark.iron": {
+      "id": "effects.mine.spark.iron",
+      "hex": "#A6C7D8",
+      "role": "effects/mine/spark iron",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Cool steel-blue sparks for iron."
+    },
+    "effects.mine.spark.quartz": {
+      "id": "effects.mine.spark.quartz",
+      "hex": "#E6FDFF",
+      "role": "effects/mine/spark quartz",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Pale icy sparks for quartz."
+    },
+    "effects.smoke.steam": {
+      "id": "effects.smoke.steam",
+      "hex": "#8C9096",
+      "role": "effects/smoke/steam mid-gray",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Steam/smoke puffs; mid-gray for blending."
+    },
+    "mapping.telegraph.arc.amber": {
+      "id": "mapping.telegraph.arc.amber",
+      "hex": "#E5A53A",
+      "role": "mapping/telegraph/arc amber",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Default attention telegraph arc."
+    },
+    "mapping.telegraph.arc.red": {
+      "id": "mapping.telegraph.arc.red",
+      "hex": "#C93A32",
+      "role": "mapping/telegraph/arc red danger",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Danger telegraph arc."
+    },
+    "mapping.telegraph.arc.green": {
+      "id": "mapping.telegraph.arc.green",
+      "hex": "#3AAE6A",
+      "role": "mapping/telegraph/arc green parry",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Parry-ready/future telegraph arc."
+    },
+    "mapping.minimap.bg": {
+      "id": "mapping.minimap.bg",
+      "hex": "#0E1115",
+      "role": "mapping/minimap/background",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Minimap panel background."
+    },
+    "mapping.minimap.player": {
+      "id": "mapping.minimap.player",
+      "hex": "#4DD2E0",
+      "role": "mapping/minimap/player marker",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Bright cyan player dot."
+    },
+    "mapping.minimap.enemy": {
+      "id": "mapping.minimap.enemy",
+      "hex": "#E15A5A",
+      "role": "mapping/minimap/enemy marker",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Hostile marker with strong red separation."
+    },
+    "mapping.minimap.rock": {
+      "id": "mapping.minimap.rock",
+      "hex": "#3A3F45",
+      "role": "mapping/minimap/rock",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Rock mass lines; darker than floor."
+    },
+    "mapping.minimap.floor": {
+      "id": "mapping.minimap.floor",
+      "hex": "#55524A",
+      "role": "mapping/minimap/floor",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Traversable floor; lighter than rock."
+    },
+    "mapping.minimap.ore.copper": {
+      "id": "mapping.minimap.ore.copper",
+      "hex": "#D8783E",
+      "role": "mapping/minimap/ore copper",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Copper ore ping on minimap."
+    },
+    "mapping.minimap.ore.iron": {
+      "id": "mapping.minimap.ore.iron",
+      "hex": "#8CA0B0",
+      "role": "mapping/minimap/ore iron",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Iron ore ping on minimap."
+    },
+    "mapping.minimap.exit": {
+      "id": "mapping.minimap.exit",
+      "hex": "#B38BE8",
+      "role": "mapping/minimap/exit",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Exit/ladder marker; amethyst cue."
+    },
+    "lighting.ambient.cave": {
+      "id": "lighting.ambient.cave",
+      "hex": "#1C2A33",
+      "role": "lighting/ambient/cave",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Cold cave ambient overlay/tint."
+    },
+    "lighting.ambient.tavern": {
+      "id": "lighting.ambient.tavern",
+      "hex": "#3A2A1C",
+      "role": "lighting/ambient/tavern",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Warm tavern ambient overlay/tint."
+    },
+    "lighting.lamp.glow": {
+      "id": "lighting.lamp.glow",
+      "hex": "#F6CC72",
+      "role": "lighting/lamp/glow",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Helper color for lamp sprite halos."
+    },
+    "debug.bounds": {
+      "id": "debug.bounds",
+      "hex": "#FF00CC",
+      "role": "debug/bounds",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Non-shipping vivid magenta for bounds."
+    },
+    "debug.hitbox": {
+      "id": "debug.hitbox",
+      "hex": "#00FF66",
+      "role": "debug/hitbox",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Non-shipping vivid green for hitboxes."
+    },
+    "debug.path": {
+      "id": "debug.path",
+      "hex": "#00D6FF",
+      "role": "debug/path",
+      "contrastOn": null,
+      "wcag": null,
+      "notes": "Non-shipping vivid cyan for paths."
+    }
+  },
+  "groups": {
+    "ui": [
+      "ui.panel.bg",
+      "ui.panel.bg_inverted",
+      "ui.panel.frame.brass",
+      "ui.panel.frame.rivet",
+      "ui.accent.brass",
+      "ui.accent.crystal",
+      "ui.health.bar",
+      "ui.health.bar_shadow",
+      "ui.stamina.bar",
+      "ui.stamina.bar_shadow",
+      "ui.text.primary",
+      "ui.text.secondary",
+      "ui.text.inverted",
+      "ui.icon.slot.bg",
+      "ui.icon.slot.border",
+      "ui.cursor.highlight"
+    ],
+    "terrain": [
+      "terrain.rock.base",
+      "terrain.rock.shadow",
+      "terrain.floor.dust",
+      "terrain.floor.edge",
+      "terrain.ore.copper",
+      "terrain.ore.iron",
+      "terrain.ore.quartz"
+    ],
+    "materials": [
+      "material.metal.brass",
+      "material.metal.copper",
+      "material.metal.iron",
+      "material.crystal.cyan",
+      "material.crystal.amethyst"
+    ],
+    "characters": [
+      "characters.player.base",
+      "characters.player.accent",
+      "characters.goblin.base",
+      "characters.goblin.accent",
+      "characters.burrower.base",
+      "characters.burrower.accent"
+    ],
+    "effects": [
+      "effects.light.warm",
+      "effects.light.cold",
+      "effects.hit.flash",
+      "effects.mine.spark.copper",
+      "effects.mine.spark.iron",
+      "effects.mine.spark.quartz",
+      "effects.smoke.steam"
+    ],
+    "mapping": [
+      "mapping.telegraph.arc.amber",
+      "mapping.telegraph.arc.red",
+      "mapping.telegraph.arc.green",
+      "mapping.minimap.bg",
+      "mapping.minimap.player",
+      "mapping.minimap.enemy",
+      "mapping.minimap.rock",
+      "mapping.minimap.floor",
+      "mapping.minimap.ore.copper",
+      "mapping.minimap.ore.iron",
+      "mapping.minimap.exit"
+    ],
+    "lighting": [
+      "lighting.ambient.cave",
+      "lighting.ambient.tavern",
+      "lighting.lamp.glow"
+    ],
+    "debug": [
+      "debug.bounds",
+      "debug.hitbox",
+      "debug.path"
+    ]
+  }
+}
