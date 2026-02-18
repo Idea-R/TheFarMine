@@ -1,155 +1,190 @@
 {
   "version": 1,
-  "id": "npc.tavern.keeper",
+  "id": "dialogue.tavern.keeper.v1",
   "meta": {
     "author": "epsilon",
-    "updated": "2026-02-18T00:00:00Z",
-    "notes": [
-      "MVP dialogue for Keeper: welcome, safety (Three‑Wide Law), Deepsong hint, copper craft nudge.",
-      "Pacing toward reinforced pick, lore nod to Orecasters, goblin/burrower caution, trade reminder.",
-      "Brewmaster community routing, one ambient lampwatch line. Dwarven mythic‑steampunk tone.",
-      "UI-safe ≤96 chars, no drop/rate promises. Stable dot-delimited ids. Mood-first selection.",
-      "Requires are soft gates; cross-refs echo place and ambience for reviewer validation."
-    ]
+    "date": "2026-02-18",
+    "locale": "en-US",
+    "notes": "Tavern Keeper lines for the Hearth & Anvil; Three-Wide safety; lore seeds and gentle guidance."
   },
   "npc": {
-    "name": "Keeper of the Hearth & Anvil",
-    "placeId": "lore.place.tavern.hearth_and_anvil",
-    "ambienceId": "amb.tavern.loopA",
-    "spriteId": "sprites.npc.tavern_keeper"
+    "id": "npc.tavern.keeper",
+    "name": "The Keeper",
+    "place_id": "lore.place.tavern.hearth_and_anvil",
+    "ambience_id": "amb.tavern.loopA"
+  },
+  "config": {
+    "ui_safe": true,
+    "max_line_chars": 110,
+    "show_nameplate": true,
+    "voice": "dwarven_steadfast",
+    "default_mood": "mood.stillshift"
   },
   "lines": [
     {
-      "id": "line.keeper.welcome.stillshift",
-      "mood": "mood.stillshift",
+      "id": "dlg.keeper.welcome.v1",
+      "text": "Welcome to the Hearth & Anvil. Keep to the Three-Wide Law, and you'll leave with all toes.",
       "tags": [
-        "welcome"
+        "welcome",
+        "safety",
+        "l1"
       ],
-      "requires": [
-        "first_visit"
-      ],
-      "text": "Welcome to the Hearth & Anvil, delver. Warm seat, cool head, steady hands."
-    },
-    {
-      "id": "line.keeper.safety.three_wide",
-      "mood": "mood.gearbless",
-      "tags": [
-        "tutorial",
-        "hint"
-      ],
-      "requires": [
+      "requires": {
+        "first_visit": true
+      },
+      "grants": {
+        "seen_flag": "seen.keeper.intro"
+      },
+      "audio": {
+        "triggerKey": "ui.confirm",
+        "volume_db": -3
+      },
+      "hooks": [
         "lore.term.three_wide"
       ],
-      "text": "Mind the Three‑Wide Law: cut three across so the rock exhales, not bites."
+      "cooldown_sec": 120
     },
     {
-      "id": "line.keeper.hint.deepsong",
-      "mood": "mood.pitwhisper",
-      "tags": [
-        "lore",
-        "hint"
-      ],
-      "requires": [
-        "lore.term.deepsong"
-      ],
-      "text": "If the Deepsong hums low, veins are near; if it keens, brace and mark your way."
-    },
-    {
-      "id": "line.keeper.craft.copper_binding",
-      "mood": "mood.gearbless",
+      "id": "dlg.keeper.tut.tools.t0.v1",
+      "text": "Starter Pickaxe bites soft rock. Test faces first; don't chase sparks until you've learned the grain.",
       "tags": [
         "tutorial",
-        "trade"
+        "tools",
+        "t0",
+        "l1"
       ],
-      "requires": [
-        "recipe.binding.copper",
-        "tool.pick.t1.copper"
+      "requires": {
+        "has_tool_tier_min": 0
+      },
+      "audio": {
+        "triggerKey": "ui.confirm",
+        "volume_db": -4
+      },
+      "hooks": [
+        "tool.pick.t0.starter"
       ],
-      "text": "Bind copper to haft and tooth; your first pick will learn your swing."
+      "cooldown_sec": 45
     },
     {
-      "id": "line.keeper.pace.reinforced_pick",
-      "mood": "mood.emberrest",
-      "tags": [
-        "tutorial",
-        "hint"
-      ],
-      "requires": [
-        "tool.pick.t1.copper.owned",
-        "tool.pick.t2.reinforced"
-      ],
-      "text": "When stone thwarts you, seek a reinforced pick; temper comes after patience."
-    },
-    {
-      "id": "line.keeper.lore.orecasters",
-      "mood": "mood.stillshift",
-      "tags": [
-        "lore"
-      ],
-      "requires": [
-        "lore.civ.orecasters"
-      ],
-      "text": "Orecasters once drank here, reading sparks in foam, mapping seams by toast."
-    },
-    {
-      "id": "line.keeper.warn.goblin_burrowers",
-      "mood": "mood.pitwhisper",
+      "id": "dlg.keeper.tut.ore.copper.v1",
+      "text": "Copper likes the edges—veins cling to main paths and wall shadows. Keep eyes and toes.",
       "tags": [
         "hint",
-        "lore"
+        "ore",
+        "copper",
+        "l1"
       ],
-      "requires": [
-        "enemy.goblin.grunt"
+      "hooks": [
+        "ore.copper"
       ],
-      "text": "Goblins skulk and burrowers mutter. If dust stills, listen and choose your path."
+      "cooldown_sec": 30
     },
     {
-      "id": "line.keeper.trade.sell_upgrade",
-      "mood": "mood.gearbless",
+      "id": "dlg.keeper.rule.three_wide.v1",
+      "text": "Three wide keeps breath inside; one stumble, two shoulders, no tunnel turns to coffin.",
       "tags": [
-        "tutorial",
-        "trade"
+        "rule",
+        "proverb",
+        "safety",
+        "l1"
       ],
-      "requires": [],
-      "text": "Bring oddments to the counter; sell, mend, upgrade. Ledgers remember for you."
+      "hooks": [
+        "lore.term.three_wide"
+      ],
+      "cooldown_sec": 60
     },
     {
-      "id": "line.keeper.community.brewmaster",
-      "mood": "mood.emberrest",
+      "id": "dlg.keeper.myth.deepsong.v1",
+      "text": "Hear that hum in your bones? The Deepsong keeps time when clocks forget.",
       "tags": [
-        "lore",
-        "tutorial"
+        "myth",
+        "deepsong",
+        "l2"
       ],
-      "requires": [],
-      "text": "Brewmaster takes notions. Leave a note; the casks ferry good ideas to me."
+      "hooks": [
+        "lore.term.deepsong"
+      ],
+      "cooldown_sec": 50
     },
     {
-      "id": "line.keeper.ambient.lampwatch",
+      "id": "dlg.keeper.gossip.guilds.v1",
+      "text": "Mind the guild lot: Borewrights brag, Riveters bark, Stonebinders tally. Tip well; tempers cool.",
+      "tags": [
+        "gossip",
+        "guilds",
+        "l2"
+      ],
+      "hooks": [
+        "guild.borewrights",
+        "guild.riveters",
+        "guild.stonebinders"
+      ],
+      "cooldown_sec": 40
+    },
+    {
+      "id": "dlg.keeper.quip.lampwatch.v1",
+      "text": "On Lampwatch, count your breaths between swings; steady hands see dawn that eyes don't.",
+      "tags": [
+        "quip",
+        "night",
+        "l3"
+      ],
       "mood": "mood.lampwatch",
-      "tags": [
-        "lore"
+      "hooks": [
+        "lore.term.lampwatch"
       ],
-      "requires": [],
-      "text": "Lamps drink slow tonight; hear the rafters tick like clockwork roots."
+      "cooldown_sec": 45
+    },
+    {
+      "id": "dlg.keeper.tip.stamina.v1",
+      "text": "Don't race the stone. Breathe, plant your stance, and let the rhythm carry your work.",
+      "tags": [
+        "tip",
+        "stamina",
+        "l2"
+      ],
+      "hooks": [
+        "component.stamina"
+      ],
+      "cooldown_sec": 25
+    },
+    {
+      "id": "dlg.keeper.legend.orecasters.v1",
+      "text": "Old tales speak of Orecasters—runic engines that sang ore from stone. Best left as tales.",
+      "tags": [
+        "legend",
+        "ancient",
+        "l3"
+      ],
+      "hooks": [
+        "lore.civ.orecasters"
+      ],
+      "cooldown_sec": 60
+    },
+    {
+      "id": "dlg.keeper.farewell.gearbless.v1",
+      "text": "Gearbless on your path. Leave a chair warm for stories when you circle back.",
+      "tags": [
+        "farewell",
+        "blessing",
+        "l1"
+      ],
+      "mood": "mood.gearbless",
+      "audio": {
+        "triggerKey": "ui.confirm",
+        "volume_db": -3
+      },
+      "hooks": [
+        "lore.term.gearbless"
+      ],
+      "cooldown_sec": 35
     }
   ],
   "acceptance": {
-    "crossRefs": {
-      "placeId": "lore.place.tavern.hearth_and_anvil",
-      "ambienceId": "amb.tavern.loopA",
-      "moods": [
-        "mood.stillshift",
-        "mood.gearbless",
-        "mood.pitwhisper",
-        "mood.emberrest",
-        "mood.lampwatch"
-      ]
-    },
     "notes": [
-      "Covers welcome, Three‑Wide safety, Deepsong hint, copper binding/pick, reinforced pacing.",
-      "Includes Orecasters lore, goblin/burrower caution, sell/upgrade reminder, Brewmaster nod.",
-      "Ambient lampwatch line present. Text ≤96 chars, no guarantees or rates, dwarven tone.",
-      "Tags meet minimums: tutorial ≥3, lore ≥3, hint ≥2. Ids stable and dot-delimited."
+      "All lines ≤110 chars; no mechanical guarantees; mood gates optional.",
+      "audio.triggerKey keys align to sound-manifest.json (e.g., ui.confirm).",
+      "hooks reference stable lore/tool ids (e.g., lore.term.three_wide)."
     ]
   }
 }
