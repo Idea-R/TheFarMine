@@ -1,400 +1,337 @@
 {
   "version": 1,
   "globals": {
-    "buses": {
-      "masterDb": 0,
-      "musicDb": -4,
-      "sfxDb": 0,
-      "ambientDb": -15,
-      "uiDb": -6
+    "buses": [
+      { "id": "bus.master", "gain": 1.0 },
+      { "id": "bus.music", "gainDb": -4 },
+      { "id": "bus.sfx", "gainDb": -2 },
+      { "id": "bus.ambient", "gainDb": -3 },
+      { "id": "bus.ui", "gainDb": -2 }
+    ],
+    "ducking": [
+      { "on": "sfx.combat.poiseBreak", "targetBus": "bus.music", "gainDb": -4, "attackMs": 60, "holdMs": 380, "releaseMs": 200 },
+      { "on": "sfx.mining.break.stone", "targetBus": "bus.music", "gainDb": -2, "attackMs": 30, "holdMs": 120, "releaseMs": 70 }
+    ],
+    "categoryLimits": {
+      "music": 3,
+      "sfx": 16,
+      "ambient": 8,
+      "ui": 8
     },
-    "categoryDefaults": {
-      "music": {
-        "maxInstances": 4
-      },
-      "sfx": {
-        "maxInstances": 16
-      },
-      "ambient": {
-        "maxInstances": 12
-      },
-      "ui": {
-        "maxInstances": 8
-      }
-    },
-    "decoding": {
-      "formatHints": [
-        "ogg",
-        "mp3"
-      ],
-      "streamLoopsLargerThanBytes": 1400000
-    }
+    "routingDefaults": { "music": "bus.music", "sfx": "bus.sfx", "ambient": "bus.ambient", "ui": "bus.ui" }
   },
-  "entries": [
-    {
-      "id": "ambient.cavern.base.loopA",
-      "category": "ambient",
-      "file": "ambient/cavern_base_loopA.ogg",
-      "bus": "ambient",
-      "loop": true,
-      "volume": 0.28,
-      "priority": 3,
-      "polyphonyKey": "ambient.cavern.base",
-      "maxInstances": 1,
-      "spatial": false,
-      "tags": [
-        "biome",
-        "bed"
-      ]
-    },
-    {
-      "id": "ambient.cavern.crystal.loopA",
-      "category": "ambient",
-      "file": "ambient/cavern_crystal_loopA.ogg",
-      "bus": "ambient",
-      "loop": true,
-      "volume": 0.22,
-      "priority": 3,
-      "polyphonyKey": "ambient.cavern.crystal",
-      "maxInstances": 1,
-      "spatial": false,
-      "tags": [
-        "biome",
-        "crystal"
-      ]
-    },
-    {
-      "id": "ambient.prop.lamp.hiss.loop",
-      "category": "ambient",
-      "file": "ambient/prop_lamp_hiss_loop.ogg",
-      "bus": "ambient",
-      "loop": true,
-      "volume": 0.12,
-      "priority": 3,
-      "polyphonyKey": "ambient.prop.lamp.hiss",
-      "maxInstances": 6,
-      "spatial": true,
-      "tags": [
-        "prop",
-        "lamp"
-      ]
-    },
-    {
-      "id": "ambient.tavern.loopA",
-      "category": "ambient",
-      "file": "ambient/tavern_loopA.ogg",
-      "bus": "ambient",
-      "loop": true,
-      "volume": 0.3,
-      "priority": 3,
-      "polyphonyKey": "ambient.tavern",
-      "maxInstances": 1,
-      "spatial": false,
-      "tags": [
-        "hub"
-      ]
-    },
-    {
-      "id": "sfx.mining.pick.swing",
-      "category": "sfx",
-      "file": "sfx/mining/pick_swing.ogg",
-      "bus": "sfx",
-      "loop": false,
-      "volume": 0.9,
-      "priority": 2,
-      "polyphonyKey": null,
-      "maxInstances": 8,
-      "spatial": true,
-      "tags": [
-        "mining",
-        "swing"
-      ]
-    },
-    {
-      "id": "sfx.mining.pick.hitRock",
-      "category": "sfx",
-      "file": "sfx/mining/pick_hit_rock.ogg",
-      "bus": "sfx",
-      "loop": false,
-      "volume": 1.0,
-      "priority": 2,
-      "polyphonyKey": "sfx.mining.hit.rock",
-      "maxInstances": 6,
-      "spatial": true,
-      "tags": [
-        "mining",
-        "rock"
-      ]
-    },
-    {
-      "id": "sfx.mining.pick.hitOre",
-      "category": "sfx",
-      "file": "sfx/mining/pick_hit_ore.ogg",
-      "bus": "sfx",
-      "loop": false,
-      "volume": 1.0,
-      "priority": 2,
-      "polyphonyKey": "sfx.mining.hit.ore",
-      "maxInstances": 6,
-      "spatial": true,
-      "tags": [
-        "mining",
-        "ore"
-      ]
-    },
-    {
-      "id": "sfx.mining.break.stone",
-      "category": "sfx",
-      "file": "sfx/mining/break_stone.ogg",
-      "bus": "sfx",
-      "loop": false,
-      "volume": 1.0,
-      "priority": 1,
-      "polyphonyKey": "sfx.mining.break",
-      "maxInstances": 4,
-      "spatial": true,
-      "tags": [
-        "mining",
-        "break"
-      ]
-    },
-    {
-      "id": "sfx.mining.drill.spinUp",
-      "category": "sfx",
-      "file": "sfx/mining/drill_spin_up.ogg",
-      "bus": "sfx",
-      "loop": false,
-      "volume": 0.95,
-      "priority": 2,
-      "polyphonyKey": "sfx.mining.drill.state",
-      "maxInstances": 2,
-      "spatial": true,
-      "tags": [
-        "mining",
-        "drill"
-      ]
-    },
-    {
-      "id": "sfx.mining.drill.bite",
-      "category": "sfx",
-      "file": "sfx/mining/drill_bite_loop.ogg",
-      "bus": "sfx",
-      "loop": true,
-      "volume": 0.9,
-      "priority": 2,
-      "polyphonyKey": "sfx.mining.drill.state",
-      "maxInstances": 1,
-      "spatial": true,
-      "tags": [
-        "mining",
-        "drill"
-      ]
-    },
-    {
-      "id": "sfx.mining.drill.coolDown",
-      "category": "sfx",
-      "file": "sfx/mining/drill_cool_down.ogg",
-      "bus": "sfx",
-      "loop": false,
-      "volume": 0.9,
-      "priority": 2,
-      "polyphonyKey": "sfx.mining.drill.state",
-      "maxInstances": 2,
-      "spatial": true,
-      "tags": [
-        "mining",
-        "drill"
-      ]
-    },
-    {
-      "id": "sfx.combat.telegraph.swing",
-      "category": "sfx",
-      "file": "sfx/combat/telegraph_swing.ogg",
-      "bus": "sfx",
-      "loop": false,
-      "volume": 0.85,
-      "priority": 1,
-      "polyphonyKey": "sfx.combat.telegraph",
-      "maxInstances": 4,
-      "spatial": true,
-      "tags": [
-        "combat",
-        "telegraph"
-      ]
-    },
-    {
-      "id": "sfx.combat.hit.light",
-      "category": "sfx",
-      "file": "sfx/combat/hit_light.ogg",
-      "bus": "sfx",
-      "loop": false,
-      "volume": 1.0,
-      "priority": 1,
-      "polyphonyKey": "sfx.combat.hit",
-      "maxInstances": 6,
-      "spatial": true,
-      "tags": [
-        "combat",
-        "hit"
-      ]
-    },
-    {
-      "id": "sfx.combat.block",
-      "category": "sfx",
-      "file": "sfx/combat/block.ogg",
-      "bus": "sfx",
-      "loop": false,
-      "volume": 0.95,
-      "priority": 1,
-      "polyphonyKey": "sfx.combat.block",
-      "maxInstances": 4,
-      "spatial": true,
-      "tags": [
-        "combat",
-        "block"
-      ]
-    },
-    {
-      "id": "sfx.combat.poiseBreak",
-      "category": "sfx",
-      "file": "sfx/combat/poise_break.ogg",
-      "bus": "sfx",
-      "loop": false,
-      "volume": 1.0,
-      "priority": 0,
-      "polyphonyKey": "sfx.combat.poiseBreak",
-      "maxInstances": 2,
-      "spatial": true,
-      "tags": [
-        "combat",
-        "poise"
-      ]
-    },
+  "assets": [
     {
       "id": "music.explore.base.loopA",
+      "file": "music/explore_base_loopA_92bpm_16bar.ogg",
       "category": "music",
-      "file": "music/explore_base_loopA.ogg",
-      "bus": "music",
-      "loop": true,
+      "bus": "bus.music",
       "volume": 0.63,
-      "priority": 2,
+      "loop": true,
+      "stream": true,
+      "priority": 90,
       "polyphonyKey": "music.explore.base",
-      "maxInstances": 1,
-      "spatial": false,
-      "tags": [
-        "music",
-        "explore"
-      ]
+      "preload": "onScene",
+      "tags": ["mine","explore"]
     },
     {
       "id": "music.explore.sparkle.loopB",
+      "file": "music/explore_sparkle_loopB_92bpm_16bar.ogg",
       "category": "music",
-      "file": "music/explore_sparkle_loopB.ogg",
-      "bus": "music",
+      "bus": "bus.music",
+      "volume": 0.60,
       "loop": true,
-      "volume": 0.6,
-      "priority": 2,
+      "stream": true,
+      "priority": 80,
       "polyphonyKey": "music.explore.sparkle",
-      "maxInstances": 1,
-      "spatial": false,
-      "tags": [
-        "music",
-        "overlay"
-      ]
+      "preload": "onScene",
+      "tags": ["mine","overlay"]
     },
     {
       "id": "music.combat.overlay.perc.loopA",
+      "file": "music/combat_overlay_perc_loopA_92bpm_8bar.ogg",
       "category": "music",
-      "file": "music/combat_overlay_perc_loopA.ogg",
-      "bus": "music",
-      "loop": true,
+      "bus": "bus.music",
       "volume": 0.62,
-      "priority": 1,
+      "loop": true,
+      "stream": true,
+      "priority": 95,
       "polyphonyKey": "music.combat.overlay",
-      "maxInstances": 1,
-      "spatial": false,
-      "tags": [
-        "music",
-        "combat",
-        "overlay"
-      ]
+      "preload": "onScene",
+      "tags": ["combat","overlay"]
     },
     {
       "id": "music.stinger.enterCombat",
+      "file": "music/stinger_enter_combat_92bpm_barAligned.ogg",
       "category": "music",
-      "file": "music/stinger_enter_combat.ogg",
-      "bus": "music",
+      "bus": "bus.music",
+      "volume": 0.70,
       "loop": false,
-      "volume": 0.68,
-      "priority": 1,
-      "polyphonyKey": "music.stinger.enter",
-      "maxInstances": 1,
-      "spatial": false,
-      "tags": [
-        "music",
-        "stinger"
-      ]
+      "stream": false,
+      "priority": 100,
+      "polyphonyKey": null,
+      "preload": "onScene",
+      "tags": ["combat","stinger"]
     },
     {
       "id": "music.stinger.exitCombat",
+      "file": "music/stinger_exit_combat_92bpm_barAligned.ogg",
       "category": "music",
-      "file": "music/stinger_exit_combat.ogg",
-      "bus": "music",
+      "bus": "bus.music",
+      "volume": 0.68,
       "loop": false,
-      "volume": 0.64,
-      "priority": 1,
-      "polyphonyKey": "music.stinger.exit",
-      "maxInstances": 1,
-      "spatial": false,
-      "tags": [
-        "music",
-        "stinger"
-      ]
+      "stream": false,
+      "priority": 100,
+      "polyphonyKey": null,
+      "preload": "onScene",
+      "tags": ["combat","stinger"]
     },
     {
-      "id": "ui.confirm",
-      "category": "ui",
-      "file": "ui/confirm.ogg",
-      "bus": "ui",
+      "id": "sfx.mining.pick.swing",
+      "file": "sfx/mining_pick_swing_01.ogg",
+      "category": "sfx",
+      "bus": "bus.sfx",
+      "volume": 0.70,
       "loop": false,
-      "volume": 0.6,
-      "priority": 1,
-      "polyphonyKey": "ui.core",
-      "maxInstances": 4,
-      "spatial": false,
-      "tags": [
-        "ui"
-      ]
+      "stream": false,
+      "priority": 70,
+      "polyphonyKey": "mine.swing",
+      "preload": "onScene",
+      "tags": ["mine","pick"]
     },
     {
-      "id": "ui.cancel",
-      "category": "ui",
-      "file": "ui/cancel.ogg",
-      "bus": "ui",
+      "id": "sfx.mining.pick.hitRock",
+      "file": "sfx/mining_pick_hit_rock_01.ogg",
+      "category": "sfx",
+      "bus": "bus.sfx",
+      "volume": 0.78,
       "loop": false,
-      "volume": 0.6,
-      "priority": 1,
-      "polyphonyKey": "ui.core",
-      "maxInstances": 4,
-      "spatial": false,
-      "tags": [
-        "ui"
-      ]
+      "stream": false,
+      "priority": 80,
+      "polyphonyKey": "mine.hit.rock",
+      "preload": "onScene",
+      "tags": ["mine","impact"]
     },
     {
-      "id": "ui.notif",
-      "category": "ui",
-      "file": "ui/notif.ogg",
-      "bus": "ui",
+      "id": "sfx.mining.pick.hitOre",
+      "file": "sfx/mining_pick_hit_ore_01.ogg",
+      "category": "sfx",
+      "bus": "bus.sfx",
+      "volume": 0.80,
       "loop": false,
-      "volume": 0.6,
-      "priority": 1,
-      "polyphonyKey": "ui.core",
-      "maxInstances": 4,
-      "spatial": false,
-      "tags": [
-        "ui"
-      ]
+      "stream": false,
+      "priority": 80,
+      "polyphonyKey": "mine.hit.ore",
+      "preload": "onScene",
+      "tags": ["mine","impact","ore"]
+    },
+    {
+      "id": "sfx.mining.break.stone",
+      "file": "sfx/mining_break_stone_01.ogg",
+      "category": "sfx",
+      "bus": "bus.sfx",
+      "volume": 0.85,
+      "loop": false,
+      "stream": false,
+      "priority": 90,
+      "polyphonyKey": "mine.break",
+      "preload": "onScene",
+      "tags": ["mine","break"]
+    },
+    {
+      "id": "sfx.mining.drill.spinUp",
+      "file": "sfx/mining_drill_spinup_01.ogg",
+      "category": "sfx",
+      "bus": "bus.sfx",
+      "volume": 0.72,
+      "loop": false,
+      "stream": false,
+      "priority": 85,
+      "polyphonyKey": "drill.state",
+      "preload": "onScene",
+      "tags": ["mine","drill"]
+    },
+    {
+      "id": "sfx.mining.drill.bite.loop",
+      "file": "sfx/mining_drill_bite_loop_01.ogg",
+      "category": "sfx",
+      "bus": "bus.sfx",
+      "volume": 0.76,
+      "loop": true,
+      "stream": false,
+      "priority": 86,
+      "polyphonyKey": "drill.bite",
+      "preload": "onScene",
+      "tags": ["mine","drill","loop"]
+    },
+    {
+      "id": "sfx.mining.drill.coolDown",
+      "file": "sfx/mining_drill_cooldown_01.ogg",
+      "category": "sfx",
+      "bus": "bus.sfx",
+      "volume": 0.70,
+      "loop": false,
+      "stream": false,
+      "priority": 84,
+      "polyphonyKey": "drill.state",
+      "preload": "onScene",
+      "tags": ["mine","drill"]
+    },
+    {
+      "id": "sfx.combat.telegraph.swing",
+      "file": "sfx/combat_telegraph_swing_01.ogg",
+      "category": "sfx",
+      "bus": "bus.sfx",
+      "volume": 0.66,
+      "loop": false,
+      "stream": false,
+      "priority": 75,
+      "polyphonyKey": "combat.telegraph",
+      "preload": "onScene",
+      "tags": ["combat","telegraph"]
+    },
+    {
+      "id": "sfx.combat.hit.light",
+      "file": "sfx/combat_hit_light_01.ogg",
+      "category": "sfx",
+      "bus": "bus.sfx",
+      "volume": 0.82,
+      "loop": false,
+      "stream": false,
+      "priority": 88,
+      "polyphonyKey": "combat.hit.light",
+      "preload": "onScene",
+      "tags": ["combat","hit"]
+    },
+    {
+      "id": "sfx.combat.block",
+      "file": "sfx/combat_block_01.ogg",
+      "category": "sfx",
+      "bus": "bus.sfx",
+      "volume": 0.78,
+      "loop": false,
+      "stream": false,
+      "priority": 87,
+      "polyphonyKey": "combat.block",
+      "preload": "onScene",
+      "tags": ["combat","block"]
+    },
+    {
+      "id": "sfx.combat.poiseBreak",
+      "file": "sfx/combat_poise_break_01.ogg",
+      "category": "sfx",
+      "bus": "bus.sfx",
+      "volume": 0.88,
+      "loop": false,
+      "stream": false,
+      "priority": 95,
+      "polyphonyKey": "combat.poiseBreak",
+      "preload": "onScene",
+      "tags": ["combat","stun"]
+    },
+    {
+      "id": "ambient.mine.drip.loopA",
+      "file": "ambient/mine_drip_loopA_ogg.ogg",
+      "category": "ambient",
+      "bus": "bus.ambient",
+      "volume": 0.42,
+      "loop": true,
+      "stream": true,
+      "priority": 40,
+      "polyphonyKey": "ambient.mine.drip",
+      "preload": "onScene",
+      "tags": ["mine","crystal.caverns"]
+    },
+    {
+      "id": "ambient.mine.steam.hiss.loopA",
+      "file": "ambient/mine_steam_hiss_loopA.ogg",
+      "category": "ambient",
+      "bus": "bus.ambient",
+      "volume": 0.38,
+      "loop": true,
+      "stream": true,
+      "priority": 41,
+      "polyphonyKey": "ambient.mine.steam",
+      "preload": "onScene",
+      "tags": ["mine","steam"]
+    },
+    {
+      "id": "ambient.tavern.loopA",
+      "file": "ambient/tavern_warm_bustle_loopA.ogg",
+      "category": "ambient",
+      "bus": "bus.ambient",
+      "volume": 0.48,
+      "loop": true,
+      "stream": true,
+      "priority": 50,
+      "polyphonyKey": "ambient.tavern",
+      "preload": "onScene",
+      "tags": ["tavern","hub"]
+    },
+    {
+      "id": "ui.click",
+      "file": "ui/ui_click_01.ogg",
+      "category": "ui",
+      "bus": "bus.ui",
+      "volume": 0.55,
+      "loop": false,
+      "stream": false,
+      "priority": 50,
+      "polyphonyKey": "ui.click",
+      "preload": "onBoot",
+      "tags": ["ui"]
+    },
+    {
+      "id": "ui.craft.start",
+      "file": "ui/ui_craft_start_01.ogg",
+      "category": "ui",
+      "bus": "bus.ui",
+      "volume": 0.60,
+      "loop": false,
+      "stream": false,
+      "priority": 55,
+      "polyphonyKey": "ui.craft",
+      "preload": "onBoot",
+      "tags": ["ui","crafting"]
+    },
+    {
+      "id": "ui.craft.complete",
+      "file": "ui/ui_craft_complete_01.ogg",
+      "category": "ui",
+      "bus": "bus.ui",
+      "volume": 0.66,
+      "loop": false,
+      "stream": false,
+      "priority": 56,
+      "polyphonyKey": "ui.craft",
+      "preload": "onBoot",
+      "tags": ["ui","crafting"]
+    },
+    {
+      "id": "ui.tooltip.warn",
+      "file": "ui/ui_tooltip_warn_01.ogg",
+      "category": "ui",
+      "bus": "bus.ui",
+      "volume": 0.54,
+      "loop": false,
+      "stream": false,
+      "priority": 52,
+      "polyphonyKey": "ui.tooltip",
+      "preload": "onBoot",
+      "tags": ["ui","warning"]
+    },
+    {
+      "id": "ui.inventory.move",
+      "file": "ui/ui_inventory_move_01.ogg",
+      "category": "ui",
+      "bus": "bus.ui",
+      "volume": 0.52,
+      "loop": false,
+      "stream": false,
+      "priority": 51,
+      "polyphonyKey": "ui.inv.move",
+      "preload": "onBoot",
+      "tags": ["ui","inventory"]
     }
   ]
 }
