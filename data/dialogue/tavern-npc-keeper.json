@@ -1,190 +1,129 @@
 {
   "version": 1,
-  "id": "dialogue.tavern.keeper.v1",
-  "meta": {
-    "author": "epsilon",
-    "date": "2026-02-18",
-    "locale": "en-US",
-    "notes": "Tavern Keeper lines for the Hearth & Anvil; Three-Wide safety; lore seeds and gentle guidance."
-  },
-  "npc": {
-    "id": "npc.tavern.keeper",
-    "name": "The Keeper",
-    "place_id": "lore.place.tavern.hearth_and_anvil",
-    "ambience_id": "amb.tavern.loopA"
-  },
-  "config": {
-    "ui_safe": true,
-    "max_line_chars": 110,
-    "show_nameplate": true,
-    "voice": "dwarven_steadfast",
-    "default_mood": "mood.stillshift"
-  },
+  "npc_id": "npc.tavern.keeper",
+  "name": "Keeper Brunna Casklore",
+  "location_id": "place.tavern.rimfire",
+  "mood_default": "mood.stillshift",
+  "randomize": false,
   "lines": [
     {
-      "id": "dlg.keeper.welcome.v1",
-      "text": "Welcome to the Hearth & Anvil. Keep to the Three-Wide Law, and you'll leave with all toes.",
-      "tags": [
-        "welcome",
-        "safety",
-        "l1"
-      ],
-      "requires": {
-        "first_visit": true
+      "id": "dlg.tavern.keeper.001",
+      "text": "Keep your swing steady, watch your breath; the stone steals strength quicker than ale.",
+      "tags": ["tutorial", "mining", "stamina"],
+      "priority": 10,
+      "conditions": {
+        "once": true,
+        "requires_flags": [],
+        "excludes_flags": []
       },
-      "grants": {
-        "seen_flag": "seen.keeper.intro"
+      "effects": {
+        "set_flags": ["hint.seen.stamina"],
+        "give_item_id": null,
+        "enqueue_tutorial": "ui.tutorial.stamina_basics"
       },
-      "audio": {
-        "triggerKey": "ui.confirm",
-        "volume_db": -3
+      "sfx_tag": "ui.affirm",
+      "ambient_tag": "amb.spot.hearth"
+    },
+    {
+      "id": "dlg.tavern.keeper.002",
+      "text": "Pack light, check your satchel, and mind the workbench by the window when scraps beg shaping.",
+      "tags": ["tutorial", "inventory", "crafting"],
+      "priority": 9,
+      "conditions": {
+        "once": true,
+        "requires_flags": [],
+        "excludes_flags": []
       },
-      "hooks": [
-        "lore.term.three_wide"
-      ],
-      "cooldown_sec": 120
-    },
-    {
-      "id": "dlg.keeper.tut.tools.t0.v1",
-      "text": "Starter Pickaxe bites soft rock. Test faces first; don't chase sparks until you've learned the grain.",
-      "tags": [
-        "tutorial",
-        "tools",
-        "t0",
-        "l1"
-      ],
-      "requires": {
-        "has_tool_tier_min": 0
+      "effects": {
+        "set_flags": ["hint.seen.inventory"],
+        "give_item_id": null,
+        "enqueue_tutorial": "ui.tutorial.open_inventory"
       },
-      "audio": {
-        "triggerKey": "ui.confirm",
-        "volume_db": -4
+      "sfx_tag": "ui.click",
+      "ambient_tag": "amb.spot.lamp"
+    },
+    {
+      "id": "dlg.tavern.keeper.003",
+      "text": "Most start with a wood handle and copper bite; the recipe.tool.handle.wood hums truest to new hands.",
+      "tags": ["tutorial", "crafting", "mining"],
+      "priority": 8,
+      "conditions": {
+        "once": true,
+        "requires_flags": [],
+        "excludes_flags": []
       },
-      "hooks": [
-        "tool.pick.t0.starter"
-      ],
-      "cooldown_sec": 45
-    },
-    {
-      "id": "dlg.keeper.tut.ore.copper.v1",
-      "text": "Copper likes the edges—veins cling to main paths and wall shadows. Keep eyes and toes.",
-      "tags": [
-        "hint",
-        "ore",
-        "copper",
-        "l1"
-      ],
-      "hooks": [
-        "ore.copper"
-      ],
-      "cooldown_sec": 30
-    },
-    {
-      "id": "dlg.keeper.rule.three_wide.v1",
-      "text": "Three wide keeps breath inside; one stumble, two shoulders, no tunnel turns to coffin.",
-      "tags": [
-        "rule",
-        "proverb",
-        "safety",
-        "l1"
-      ],
-      "hooks": [
-        "lore.term.three_wide"
-      ],
-      "cooldown_sec": 60
-    },
-    {
-      "id": "dlg.keeper.myth.deepsong.v1",
-      "text": "Hear that hum in your bones? The Deepsong keeps time when clocks forget.",
-      "tags": [
-        "myth",
-        "deepsong",
-        "l2"
-      ],
-      "hooks": [
-        "lore.term.deepsong"
-      ],
-      "cooldown_sec": 50
-    },
-    {
-      "id": "dlg.keeper.gossip.guilds.v1",
-      "text": "Mind the guild lot: Borewrights brag, Riveters bark, Stonebinders tally. Tip well; tempers cool.",
-      "tags": [
-        "gossip",
-        "guilds",
-        "l2"
-      ],
-      "hooks": [
-        "guild.borewrights",
-        "guild.riveters",
-        "guild.stonebinders"
-      ],
-      "cooldown_sec": 40
-    },
-    {
-      "id": "dlg.keeper.quip.lampwatch.v1",
-      "text": "On Lampwatch, count your breaths between swings; steady hands see dawn that eyes don't.",
-      "tags": [
-        "quip",
-        "night",
-        "l3"
-      ],
-      "mood": "mood.lampwatch",
-      "hooks": [
-        "lore.term.lampwatch"
-      ],
-      "cooldown_sec": 45
-    },
-    {
-      "id": "dlg.keeper.tip.stamina.v1",
-      "text": "Don't race the stone. Breathe, plant your stance, and let the rhythm carry your work.",
-      "tags": [
-        "tip",
-        "stamina",
-        "l2"
-      ],
-      "hooks": [
-        "component.stamina"
-      ],
-      "cooldown_sec": 25
-    },
-    {
-      "id": "dlg.keeper.legend.orecasters.v1",
-      "text": "Old tales speak of Orecasters—runic engines that sang ore from stone. Best left as tales.",
-      "tags": [
-        "legend",
-        "ancient",
-        "l3"
-      ],
-      "hooks": [
-        "lore.civ.orecasters"
-      ],
-      "cooldown_sec": 60
-    },
-    {
-      "id": "dlg.keeper.farewell.gearbless.v1",
-      "text": "Gearbless on your path. Leave a chair warm for stories when you circle back.",
-      "tags": [
-        "farewell",
-        "blessing",
-        "l1"
-      ],
-      "mood": "mood.gearbless",
-      "audio": {
-        "triggerKey": "ui.confirm",
-        "volume_db": -3
+      "effects": {
+        "set_flags": ["hint.seen.crafting"],
+        "give_item_id": null,
+        "enqueue_tutorial": "ui.tutorial.crafting_basics"
       },
-      "hooks": [
-        "lore.term.gearbless"
-      ],
-      "cooldown_sec": 35
+      "sfx_tag": "ui.click",
+      "ambient_tag": "amb.spot.lamp"
+    },
+    {
+      "id": "dlg.tavern.keeper.004",
+      "text": "Hush now—when mood.stillshift holds, the veins whisper truer than maps.",
+      "tags": ["lore", "mood", "mining"],
+      "priority": 2,
+      "conditions": {
+        "once": false,
+        "requires_flags": [],
+        "excludes_flags": [],
+        "mood_any": ["mood.stillshift"]
+      },
+      "ambient_tag": "amb.room.crystal"
+    },
+    {
+      "id": "dlg.tavern.keeper.005",
+      "text": "Hear the Deepsong? The Broken Anvil rang once, and the world learned to cool slow.",
+      "tags": ["lore", "myth"],
+      "priority": 0,
+      "ambient_tag": "amb.room.crystal"
+    },
+    {
+      "id": "dlg.tavern.keeper.006",
+      "text": "The Quiet Makers fix what we rush; leave an offering of hush, and tools stop sulking.",
+      "tags": ["lore", "myth"],
+      "priority": 0,
+      "conditions": {
+        "once": false,
+        "requires_flags": [],
+        "excludes_flags": [],
+        "min_run_count": 2
+      },
+      "ambient_tag": "amb.spot.lamp"
+    },
+    {
+      "id": "dlg.tavern.keeper.007",
+      "text": "guild.hammerwrights say 'Measure twice, strike thrice'; guild.smokestack grin through the soot.",
+      "tags": ["faction", "rumor"],
+      "priority": 0
+    },
+    {
+      "id": "dlg.tavern.keeper.008",
+      "text": "guild.glassvein swear the stone remembers each cut, so cut polite.",
+      "tags": ["faction", "rumor"],
+      "priority": 0
+    },
+    {
+      "id": "dlg.tavern.keeper.009",
+      "text": "Settle by the hearth; the crystal lamps sip the dark so your worries don’t.",
+      "tags": ["ambient", "tavern"],
+      "priority": 0,
+      "conditions": {
+        "once": false,
+        "requires_flags": [],
+        "excludes_flags": [],
+        "mood_any": ["mood.gearmurmur"]
+      },
+      "ambient_tag": "amb.spot.lamp"
+    },
+    {
+      "id": "dlg.tavern.keeper.010",
+      "text": "Ale warms the hands; stories temper the edge—both before midnight, mind.",
+      "tags": ["ambient", "quip"],
+      "priority": 0,
+      "ambient_tag": "amb.spot.hearth"
     }
-  ],
-  "acceptance": {
-    "notes": [
-      "All lines ≤110 chars; no mechanical guarantees; mood gates optional.",
-      "audio.triggerKey keys align to sound-manifest.json (e.g., ui.confirm).",
-      "hooks reference stable lore/tool ids (e.g., lore.term.three_wide)."
-    ]
-  }
+  ]
 }
