@@ -2,72 +2,117 @@
   "version": 1,
   "templates": [
     {
-      "id": "room.tunnel.basic",
+      "id": "room.tunnel.straight",
+      "name": "Straight Tunnel (3‑Wide)",
       "kind": "tunnel",
-      "name": "Three‑Wide Tunnel",
       "rotate": true,
-      "width": 9,
-      "height": 5,
+      "weight": 4,
+      "size": { "w": 19, "h": 7 },
+      "charset": [ "#", ".", "D", "O" ],
+      "doorRules": {
+        "width": 3,
+        "sides": {
+          "N": false,
+          "E": true,
+          "S": false,
+          "W": true
+        },
+        "min": 2,
+        "max": 2
+      },
       "grid": [
-        "#########",
-        "D.......D",
-        "D.......D",
-        "D.......D",
-        "#########"
+        "###################",
+        "#########.#########",
+        "D.................D",
+        "D.................D",
+        "D.................D",
+        "#######.###########",
+        "###################"
       ],
-      "notes": [
-        "3‑wide straight lane; doors on W/E edges (3‑high).",
-        "Rotation allowed to produce N/S tunnels."
-      ]
+      "meta": {
+        "threeWideCompliant": true,
+        "notes": [ "Canonical 3‑wide corridor; ensures Three‑Wide approaches at both doors." ]
+      }
     },
     {
-      "id": "room.cavern.small",
+      "id": "room.cavern.medium",
+      "name": "Medium Cavern",
       "kind": "cavern",
-      "name": "Small Cavern (Four Doors)",
       "rotate": true,
-      "width": 13,
-      "height": 11,
+      "weight": 5,
+      "size": { "w": 25, "h": 17 },
+      "charset": [ "#", ".", "D", "O" ],
+      "doorRules": {
+        "width": 3,
+        "sides": {
+          "N": true,
+          "E": true,
+          "S": true,
+          "W": true
+        },
+        "min": 2,
+        "max": 3
+      },
       "grid": [
-        "#####DDD#####",
-        "####.....####",
-        "###.......###",
-        "##.........##",
-        "D...........D",
-        "D...........D",
-        "D...........D",
-        "##.........##",
-        "###.......###",
-        "####.....####",
-        "#####DDD#####"
+        "###########DDD###########",
+        "###########...###########",
+        "#########.......#########",
+        "########.........########",
+        "#######...........#######",
+        "#####...............#####",
+        "####.................####",
+        "D.......................D",
+        "D.......................D",
+        "D.......................D",
+        "####.................####",
+        "#####...............#####",
+        "#######...........#######",
+        "########.........########",
+        "#########.......#########",
+        "###########...###########",
+        "#########################"
       ],
-      "notes": [
-        "Compact oval chamber with 3‑wide doors on all cardinal sides.",
-        "Interior maintains ≥3‑tile approach lanes beyond each doorway."
-      ]
+      "meta": {
+        "threeWideCompliant": true,
+        "notes": [ "Primary chamber; three mouths in base orientation (N,E,W)." ]
+      }
     },
     {
-      "id": "room.ore_vein.pocket",
+      "id": "room.pocket.ore_vein",
+      "name": "Ore Pocket (Vein Alcove)",
       "kind": "ore_vein",
-      "name": "Vein Pocket (South Door)",
       "rotate": true,
-      "width": 9,
-      "height": 9,
+      "weight": 3,
+      "size": { "w": 15, "h": 11 },
+      "charset": [ "#", ".", "D", "O" ],
+      "doorRules": {
+        "width": 3,
+        "sides": {
+          "N": false,
+          "E": true,
+          "S": false,
+          "W": true
+        },
+        "min": 1,
+        "max": 2
+      },
       "grid": [
-        "#########",
-        "###OOO###",
-        "##O###O##",
-        "#O##.##O#",
-        "#O#...#O#",
-        "#O##.##O#",
-        "##O###O##",
-        "###OOO###",
-        "###DDD###"
+        "###############",
+        "###############",
+        "###############",
+        "#O........O####",
+        "D..........O###",
+        "D.........O####",
+        "D.......O######",
+        "#O.....########",
+        "###############",
+        "###############",
+        "###############"
       ],
-      "notes": [
-        "Rock 'O' marks ore‑preferred seam; stamped as rock with ORE_PREF flag.",
-        "Single 3‑wide southern doorway with a small workable pocket inside.",
-        "Rotation allowed to vary seam orientation and approach."
-      ]
+      "meta": {
+        "threeWideCompliant": true,
+        "notes": [ "Seeds ore-friendly lobes; O markers guide Phase 5 clustering." ]
+      }
     }
   ]
 }
