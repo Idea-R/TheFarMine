@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "id": "tool.pick.t1.basic",
+      "name": "Basic Pickaxe",
+      "kind": "pick",
+      "tier": 1,
+      "stats": {
+        "miningPower": 3,
+        "miningSpeed": 6,
+        "swingIntervalMs": 520,
+        "staminaCost": 12,
+        "durabilityMax": 120,
+        "durabilityPerSwing": 1
+      },
+      "allowedTiles": ["rock","rock.ore"],
+      "audio": {
+        "swingId": "sfx.mining.pick.swing",
+        "hitRockId": "sfx.mining.pick.hitRock",
+        "hitOreId": "sfx.mining.pick.hitOre",
+        "breakId": "sfx.mining.break.stone",
+        "spinUpId": null,
+        "biteLoopId": null,
+        "coolDownId": null
+      },
+      "ui": {
+        "iconKey": "ui/icon.tools.pick_t1_24",
+        "frameToken": "ui.frame.brass",
+        "accentToken": null
+      },
+      "notes": [
+        "T1 chips rock; gated on iron+.",
+        "Baseline stamina curve; tutorial default."
+      ]
+    },
+    {
+      "id": "tool.pick.t2.reinforced",
+      "name": "Reinforced Pickaxe",
+      "kind": "pick",
+      "tier": 2,
+      "stats": {
+        "miningPower": 5,
+        "miningSpeed": 10,
+        "swingIntervalMs": 480,
+        "staminaCost": 12,
+        "durabilityMax": 180,
+        "durabilityPerSwing": 1
+      },
+      "allowedTiles": ["rock","rock.ore"],
+      "audio": {
+        "swingId": "sfx.mining.pick.swing",
+        "hitRockId": "sfx.mining.pick.hitRock",
+        "hitOreId": "sfx.mining.pick.hitOre",
+        "breakId": "sfx.mining.break.stone",
+        "spinUpId": null,
+        "biteLoopId": null,
+        "coolDownId": null
+      },
+      "ui": {
+        "iconKey": "ui/icon.tools.pick_t2_24",
+        "frameToken": "ui.frame.brass",
+        "accentToken": null
+      },
+      "notes": [
+        "Opens iron veins; faster bite.",
+        "Same stamina as T1; longer life."
+      ]
+    },
+    {
+      "id": "tool.drill.t3.steam",
+      "name": "Steam Drill",
+      "kind": "drill",
+      "tier": 3,
+      "stats": {
+        "miningPower": 7,
+        "miningSpeed": 22,
+        "swingIntervalMs": 140,
+        "staminaCost": 6,
+        "durabilityMax": 220,
+        "durabilityPerSwing": 1
+      },
+      "allowedTiles": ["rock","rock.ore"],
+      "audio": {
+        "swingId": null,
+        "hitRockId": "sfx.mining.pick.hitRock",
+        "hitOreId": "sfx.mining.pick.hitOre",
+        "breakId": "sfx.mining.break.stone",
+        "spinUpId": "sfx.mining.drill.spinUp",
+        "biteLoopId": "sfx.mining.drill.bite.loop",
+        "coolDownId": "sfx.mining.drill.coolDown"
+      },
+      "ui": {
+        "iconKey": "ui/icon.tools.drill_t3_24",
+        "frameToken": "ui.frame.copper",
+        "accentToken": "mapping.lighting.lampWarm"
+      },
+      "notes": [
+        "Hold to apply pulses; gates quartz.",
+        "Short pulses; low stamina per pulse."
+      ]
+    }
+  ]
+}
