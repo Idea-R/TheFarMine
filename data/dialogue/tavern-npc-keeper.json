@@ -1,85 +1,88 @@
 {
   "version": 1,
   "npcId": "npc.tavern.keeper",
-  "name": "Brewmaster Alehart",
-  "portraitKey": "npc.tavern_keeper",
-  "tavernId": "scene.tavern.claims_mouth",
+  "name": "Tavern Keeper",
+  "ambientSfxId": "ambient.tavern.loopA",
   "lines": [
     {
-      "id": "dialog.tavern_keeper.tutorial.crafting_cadence",
-      "kind": "tutorial",
-      "weight": 90,
+      "id": "keeper.tutorial.mining_gate",
+      "category": "tutorial",
+      "weight": 5,
+      "text": "Pick to stone, drill to crystal. Power must meet hardness, lad. Else the rock just laughs.",
       "conditions": {
-        "firstVisit": true
-      },
-      "text": "Bench first, then forge, then the steam workshop. Ores to parts, parts to power. Bring core.steam when you can.",
-      "audioId": null
+        "oncePerRun": true
+      }
     },
     {
-      "id": "dialog.tavern_keeper.tutorial.hardness_gate",
-      "kind": "tutorial",
-      "weight": 85,
-      "text": "Rock bites back. 'Too hard for this tool'? Upgrade to tool.pick.t2.reinforced or find a softer vein.",
-      "audioId": null
-    },
-    {
-      "id": "dialog.tavern_keeper.tutorial.stamina_rhythm",
-      "kind": "tutorial",
-      "weight": 80,
+      "id": "keeper.tutorial.stamina_flow",
+      "category": "tutorial",
+      "weight": 5,
+      "text": "Swing smart. Stamina’s a keg—sip, don’t gulp. Rest a breath after a flurry.",
       "conditions": {
-        "hasItemId": "tool.drill.t3.steam"
-      },
-      "text": "Pick swings breathe with your stamina—tap, rest, tap. With tool.drill.t3.steam, pulse in bursts; let the boiler catch up.",
-      "audioId": null
+        "oncePerRun": true
+      }
     },
     {
-      "id": "dialog.tavern_keeper.tutorial.three_wide_law",
-      "kind": "tutorial",
-      "weight": 75,
-      "text": "Three‑Wide Law: cut corridors three across. Hang a lamp by a door’s hinge; when it burns yellow, folk know it’s a way in.",
-      "audioId": null
+      "id": "keeper.tutorial.stations",
+      "category": "tutorial",
+      "weight": 5,
+      "text": "Workbench, then forge, then steam works. Copper first, iron next, and the drill sings last.",
+      "conditions": {
+        "oncePerRun": true
+      }
     },
     {
-      "id": "dialog.tavern_keeper.tip.burrower_vs_grunt",
-      "kind": "tip",
-      "weight": 60,
-      "text": "See a glow halo on a Cave Burrower—dodge aside. A Goblin Grunt telegraphs wide—raise your guard, then crack him.",
-      "audioId": null
+      "id": "keeper.tip.copper_veins",
+      "category": "tip",
+      "weight": 3,
+      "text": "Copper likes bright lanes—veins near worked stone. Listen for a hollow ring in your swing.",
+      "conditions": {}
     },
     {
-      "id": "dialog.tavern_keeper.tip.sell_vs_keep_quartz",
-      "kind": "tip",
-      "weight": 50,
-      "text": "Short on coin? Sell ore.copper and ore.iron. Keep some for recipes. shard.quartz runs rare—save it for keen tools.",
-      "audioId": null
+      "id": "keeper.tip.iron_gate",
+      "category": "tip",
+      "weight": 3,
+      "text": "Iron won’t yield to a basic pick. Reinforce your bite or waste your sweat.",
+      "conditions": {
+        "requiresItemId": "tool.pick.t1.basic"
+      }
     },
     {
-      "id": "dialog.tavern_keeper.tip.depth_mark",
-      "kind": "tip",
-      "weight": 45,
-      "text": "Make it habit: scratch a Depth‑Mark by each door in your ledger. Next shift knows where the dark starts.",
-      "audioId": null
+      "id": "keeper.tip.drill_care",
+      "category": "tip",
+      "weight": 3,
+      "text": "Hold the drill steady—spin up, bite, cool down. Don’t nurse it on soft wall; save teeth for ore.",
+      "conditions": {
+        "requiresNotItemId": "tool.drill.t3.steam"
+      }
     },
     {
-      "id": "dialog.tavern_keeper.lore.first_warrant_truce",
-      "kind": "lore",
-      "weight": 35,
-      "text": "First Warrant forged the truce at Claim’s Mouth. No brawls, no blades—only coin, ale, and work tallies under my roof.",
-      "audioId": null
+      "id": "keeper.lore.three_wide_law",
+      "category": "lore",
+      "weight": 2,
+      "text": "Three‑Wide Law keeps us breathing. Doors in threes, lanes in threes. Stone respects a measured march.",
+      "conditions": {}
     },
     {
-      "id": "dialog.tavern_keeper.lore.bottomless_hum",
-      "kind": "lore",
-      "weight": 30,
-      "text": "Bottomless Mine? Some swear it hums a deep note. Set a mug on the bar and watch it quiver when the earth sings.",
-      "audioId": null
+      "id": "keeper.lore.first_warrant",
+      "category": "lore",
+      "weight": 2,
+      "text": "The First Warrant ended clan squabbles here. Lamps at doors mark safe mouths of the stone.",
+      "conditions": {}
     },
     {
-      "id": "dialog.tavern_keeper.rumor.belled_tunnel_seam",
-      "kind": "rumor",
-      "weight": 20,
-      "text": "Whispers say a seam shifts by the belled tunnel. Lamps ring twice, vein slides sidewise. Follow the ringing.",
-      "audioId": null
+      "id": "keeper.rumor.goblin_block",
+      "category": "rumor",
+      "weight": 1,
+      "text": "Goblins telegraph like drunk fiddlers—hear the tune, raise your block, and they hush quick.",
+      "conditions": {}
+    },
+    {
+      "id": "keeper.rumor.burrower",
+      "category": "rumor",
+      "weight": 1,
+      "text": "Mind the floor hum—burrowers burst from below. Step aside or let your shield kiss their snout.",
+      "conditions": {}
     }
   ]
 }
