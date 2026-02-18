@@ -1,358 +1,456 @@
-# Crafting & Mining Tools — Gears, Grit, and Good Steel (Sprint 1)
+# Crafting & Mining Tech — Plates, Rivets, and Progression (Sprint 1)
 
-Provenance
+Owner/Provenance
 - Owner: @delta (Technology Systems — Gearwright Steamforge)
-- Authoring voice: Gearwright Steamforge
-- Cross-references:
-  - data/crafting/recipes.json
-  - data/items/tools.json
-  - docs/world-generation/cave-gen-algorithm.md (§Hardness & ore seeding)
-  - data/core/component-schemas.json (Tile)
-  - docs/combat-systems/combat-design.md (§Stamina)
-  - docs/audio-systems/audio-design.md (§Event Bridge)
-  - data/visual/color-palette.json (UI tokens for tool icons)
+- This document: implementation-ready spec for Sprint 1 crafting/mining progression
+
+Cross-References
+- data/items/tools.json (v1)
+- data/crafting/recipes.json (this spec)
+- docs/combat-systems/combat-design.md (§4 stamina, §10 events)
+- docs/core-systems/ecs-architecture.md (§Components Inventory/Tile)
+- data/visual/color-palette.json (ui.frame.*)
+- docs/audio-systems/audio-design.md (§Event Bridge, §5 mappings)
+- docs/world-generation/cave-gen-algorithm.md (§Tiles/Hardness, Three‑Wide)
 
 ---
 
-## 1) Goals & MVP Scope
+## 2) Scope & Acceptance (MVP)
 
-- Three-tier progression in ~20–40 minutes of play:
-  - T1 Basic Pick → T2 Reinforced Pick → T3 Steam Drill.
-- Mining respects hardness gates and stamina pacing. Data is JSON-first so engineers can wire systems immediately.
-- Acceptance notes:
-  - JSON parse stability and strict key order honored.
-  - Tool tiers feel meaningfully stronger at each unlock.
-  - Swing/pulse cadence and event timing align with audio spec.
+Scope
+- Three tool tiers:
+  - T1 pick
+  - T2 pick
+  - T3 steam drill
+- One workbench chain:
+  - Workbench → Forge → Steamworks
+- Three starter recipes (one per tool)
+- Durability + stamina costs enforced
+- Hardness gating via Tile.hardness vs tool.miningPower
+- Audio/UI event hooks wired via Event Bridge
+- No repairs in Sprint 1 (explicitly disabled; placeholder UI tab hidden)
 
----
-
-## 2) Resource Catalog (Stable Ids)
-
-- Raw Ores:
-  - ore.copper
-  - ore.iron
-- Crystal:
-  - shard.quartz
-- Power Core:
-  - core.steam
-- Tools:
-  - tool.pick.t1.basic
-  - tool.pick.t2.reinforced
-  - tool.drill.t3.steam
-- Station ids:
-  - workbench (tier 1)
-  - forge (tier 2)
-  - steam_workshop (tier 3)
+Acceptance
+- Tool stat numbers align exactly with data/items/tools.json (v1)
+- recipes.json schema stable, strictly ordered keys, parseable (UTF‑8)
+- Progression unlocks new hardness gates: T1 ≤4, T2 ≤5, T3 ≤7
+- UI tint tokens resolve: ui.frame.copper | ui.frame.brass | ui.frame.crystal
 
 ---
 
-## 3) Stations & Craft Flow (MVP Mechanics)
+## 3) Resource & Item Taxonomy (Authoritative IDs)
 
-- Workbench (Tier 1)
-  - Purpose: crafts simple tools.
-  - Fuel: none.
-  - UI: progress bar.
-  - timeMs: 6000 for T1.
-- Forge (Tier 2)
-  - Purpose: heavier recipes.
-  - timeMs: 9000 for T2 tool.
-  - Unlocks iron-gated tool.
-- Steam Workshop (Tier 3)
-  - Purpose: assembly and power routing.
-  - timeMs: 14000 for T3 drill.
+Materials (canonical ids, roles)
+- mat.ore.copper — mined from copper-bearing rock (hardness 4)
+- mat.ore.iron — mined from iron-bearing rock (hardness 5)
+- mat.crystal.shard — general crystal shard (binding/insulator)
+- mat.core.steam — steam core (crafted/loot; used for T3)
+- mat.rod.wood — wooden haft/rod (basic construction)
+- mat.plate.iron — smithed plate for reinforcement (T2)
 
-UI/UX behavior
-- stationTier gates recipe visibility and craft button enable.
-- If materials missing, show CTA: “Acquire X copper/iron/quartz/core.”
-- On craft start: lock inputs, show station progress; on completion, push output to inventory.
+Tools (outputs)
+- tool.pick.t1.basic
+- tool.pick.t2.reinforced
+- tool.drill.t3.steam
 
----
+Stations
+- station.workbench.t1
+- station.forge.t2
+- station.steamworks.t3
 
-## 4) World Tile Hardness & Gates (Authoritative for Sprint 1)
-
-- Tile hardness mapping (from worldgen):
-  - rock: hardness 3
-  - copper vein: hardness 4
-  - iron vein: hardness 5
-  - quartz band: hardness 6–7
-- Eligibility rule:
-  - A tool can progress a tile if miningPower ≥ tile.hardness.
-  - Quartz bands may spawn as hardness 6 or 7; the T3 drill covers both.
+Acquisition Sources (MVP)
+- Mined: mat.ore.copper, mat.ore.iron (gated by hardness; worldgen spawns per cave-gen spec)
+- Drops/loot: mat.core.steam (interim: quest reward or vendor until crafting chain lands)
+- Gathered/placeholder vendor: mat.crystal.shard, mat.rod.wood
+- Forged: mat.plate.iron (see optional sub-recipe; otherwise seed via vendor)
+- Note: ids are stable camel-dot strings; all ids must resolve in item registry
 
 ---
 
-## 5) Mining Model (Numbers for MVP)
+## 4) Workbench Chain & Mechanics
 
-General
-- Tiles track normalized break progress in [0.0–1.0]. On reach ≥ 1.0, tile breaks.
-- On break: emit mining.Break and replace tile with floor + drops per loot table.
+- station.workbench.t1
+  - Crafts basic implements
+  - Accepts common mats
+  - No heat requirements
 
-Picks (discrete swings)
-- Action cadence: stats.swingIntervalMs.
-  - T1: 520 ms per swing.
-  - T2: 480 ms per swing.
-- Eligibility gate: miningPower ≥ tile.hardness, else deny.
-- Progress per swing:
-  - progressAppliedNormalized = balances.progressPerSwing × toolEfficiencyVsHardness × pickHardnessFactor(hardness)
-  - toolEfficiencyVsHardness:
-    - 1.00 when tool.miningPower == tile.hardness
-    - 1.15 when tool.miningPower ≥ tile.hardness + 1
-  - pickHardnessFactor(h) = 3 / h
-    - Rationale: “3 swings” baseline targets rock (h=3) with T1 balance.
-- Tuning intent:
-  - Require ~3 swings to break rock baseline with T1 (≈1.6 s).
-  - Harder ores take proportionally more “HP-equivalent” via hardness scaling.
+- station.forge.t2
+  - Unlocks metalworking (plate/bolting)
+  - Requires hub access flag (progression gate)
+  - Crafts Reinforced Pickaxe (T2)
 
-Drill (hold-to-pulse)
-- Action cadence: stats.pulseIntervalMs; suggested 160 ms pulses while biting.
-- Audio hysteresis states: spinUp → bite → coolDown per audio spec.
-  - Only “bite” applies progress.
-  - Stamina draw only while biting (see §7).
-- Progress per pulse:
-  - progressAppliedNormalized = balances.progressPerPulse × biteCoefficient × drillHardnessFactor(hardness)
-  - biteCoefficient: 0.75 (recommended default while in bite state; 0 during spinUp/coolDown).
-  - drillHardnessFactor(h) = 6 / h
-    - Tuned so that versus quartz (h=6–7) the drill completes in ~2.4–2.8 s, i.e., about 1.2–1.4× T2-on-iron, but feels continuous.
-- Suggested baseline:
-  - balances.progressPerPulse = 0.09
-  - With the above factors, quartz(6) ≈ 14–16 pulses (2.24–2.56 s); quartz(7) ≈ 16–18 pulses (2.56–2.88 s), subject to audio state entry/exit overhead.
+- station.steamworks.t3
+  - Assembles engines/casings
+  - Crafts Steam Drill (T3)
+  - Consumes mat.core.steam
+  - Optional ambient SFX while open
 
-Break condition
-- When accumulated progress ≥ 1.0:
-  - Emit mining.Break { toolId, tileType, oreType|null, pos:{x,y} }.
-  - Replace/convert tile and spawn drops according to loot rules.
+Station UI requirements
+- Left pane: player inventory grid (read-only within station; drag from inventory permitted)
+- Right pane: recipe list filtered by station tier and known recipes
+- Craft button enabled when:
+  - All inputs present in inventory with required quantities
+  - StationId matches current station
+  - Output durability does not affect enable-state (tools always craft at full)
+- Progress bar shows timeMs; cancel returns inputs unmodified (MVP: allow cancel; if not feasible, disable cancel)
 
 ---
 
-## 6) Stamina & Durability (MVP-simple)
+## 5) Hardness & Eligibility Gate
 
-Stamina (see Combat §Stamina: regen 14/s, 600 ms delay)
-- T1 pick: staminaCostPerSwing = 10
-- T2 pick: staminaCostPerSwing = 12 (heavier but faster outcomes)
-- T3 drill: staminaCostPerSec = 22 while biting; 0 during spinUp/coolDown
-- Intent: chain-swings drain fast enough to encourage brief pauses; ~5–6 T1 swings before empty if no pause (regen delay 600 ms).
+Eligibility rule
+- Tool may mine a tile if: tool.miningPower ≥ Tile.hardness
 
-Durability
-- T1: durabilityMax 120; durabilityPerSwing 1
-- T2: durabilityMax 180; durabilityPerSwing 1
-- T3: durabilityMax 240; durabilityPerSecWhileBiting 2
-- On breakage: tool becomes unusable until repaired/replaced (MVP may disable repair UI; counter still decrements for future loop).
+MVP hardness guidance (worldgen owner to finalize)
+- Common rock: 3
+- Copper-bearing rock: 4
+- Iron-bearing rock: 5
+- Quartz/Crystal bands: 6–7
+
+Tier-to-hardness mapping
+- T1 (tool.pick.t1.basic): ≤ 4
+- T2 (tool.pick.t2.reinforced): ≤ 5
+- T3 (tool.drill.t3.steam): ≤ 7
+
+On ineligible attempt
+- MiningSystem emits: mining.Deny { reason:"hardness", toolId }
+- UI: show warning tooltip
+- No stamina or durability spent
 
 ---
 
-## 7) Audio/UI Event Bridge (Contracts)
+## 6) Tool Stats & Behavior (align exactly to data/items/tools.json)
 
-MiningSystem emits events per audio-design.md §Event Bridge:
+T1 Basic Pickaxe — tool.pick.t1.basic
+- miningPower: 4
+- swingIntervalMs: 520
+- staminaCostPerSwing: 10
+- durabilityMax: 120
+- durabilityPerSwing: 1
+- progressPerSwing: 0.34
+- ui.tintToken: ui.frame.copper
 
+T2 Reinforced Pickaxe — tool.pick.t2.reinforced
+- miningPower: 5
+- swingIntervalMs: 480
+- staminaCostPerSwing: 12
+- durabilityMax: 180
+- durabilityPerSwing: 1
+- progressPerSwing: 0.39
+- ui.tintToken: ui.frame.brass
+
+T3 Steam Drill — tool.drill.t3.steam
+- miningPower: 7
+- pulseIntervalMs: 160
+- staminaCostPerSec: 22
+- durabilityMax: 240
+- durabilityPerSecWhileBiting: 2
+- progressPerPulse: 0.09
+- ui.tintToken: ui.frame.crystal
+
+Behavior notes
+- Picks: discrete swings; input buffered; swingIntervalMs is the action lockout per swing
+- Drill: hold-to-bite; pulses at pulseIntervalMs; audio hysteresis: spinUp → bite loop → coolDown per audio-design
+- Angle checks use current facing vs tile normal; only deny on egregious mismatch (see mining.Deny reason:"angle")
+
+---
+
+## 7) Stamina, Durability, and Mining Progress Rules
+
+Picks (discrete)
+- On eligible hit:
+  - Spend stamina: staminaCostPerSwing
+  - Apply progress: progress += progressPerSwing × tileFactor
+  - Decrement durability: durabilityPerSwing
+- On insufficient stamina:
+  - Emit mining.Deny { reason:"stamina", toolId }
+  - No progress/durability change
+
+Drill (continuous)
+- While biting on eligible tile:
+  - Each pulse tick: progress += progressPerPulse
+  - Spend stamina continuously: staminaCostPerSec / 60 per frame (assuming 60 FPS tick), or per delta-time
+  - Durability drains at durabilityPerSecWhileBiting (scale by delta-time)
+- Leaving tile or release input stops bite; no progress decay in MVP
+
+Completion and reset
+- When progress ≥ 1.0:
+  - Emit mining.Break
+  - Spawn drops
+  - Reset tile progress to 0
+- Interrupts (movement, tool swap): keep progress in MVP (no decay), configurable later
+
+Tile factor (soft guidance; can be constant 1.0 for MVP)
+- Suggested linear factor based on hardness vs miningPower:
+  - Let d = tool.miningPower − Tile.hardness (eligible: d ≥ 0)
+  - factor = clamp(0.8, 1.1, 1.0 + d × 0.05)
+  - Examples:
+    - d = 0 (equal): factor = 1.0
+    - d = +1: factor = 1.05 (cap 1.1)
+    - d = +2 or more (still eligible): factor → max 1.1
+- If worldgen pacing needs slower equal-hardness breakpoints, consider shifting baseline to 0.9–1.0; MVP can hold at 1.0
+
+---
+
+## 8) Events & Bridges (Authoritative wiring)
+
+MiningSystem domain events
 - mining.Swing
-  - Payload: { toolId, tileType, oreType|null, eligible }
+  - { toolId, tileType, oreType|null, eligible }
 - mining.Progress
-  - Payload: { toolId, tileType, oreType|null, applied }  // applied = normalized delta this action
+  - { toolId, tileType, oreType|null, applied }  // applied = amount added
 - mining.Break
-  - Payload: { toolId, tileType, oreType|null, pos:{x,y} }
+  - { toolId, tileType, oreType|null, pos:{x,y} }
 - mining.Deny
-  - Payload: { reason:"hardness"|"stamina"|"angle", toolId }
+  - { reason:"hardness"|"stamina"|"angle", toolId }
 
-UI expectations
-- If reason=="stamina": show deny tooltip (“Catching your breath…”) near stamina bar.
-- If reason=="hardness": grey out swing impact, slight bounce animation on tool, and hint “Needs stronger tool.”
-- Hook audio timing to swing/pulse intervals; respect hysteresis transitions for drill.
+Audio mapping (via Audio Event Bridge; see audio-design.md §5)
+- mining.Swing → sfx.mining.swing.pick.light (use variant routing by tileType if available)
+- mining.Progress (per-hit or per-n pulses) → materialized impact: stone/ore specific
+- mining.Break → sfx.mining.break.stone (ore variants optional)
+- mining.Deny (stamina|hardness) → ui.tooltip.warn (play once per deny burst; rate-limit)
+
+UI hooks
+- Tooltip warn on deny with localized reason
+- Hotbar stamina flash on stamina deny
+- Durability bar ticks on successful use; greyed tool icon when broken (0 durability)
+- Cursor/reticle shows disabled-state when aiming at ineligible tiles (hardness gate)
+
+ECS touchpoints (see ecs-architecture.md)
+- Components:
+  - Tool (stats reference by id)
+  - Durability (current/max)
+  - Stamina (current/max; shared with combat §4)
+  - Inventory (item stacks)
+  - Tile (hardness, type, ore payload)
+- Systems:
+  - MiningSystem (this spec)
+  - CraftingSystem (station interactions, timeMs jobs)
+  - AudioEventBridge (event routing)
+  - UIEventBridge (status and tooltips)
 
 ---
 
-## 8) Data Contracts (Authoritative JSON Schemas)
+## 9) Recipe System — JSON Schema (for data/crafting/recipes.json)
 
-A) data/crafting/recipes.json (already landed)
-- version:int == 1
-- recipes: array[3]; each entry uses exact keys and order:
-  - id, name, stationId, stationTier, timeMs, inputs[], output, notes[]
-- Concrete timings must equal landed file:
-  - T1: 6000 ms; T2: 9000 ms; T3: 14000 ms
-- Ids must align with tool ids in this document.
+File rules
+- UTF‑8, no comments
+- Top-level key order is strict
 
-B) data/items/tools.json (to be authored now)
-- Strict JSON (UTF-8, no comments). Top-level exact shape and key order:
-  - { "version": 1, "tools": [ ToolDef, ToolDef, ToolDef ] }
-- ToolDef exact keys and order:
-  - id, name, kind, tier, miningPower, stats, balances, ui, notes
-- stats object key order:
-  - swingIntervalMs, staminaCostPerSwing, pulseIntervalMs, staminaCostPerSec, durabilityMax, durabilityPerSwing, durabilityPerSecWhileBiting
-- balances object key order:
-  - progressPerSwing, progressPerPulse
-- ui object key order:
-  - iconId, tintToken
-- Concrete entries (Sprint 1 values):
-
-```json
+Top-level shape
+```
 {
   "version": 1,
-  "tools": [
+  "recipes": []
+}
+```
+
+RecipeDef exact keys and order
+```
+{
+  "id": "",
+  "name": "",
+  "stationId": "",
+  "inputs": [ { "id": "", "qty": 0 } ],
+  "output": { "id": "", "qty": 0 },
+  "timeMs": 0,
+  "unlockedByDefault": true,
+  "notes": []
+}
+```
+
+Validation notes
+- ids must resolve to item registry (materials/tools)
+- stationId ∈ { "station.workbench.t1", "station.forge.t2", "station.steamworks.t3" }
+- timeMs: 500–2000 ms in MVP
+- Parse order stable; reject unknown keys
+
+---
+
+## 10) Starter Recipes (Authoritative contents to mirror in recipes.json)
+
+recipe.tool.pick.t1.basic
+- name: Basic Pickaxe
+- stationId: station.workbench.t1
+- inputs: { mat.rod.wood: 1 }, { mat.ore.copper: 3 }, { mat.crystal.shard: 1 }
+- output: { tool.pick.t1.basic, 1 }
+- timeMs: 1200
+- unlockedByDefault: true
+- notes: ["Entry pick; gates hardness ≤4."]
+
+recipe.tool.pick.t2.reinforced
+- name: Reinforced Pickaxe
+- stationId: station.forge.t2
+- inputs: { mat.plate.iron: 2 }, { mat.ore.iron: 2 }, { mat.crystal.shard: 1 }
+- output: { tool.pick.t2.reinforced, 1 }
+- timeMs: 1600
+- unlockedByDefault: true
+- notes: ["Adds iron seams (≤5)."]
+
+recipe.tool.drill.t3.steam
+- name: Steam Drill
+- stationId: station.steamworks.t3
+- inputs: { mat.core.steam: 1 }, { mat.plate.iron: 3 }, { mat.crystal.shard: 2 }
+- output: { tool.drill.t3.steam, 1 }
+- timeMs: 2000
+- unlockedByDefault: true
+- notes: ["Continuous bite; covers quartz bands (≤7).", "Audio state machine active."]
+
+Optional (stopgap) sub-recipe for iron plate
+- If mat.plate.iron is not otherwise sourced in Sprint 1:
+  - recipe.mat.plate.iron.from.ore
+    - name: Iron Plate
+    - stationId: station.forge.t2
+    - inputs: { mat.ore.iron: 1 }
+    - output: { mat.plate.iron: 1 }
+    - timeMs: 600
+    - unlockedByDefault: true
+    - notes: ["Temporary conversion for MVP; replace with smelting chain later."]
+
+Reference JSON — paste into data/crafting/recipes.json
+```
+{
+  "version": 1,
+  "recipes": [
     {
-      "id": "tool.pick.t1.basic",
-      "name": "Basic Pick",
-      "kind": "pick",
-      "tier": 1,
-      "miningPower": 4,
-      "stats": {
-        "swingIntervalMs": 520,
-        "staminaCostPerSwing": 10,
-        "pulseIntervalMs": null,
-        "staminaCostPerSec": null,
-        "durabilityMax": 120,
-        "durabilityPerSwing": 1,
-        "durabilityPerSecWhileBiting": null
-      },
-      "balances": {
-        "progressPerSwing": 0.34,
-        "progressPerPulse": null
-      },
-      "ui": {
-        "iconId": "ui/icon.tools.pick_t1_24",
-        "tintToken": "ui.frame.copper"
-      },
-      "notes": [
-        "Tier 1 pick: eligible up to hardness 4 (rock, copper).",
-        "Baseline ~3 swings on rock; equal hardness on copper.",
-        "Crafted at workbench."
-      ]
+      "id": "recipe.tool.pick.t1.basic",
+      "name": "Basic Pickaxe",
+      "stationId": "station.workbench.t1",
+      "inputs": [
+        { "id": "mat.rod.wood", "qty": 1 },
+        { "id": "mat.ore.copper", "qty": 3 },
+        { "id": "mat.crystal.shard", "qty": 1 }
+      ],
+      "output": { "id": "tool.pick.t1.basic", "qty": 1 },
+      "timeMs": 1200,
+      "unlockedByDefault": true,
+      "notes": [ "Entry pick; gates hardness ≤4." ]
     },
     {
-      "id": "tool.pick.t2.reinforced",
-      "name": "Reinforced Pick",
-      "kind": "pick",
-      "tier": 2,
-      "miningPower": 5,
-      "stats": {
-        "swingIntervalMs": 480,
-        "staminaCostPerSwing": 12,
-        "pulseIntervalMs": null,
-        "staminaCostPerSec": null,
-        "durabilityMax": 180,
-        "durabilityPerSwing": 1,
-        "durabilityPerSecWhileBiting": null
-      },
-      "balances": {
-        "progressPerSwing": 0.39,
-        "progressPerPulse": null
-      },
-      "ui": {
-        "iconId": "ui/icon.tools.pick_t2_24",
-        "tintToken": "ui.frame.iron"
-      },
-      "notes": [
-        "Tier 2 pick: eligible up to hardness 5 (adds iron).",
-        "Efficiency bonus vs hardness ≤4 applies.",
-        "Crafted at forge."
-      ]
+      "id": "recipe.tool.pick.t2.reinforced",
+      "name": "Reinforced Pickaxe",
+      "stationId": "station.forge.t2",
+      "inputs": [
+        { "id": "mat.plate.iron", "qty": 2 },
+        { "id": "mat.ore.iron", "qty": 2 },
+        { "id": "mat.crystal.shard", "qty": 1 }
+      ],
+      "output": { "id": "tool.pick.t2.reinforced", "qty": 1 },
+      "timeMs": 1600,
+      "unlockedByDefault": true,
+      "notes": [ "Adds iron seams (≤5)." ]
     },
     {
-      "id": "tool.drill.t3.steam",
+      "id": "recipe.tool.drill.t3.steam",
       "name": "Steam Drill",
-      "kind": "drill",
-      "tier": 3,
-      "miningPower": 7,
-      "stats": {
-        "swingIntervalMs": null,
-        "staminaCostPerSwing": null,
-        "pulseIntervalMs": 160,
-        "staminaCostPerSec": 22,
-        "durabilityMax": 240,
-        "durabilityPerSwing": null,
-        "durabilityPerSecWhileBiting": 2
-      },
-      "balances": {
-        "progressPerSwing": null,
-        "progressPerPulse": 0.09
-      },
-      "ui": {
-        "iconId": "ui/icon.tools.drill_t3_24",
-        "tintToken": "ui.frame.crystal"
-      },
-      "notes": [
-        "Tier 3 drill: eligible up to hardness 7 (quartz 6–7).",
-        "Hold-to-bite pulses with audio hysteresis (spinUp/bite/coolDown).",
-        "Crafted at steam_workshop."
-      ]
+      "stationId": "station.steamworks.t3",
+      "inputs": [
+        { "id": "mat.core.steam", "qty": 1 },
+        { "id": "mat.plate.iron", "qty": 3 },
+        { "id": "mat.crystal.shard", "qty": 2 }
+      ],
+      "output": { "id": "tool.drill.t3.steam", "qty": 1 },
+      "timeMs": 2000,
+      "unlockedByDefault": true,
+      "notes": [ "Continuous bite; covers quartz bands (≤7).", "Audio state machine active." ]
     }
   ]
 }
 ```
 
----
-
-## 9) Tool Tier Behaviors & Unlocks
-
-- T1 Basic Pick (miningPower 4)
-  - Mines: rock (3), copper (4)
-  - Bounces/deny on: iron (5), quartz (6–7)
-- T2 Reinforced Pick (miningPower 5)
-  - Adds: iron (5)
-  - Still bounces on: quartz (6–7)
-- T3 Steam Drill (miningPower 7)
-  - Mines all above including quartz (6–7)
-  - Continuous bite with audio hysteresis; pulses apply progress only while biting
-
----
-
-## 10) Balancing Targets & Pacing
-
-Early loop resources
-- T1: obtain 8x ore.copper → craft Basic Pick
-- T2: obtain mixed 6x ore.copper + 6x ore.iron → craft Reinforced Pick
-- T3: obtain 10x ore.iron + 2x shard.quartz + 1x core.steam → assemble Steam Drill
-
-Target per-tile times (eligible hardness)
-- T1 on rock: ~1.6 s (≈3 swings @520 ms)
-- T1 on copper: ~2.0 s (≈4 swings @520 ms, equal hardness)
-- T2 on iron: ~2.2 s target; practical 2.0–2.3 s with 0.39 balance + 480 ms cadence
-- T3 on quartz: ~2.4–2.8 s continuous bite; softer tiles complete faster under drill hardness scaling
-
-Stamina cadence
-- Regen 14/s with 600 ms delay. Chain swinging drains in clusters:
-  - T1: ~5–6 swings before bottoming out if no pause.
-  - T2: similar cluster length; faster break times reduce time-to-ore.
+Optional sub-recipe JSON (include only if needed)
+```
+{
+  "id": "recipe.mat.plate.iron.from.ore",
+  "name": "Iron Plate",
+  "stationId": "station.forge.t2",
+  "inputs": [ { "id": "mat.ore.iron", "qty": 1 } ],
+  "output": { "id": "mat.plate.iron", "qty": 1 },
+  "timeMs": 600,
+  "unlockedByDefault": true,
+  "notes": [ "Temporary conversion for MVP; replace with smelting chain later." ]
+}
+```
 
 ---
 
-## 11) Repairs (MVP Decision)
+## 11) Repair & Upgrades (MVP stance)
 
-- Option A (recommended): disable repair UIs for Sprint 1; durability still decrements to collect telemetry and support future loop.
-- Option B (fallback): enable simple repair at:
-  - workbench (T1/T2) using copper/iron respectively
-  - steam_workshop (T3) using iron + quartz
-- Keep disabled by default for Sprint 1.
+- Repairs: disabled. Tools are replaced when durability reaches 0. Hide/disable any repair UI tab in Sprint 1. Future: repair kits that restore partial durability with efficiency loss.
+- Upgrades: none in MVP. Future pass may add reinforced variants (T2 → T2+) with improved swing and stamina efficiency.
 
 ---
 
-## 12) Integration Notes
+## 12) UI/UX Notes
 
-- MiningSystem reads:
-  - Tile (tileType, hardness, oreType) from data/core/component-schemas.json
-  - Held/selected tool definition from data/items/tools.json
-- Enforce stamina gates via ECS clamping; if insufficient, emit mining.Deny { reason:"stamina" } and do not consume durability.
-- Eligibility:
-  - If miningPower < hardness: emit mining.Deny { reason:"hardness" } and play “bounce” feedback; no stamina or durability cost.
-- Angle/aim:
-  - If raycast/angle invalid per tool cone, emit mining.Deny { reason:"angle" }.
-- Visual/UI tokens for tool icons must exist in atlas and map tintToken via data/visual/color-palette.json at runtime.
+- Hotbar tool frame tinted by ui.frame.* from color-palette.json:
+  - T1: ui.frame.copper
+  - T2: ui.frame.brass
+  - T3: ui.frame.crystal
+- Tooltip shows mining capability: “Cuts ≤ 4” / “Cuts ≤ 5” / “Cuts ≤ 7”
+- Crafting UI:
+  - Station filter active by stationId
+  - Recipes discoverability: unlockedByDefault = true for all three
+  - Craft enable-state per §4; insufficient inputs highlight in red; missing station greyed
+- Mining reticle state:
+  - Eligible tile: normal
+  - Ineligible hardness: disabled state + hover tooltip (“Need stronger tool”)
 
 ---
 
-## 13) Acceptance Checklist
+## 13) Integration Plan & Testing
 
-- Data
-  - data/items/tools.json present, strictly valid JSON, exact key order, and with the three concrete ToolDef entries as specified.
-  - Ids match recipes in data/crafting/recipes.json; station timings T1 6000 ms, T2 9000 ms, T3 14000 ms.
-- Mechanics
-  - Hardness gates: T1≤4, T2≤5, T3≤7; behavior matches worldgen hardness mapping.
-  - Picks use discrete swings; drill uses hold-to-pulse with audio hysteresis.
-  - Stamina costs apply exactly as defined; no draw during spinUp/coolDown for drill.
-  - Durability decrements per action; broken tools are unusable.
-- Timing and Feel
-  - Swing intervals and pulse cadence align with audio event timing.
-  - T1/T2/T3 time-to-break hit target ranges on eligible tiles.
-- Events & UI
-  - mining.Swing / mining.Progress / mining.Break / mining.Deny emitted with exact payload shapes.
-  - UI shows stamina tooltip on deny; greys out/bounce on hardness deny.
-- Engineering Readiness
-  - Numbers parse and are testable; document is implementation-ready for MiningSystem and UI gating.
+Implementation
+- MiningSystem MVP:
+  - Check stamina gate (combat §4 stamina pool)
+  - Check eligibility (tool.miningPower vs Tile.hardness)
+  - Apply progress, spawn Break, decrement durability
+  - Emit events per §8; bridge to AudioEventBridge and UIEventBridge
+- CraftingSystem MVP:
+  - Load recipes.json (schema §9)
+  - Station interaction per §4
+  - Consume inputs, schedule craft by timeMs, deliver output to Inventory
+- ECS glue:
+  - Tile.hardness from worldgen (cave-gen §Tiles/Hardness); respect Three‑Wide vein geometry; mining affects correct tile position(s)
+
+Unit tests
+- Eligibility: deny when hardness > miningPower; allow otherwise
+- Stamina: deny on low stamina; no durability/progress spent
+- Durability: decrements exactly per swing/pulse; tool breaks at 0 and unequips
+- Progress: verify Break after expected swings/pulses given stats and tileFactor
+- Events: correct event emission order and payloads
+
+Balancing checks (human-in-loop)
+- T1 vs rock(3): 3–4 swings target
+- T1 vs copper(4): 4–5 swings target
+- T2 vs iron(5): 3–4 swings target
+- T3 drill vs quartz(6–7): sustained bite time aligns with stamina drain expectations
+
+---
+
+## 14) Risks & Dials
+
+Risks
+- Worldgen TileData.hardness finalization affects pacing
+- Ore spawn density shifts resource economy and recipe throughput
+- Audio state machine drift with drill pulse timing
+
+Tunable dials (safe ranges)
+- progressPerSwing: ±0.02
+- swingIntervalMs: ±40 ms
+- drill progressPerPulse: ±0.01
+- stamina costs: ±2
+- tileFactor baseline/scale: ±0.1 / ±0.02
+
+---
+
+## 15) Acceptance Checklist
+
+- Recipe schema defined; three concrete recipes provided; ids consistent and parseable
+- Tool ids and numbers match data/items/tools.json (v1)
+- Mining eligibility, stamina, and durability rules specified
+- Events mapped to Audio/UI bridges; UI tokens resolve
+- MVP calls called out: repairs off; all three recipes unlocked by default
+- Workbench chain functional: Workbench → Forge → Steamworks
+
+— Gearwright Steamforge, bolts tight and gauges green.
