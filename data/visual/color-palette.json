@@ -2,147 +2,121 @@
   "version": 1,
   "meta": {
     "author": "eta",
-    "date": "2026-02-18T00:00:00Z",
-    "notes": "v0.1 brass+crystal palette for Sprint 1"
+    "date": "2026-02-18",
+    "notes": "Core palette v1 with warm brass/copper UI bias and cool crystal accents. Telegraphs tuned to pop over ambient shadow."
   },
-  "tokens": {
-    "ui": {
-      "panel": {
-        "bg": "#1b1f26",
-        "bg_inverted": "#e9e2d1"
-      },
-      "frame": {
-        "brass": "#b58e2b",
-        "rivet": "#6e571c"
-      },
-      "accent": {
-        "brass": "#d1a83a",
-        "crystal": "#48d1e8"
-      },
-      "text": {
-        "primary": "#e8edf6",
-        "secondary": "#a5adb7",
-        "inverted": "#2b3037"
-      },
-      "health": {
-        "bar": "#c73a3a",
-        "bar_shadow": "#7a2323"
-      },
-      "stamina": {
-        "bar": "#7fb13a",
-        "bar_shadow": "#3d5a1b"
-      },
-      "icon": {
-        "slot": {
-          "bg": "#232a34",
-          "border": "#3b4552"
-        }
-      },
-      "cursor": {
-        "highlight": "#61e3ff"
-      }
-    },
-    "terrain": {
-      "rock": {
-        "base": "#4e5761",
-        "shadow": "#2b323a",
-        "highlight": "#6c757f"
-      },
-      "cave": {
-        "damp_tint": "#2e5f6b",
-        "ember_tint": "#7f4621"
-      }
-    },
-    "materials": {
-      "metal": {
-        "copper": "#b4652a",
-        "iron": "#6b6f76",
-        "brass": "#b58e2b"
-      },
-      "crystal": {
-        "cyan": "#48d1e8",
-        "amber": "#f2a83b",
-        "violet": "#9a6ae1"
-      }
-    },
-    "effects": {
-      "steam": {
-        "light": "#e9efe9",
-        "mid": "#c1cbc4"
-      },
-      "hit": {
-        "flash": "#fff2a1"
-      },
-      "glow": {
-        "crystal_soft": "#7fe8ff",
-        "lamp_warm": "#ffcf74"
-      }
-    },
-    "mapping": {
-      "minimap": {
-        "bg": "#0f1319",
-        "rock": "#2a3642",
-        "floor": "#3b4652",
-        "ore_copper": "#e29a59",
-        "ore_iron": "#9ea6af",
-        "player": "#e7f542",
-        "enemy": "#e34b4b",
-        "exit": "#66d17a"
-      }
-    },
-    "telegraph": {
-      "arc": {
-        "amber": "#ffb340",
-        "cyan": "#61e3ff",
-        "green": "#66d17a"
-      }
-    },
-    "lighting": {
-      "ui_shadow": "#0f141a",
-      "rim_brass": "#f0c95a"
-    }
+  "palette": {
+    "ui.panel.bg": "#221a12",
+    "ui.panel.border": "#6f5723",
+    "ui.panel.accent": "#b48d3a",
+    "ui.text.primary": "#eadfb7",
+    "ui.text.secondary": "#c2ad74",
+    "ui.text.inverted": "#2b2014",
+    "ui.icon.default": "#c9a85a",
+    "ui.icon.active": "#ffd071",
+    "ui.bar.health.bg": "#4a1e1a",
+    "ui.bar.health.fg": "#e24a3b",
+    "ui.bar.stamina.bg": "#1e3a2c",
+    "ui.bar.stamina.fg": "#2fc377",
+    "ui.hotbar.slot.bg": "#1a140e",
+    "ui.hotbar.slot.border": "#5a4620",
+    "ui.hotbar.selection": "#e0b04a",
+    "ui.tooltip.bg": "#0f0c09",
+    "ui.tooltip.border": "#8a6b2c",
+    "ui.tooltip.text": "#f2e9cf",
+    "ui.cursor": "#7fd1ff",
+    "ui.warning": "#ff9c3a",
+    "ui.success": "#36c27a",
+    "ui.info": "#5ab3ff",
+
+    "material.brass.light": "#d5b35a",
+    "material.brass.base": "#b48a2a",
+    "material.brass.deep": "#8a6a1c",
+    "material.brass.shadow": "#4a3a12",
+    "material.brass.highlight": "#ffd877",
+
+    "material.copper.light": "#d9855a",
+    "material.copper.base": "#b8663b",
+    "material.copper.deep": "#8a4a2b",
+    "material.copper.shadow": "#4a2518",
+    "material.copper.patina": "#3b9a8f",
+
+    "material.iron.base": "#7a7f86",
+    "material.iron.shadow": "#3a3e44",
+
+    "material.leather.base": "#6a4a2e",
+    "material.wood.base": "#7b5a36",
+
+    "terrain.rock.light": "#9aa0a6",
+    "terrain.rock.base": "#6b7077",
+    "terrain.rock.deep": "#4a4f55",
+    "terrain.rock.shadow": "#2c3035",
+    "terrain.soil.base": "#5a4330",
+    "terrain.wall_mortar.base": "#8a806e",
+
+    "ore.copper": "#c8733d",
+    "ore.iron": "#8a8f99",
+    "crystal.quartz": "#7fd1f5",
+
+    "telegraph.arc.amber": "#ffb33a",
+    "telegraph.arc.cyan": "#2fd4ff",
+    "fx.hitflash": "#fffaf2",
+    "fx.damage": "#ff4a3d",
+    "fx.heal": "#3bd17a",
+    "fx.ui_focus": "#e0b04a",
+
+    "light.lamp.glow": "#ffcf6a",
+    "light.torch.glow": "#ffb14a",
+    "light.crystal.glow": "#6fd3ff",
+    "light.ambient.near": "#2a2218",
+    "light.ambient.mid": "#1f1a14",
+    "light.ambient.deep": "#15110d",
+    "shadow.ambient": "#0e0c0a",
+
+    "minimap.floor": "#4a3a2a",
+    "minimap.wall": "#3a3128",
+    "minimap.ore.copper": "#d87a3c",
+    "minimap.ore.iron": "#8a929d",
+    "minimap.crystal.quartz": "#7fd1ff",
+    "minimap.anchor.lamp": "#ffcf6a",
+    "minimap.rubble": "#6b5a48",
+    "minimap.marker.spawn": "#4be073",
+    "minimap.marker.exit": "#ff5a76",
+    "minimap.void": "#000000",
+    "minimap.solid_rock": "#2a2a2a",
+    "minimap.floor_alt": "#55412f",
+    "minimap.wall_alt": "#2f2720",
+
+    "tint.guild.hammerwrights": "#c9a85a",
+    "tint.guild.glassvein": "#6fd3ff",
+    "tint.guild.smokestack": "#7a7f86"
   },
-  "aliases": {},
   "accessibility": {
-    "contrast_targets": [
-      {
-        "fg": "ui.text.primary",
-        "bg": "ui.panel.bg",
-        "min_ratio": 4.5
-      },
-      {
-        "fg": "ui.text.secondary",
-        "bg": "ui.panel.bg",
-        "min_ratio": 3.0
-      },
-      {
-        "fg": "ui.text.inverted",
-        "bg": "ui.panel.bg_inverted",
-        "min_ratio": 4.5
-      }
-    ],
-    "notes": "Verify at 3x–4x scale in-engine; adjust ui.panel.bg or text tokens if ratios fail."
+    "contrast_pairs": [
+      { "fg": "ui.text.primary", "bg": "ui.panel.bg", "target_ratio": 4.5 },
+      { "fg": "ui.text.secondary", "bg": "ui.panel.bg", "target_ratio": 3.0 },
+      { "fg": "ui.bar.health.fg", "bg": "ui.panel.bg", "target_ratio": 3.0 },
+      { "fg": "ui.bar.stamina.fg", "bg": "ui.panel.bg", "target_ratio": 3.0 },
+      { "fg": "telegraph.arc.amber", "bg": "shadow.ambient", "target_ratio": 3.0 }
+    ]
   },
-  "schema_hint": {
-    "version": "int",
-    "meta": {
-      "author": "string",
-      "date": "iso-8601",
-      "notes": "string"
+  "mapping": {
+    "telegraph_colors": {
+      "melee_default": "telegraph.arc.amber",
+      "ranged_default": "telegraph.arc.cyan"
     },
-    "tokens": "object",
-    "aliases": "object",
-    "accessibility": {
-      "contrast_targets": "array",
-      "notes": "string"
-    },
-    "integration": {
-      "loader": "string",
-      "notes": "string"
+    "tile_codes": {
+      "0": "minimap.void",
+      "1": "minimap.solid_rock",
+      "2": "minimap.floor",
+      "3": "minimap.wall",
+      "10": "minimap.ore.copper",
+      "11": "minimap.crystal.quartz",
+      "12": "minimap.ore.iron",
+      "20": "minimap.anchor.lamp",
+      "21": "minimap.rubble",
+      "30": "minimap.marker.spawn",
+      "31": "minimap.marker.exit"
     }
-  },
-  "integration": {
-    "loader": "Create ColorLUT at startup; log on missing token; return fallback '#ff00ff' to visualize errors.",
-    "notes": "Minimap reads mapping.minimap.*; telegraph arcs read telegraph.arc.* from combat events; enemy configs reference telegraph.arc.amber; audio/biome lighting may reference effects.glow.*."
   }
 }
