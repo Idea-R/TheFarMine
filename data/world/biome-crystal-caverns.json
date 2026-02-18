@@ -2,54 +2,82 @@
   "version": 1,
   "id": "biome.crystal_caverns",
   "name": "Crystal Caverns",
-  "dims": { "w": 96, "h": 64 },
-  "approachDepth": 3,
-  "roomBudget": { "min": 6, "max": 10 },
-  "corridorJitter": 0.15,
+  "dims": {
+    "w": 96,
+    "h": 64
+  },
+  "approachDepth": 5,
+  "roomBudget": {
+    "min": 6,
+    "max": 10,
+    "weights": {
+      "tunnel": 5,
+      "cavern": 3,
+      "ore_pocket": 2
+    }
+  },
+  "corridorJitter": {
+    "straightBias": 0.6,
+    "turnPenalty": 0.9,
+    "postApproachJitter": 0.18,
+    "maxExpansions": 12000
+  },
   "ca": {
     "enabled": true,
     "iterations": 2,
-    "birthThreshold": 14,
+    "birthThreshold": 13,
     "surviveThreshold": 12
   },
   "ore": {
     "rates": {
-      "copper": 0.10,
-      "iron": 0.06,
-      "quartz": 0.015
+      "copper": 1.0,
+      "iron": 0.75,
+      "quartz": 0.35
     },
     "veins": {
-      "minLen": 4,
-      "maxLen": 12,
+      "minLen": 6,
+      "maxLen": 28,
       "branchChance": 0.18,
-      "turnBias": 0.3
+      "turnBias": 0.45,
+      "minFromDoor": 2,
+      "minFromLamp": 2
     },
     "pedagogy": {
-      "preferCopperNearDoorDepth": 6,
-      "preferIronMinDistanceFromDoor": 8,
-      "preferQuartzMinDistanceFromDoor": 14
+      "copperNearDoorBonus": 1.6,
+      "ironDoorAvoidRadius": 5,
+      "quartzDepthBias": 0.05
     }
   },
   "lamp": {
-    "spacingMin": 8,
-    "spacingMax": 10,
-    "roomBellyCount": { "min": 1, "max": 2 },
-    "avoidDoorDepth": 5
+    "spacingMin": 7,
+    "spacingMax": 11,
+    "avoidDoorDepth": 5,
+    "avoidLampRadius": 4,
+    "cavernBellyCount": {
+      "min": 1,
+      "max": 2
+    }
   },
   "spawn": {
     "minFromDoor": 6,
-    "goblin": { "weight": 0.65 },
-    "burrower": { "weight": 0.35 },
-    "avoidLampRadius": 5
+    "avoidLampRadius": 3,
+    "weights": {
+      "goblinCorridor": 1.0,
+      "burrowerCavern": 1.0
+    }
   },
   "audio": {
-    "ambienceBaseId": "amb.biome.crystal_caverns.base.loopA",
+    "ambienceBedId": "amb.biome.crystal_caverns.base.loopA",
     "layers": [
       "amb.layer.drip.sparse",
-      "amb.layer.crystal.resonance",
-      "amb.layer.steam.hiss"
+      "amb.layer.crystal.resonance"
     ]
   },
-  "lore": { "biomeToken": "lore.biome.crystal_caverns" },
-  "debug": { "allowFallbackStraightCarve": true }
+  "lore": {
+    "chapter": "m1_crystal_intro",
+    "blurb": "Glimmering walls and humming quartz veins guide new delvers; easy copper near doors, rarer riches deeper within."
+  },
+  "debug": {
+    "allowFallbackStraightCarve": true
+  }
 }
