@@ -1,0 +1,549 @@
+{
+  "version": 1,
+  "components": [
+    {
+      "name": "Position",
+      "bit": 0,
+      "fields": [
+        {
+          "key": "x",
+          "type": "number",
+          "min": null,
+          "max": null,
+          "notes": "world X in pixels"
+        },
+        {
+          "key": "y",
+          "type": "number",
+          "min": null,
+          "max": null,
+          "notes": "world Y in pixels"
+        },
+        {
+          "key": "dirX",
+          "type": "number",
+          "min": -1,
+          "max": 1,
+          "notes": "facing vector X; expected unit or near-unit"
+        },
+        {
+          "key": "dirY",
+          "type": "number",
+          "min": -1,
+          "max": 1,
+          "notes": "facing vector Y; expected unit or near-unit"
+        }
+      ],
+      "defaults": {
+        "x": 0,
+        "y": 0,
+        "dirX": 1,
+        "dirY": 0
+      }
+    },
+    {
+      "name": "Velocity",
+      "bit": 1,
+      "fields": [
+        {
+          "key": "vx",
+          "type": "number",
+          "min": null,
+          "max": null,
+          "notes": "X velocity in px/s"
+        },
+        {
+          "key": "vy",
+          "type": "number",
+          "min": null,
+          "max": null,
+          "notes": "Y velocity in px/s"
+        },
+        {
+          "key": "maxSpeed",
+          "type": "number",
+          "min": 0,
+          "max": null,
+          "notes": "speed clamp in px/s applied during integration"
+        }
+      ],
+      "defaults": {
+        "vx": 0,
+        "vy": 0,
+        "maxSpeed": 96
+      }
+    },
+    {
+      "name": "Attributes",
+      "bit": 2,
+      "fields": [
+        {
+          "key": "attackPower",
+          "type": "int",
+          "min": 0,
+          "max": null,
+          "notes": "base attack power used in combat formula"
+        },
+        {
+          "key": "defense",
+          "type": "int",
+          "min": 0,
+          "max": null,
+          "notes": "flat damage mitigation"
+        }
+      ],
+      "defaults": {
+        "attackPower": 8,
+        "defense": 0
+      }
+    },
+    {
+      "name": "Health",
+      "bit": 3,
+      "fields": [
+        {
+          "key": "value",
+          "type": "int",
+          "min": 0,
+          "max": null,
+          "notes": "current health; registry clamps into [0..max] after writes"
+        },
+        {
+          "key": "max",
+          "type": "int",
+          "min": 1,
+          "max": null,
+          "notes": "maximum health; must be >=1"
+        }
+      ],
+      "defaults": {
+        "value": 100,
+        "max": 100
+      }
+    },
+    {
+      "name": "Stamina",
+      "bit": 4,
+      "fields": [
+        {
+          "key": "value",
+          "type": "int",
+          "min": 0,
+          "max": null,
+          "notes": "current stamina; registry clamps into [0..max]"
+        },
+        {
+          "key": "max",
+          "type": "int",
+          "min": 1,
+          "max": null,
+          "notes": "stamina capacity; must be >=1"
+        },
+        {
+          "key": "regenPerSec",
+          "type": "number",
+          "min": 0,
+          "max": null,
+          "notes": "passive regeneration per second"
+        },
+        {
+          "key": "regenDelayAfterActionMs",
+          "type": "int",
+          "min": 0,
+          "max": null,
+          "notes": "delay after action before regen resumes (ms)"
+        }
+      ],
+      "defaults": {
+        "value": 100,
+        "max": 100,
+        "regenPerSec": 14,
+        "regenDelayAfterActionMs": 600
+      }
+    },
+    {
+      "name": "Poise",
+      "bit": 5,
+      "fields": [
+        {
+          "key": "value",
+          "type": "int",
+          "min": 0,
+          "max": null,
+          "notes": "current poise; registry clamps into [0..max]"
+        },
+        {
+          "key": "max",
+          "type": "int",
+          "min": 1,
+          "max": null,
+          "notes": "poise capacity; must be >=1"
+        },
+        {
+          "key": "recoverPerSec",
+          "type": "number",
+          "min": 0,
+          "max": null,
+          "notes": "recovery per second while not broken"
+        },
+        {
+          "key": "breakDurationMs",
+          "type": "int",
+          "min": 0,
+          "max": null,
+          "notes": "stagger duration in ms when broken"
+        }
+      ],
+      "defaults": {
+        "value": 100,
+        "max": 100,
+        "recoverPerSec": 35,
+        "breakDurationMs": 800
+      }
+    },
+    {
+      "name": "Inventory",
+      "bit": 6,
+      "fields": [
+        {
+          "key": "slots",
+          "type": "int",
+          "min": 1,
+          "max": 64,
+          "notes": "capacity slots available"
+        },
+        {
+          "key": "selectedIndex",
+          "type": "int",
+          "min": 0,
+          "max": 63,
+          "notes": "currently selected hotbar slot (0-based)"
+        }
+      ],
+      "defaults": {
+        "slots": 8,
+        "selectedIndex": 0
+      }
+    },
+    {
+      "name": "Renderable",
+      "bit": 7,
+      "fields": [
+        {
+          "key": "spriteId",
+          "type": "string",
+          "min": null,
+          "max": null,
+          "notes": "sprite atlas id or path"
+        },
+        {
+          "key": "depth",
+          "type": "int",
+          "min": -10000,
+          "max": 10000,
+          "notes": "render sort depth; lower draws behind"
+        },
+        {
+          "key": "visible",
+          "type": "bool",
+          "min": null,
+          "max": null,
+          "notes": "visibility toggle"
+        },
+        {
+          "key": "tintToken",
+          "type": "string",
+          "min": null,
+          "max": null,
+          "notes": "palette token resolved via color-palette.json"
+        }
+      ],
+      "defaults": {
+        "spriteId": "",
+        "depth": 300,
+        "visible": true,
+        "tintToken": ""
+      }
+    },
+    {
+      "name": "Collider",
+      "bit": 8,
+      "fields": [
+        {
+          "key": "w",
+          "type": "int",
+          "min": 0,
+          "max": 1024,
+          "notes": "collision width in px"
+        },
+        {
+          "key": "h",
+          "type": "int",
+          "min": 0,
+          "max": 1024,
+          "notes": "collision height in px"
+        },
+        {
+          "key": "offsetX",
+          "type": "int",
+          "min": -1024,
+          "max": 1024,
+          "notes": "offset X from entity origin in px"
+        },
+        {
+          "key": "offsetY",
+          "type": "int",
+          "min": -1024,
+          "max": 1024,
+          "notes": "offset Y from entity origin in px"
+        },
+        {
+          "key": "solid",
+          "type": "bool",
+          "min": null,
+          "max": null,
+          "notes": "true blocks movement"
+        },
+        {
+          "key": "isTrigger",
+          "type": "bool",
+          "min": null,
+          "max": null,
+          "notes": "non-solid overlap events only"
+        },
+        {
+          "key": "hurtboxPadPx",
+          "type": "int",
+          "min": 0,
+          "max": 32,
+          "notes": "expands hurtbox by px on all sides"
+        }
+      ],
+      "defaults": {
+        "w": 12,
+        "h": 12,
+        "offsetX": 0,
+        "offsetY": 0,
+        "solid": true,
+        "isTrigger": false,
+        "hurtboxPadPx": 0
+      }
+    },
+    {
+      "name": "AI",
+      "bit": 9,
+      "fields": [
+        {
+          "key": "state",
+          "type": "string",
+          "min": null,
+          "max": null,
+          "notes": "finite state label"
+        },
+        {
+          "key": "targetId",
+          "type": "int",
+          "min": 0,
+          "max": null,
+          "notes": "entity id of target (0 for none)"
+        },
+        {
+          "key": "aggroRangePx",
+          "type": "int",
+          "min": 0,
+          "max": 4096,
+          "notes": "range to acquire target in px"
+        },
+        {
+          "key": "leashRangePx",
+          "type": "int",
+          "min": 0,
+          "max": 8192,
+          "notes": "max chase distance from home in px"
+        },
+        {
+          "key": "thinkCooldownMs",
+          "type": "int",
+          "min": 0,
+          "max": 10000,
+          "notes": "cooldown before next think tick in ms"
+        }
+      ],
+      "defaults": {
+        "state": "idle",
+        "targetId": 0,
+        "aggroRangePx": 0,
+        "leashRangePx": 0,
+        "thinkCooldownMs": 0
+      }
+    },
+    {
+      "name": "Player",
+      "bit": 10,
+      "fields": [
+        {
+          "key": "idTag",
+          "type": "string",
+          "min": null,
+          "max": null,
+          "notes": "identifier for player entity"
+        }
+      ],
+      "defaults": {
+        "idTag": "player"
+      }
+    },
+    {
+      "name": "Enemy",
+      "bit": 11,
+      "fields": [
+        {
+          "key": "kindId",
+          "type": "string",
+          "min": null,
+          "max": null,
+          "notes": "enemy kind identifier from data"
+        }
+      ],
+      "defaults": {
+        "kindId": ""
+      }
+    },
+    {
+      "name": "Item",
+      "bit": 12,
+      "fields": [
+        {
+          "key": "itemId",
+          "type": "string",
+          "min": null,
+          "max": null,
+          "notes": "item identifier from data"
+        },
+        {
+          "key": "qty",
+          "type": "int",
+          "min": 1,
+          "max": 999,
+          "notes": "stack quantity"
+        },
+        {
+          "key": "onGround",
+          "type": "bool",
+          "min": null,
+          "max": null,
+          "notes": "true when lying on ground"
+        }
+      ],
+      "defaults": {
+        "itemId": "",
+        "qty": 1,
+        "onGround": true
+      }
+    },
+    {
+      "name": "Tile",
+      "bit": 13,
+      "fields": [
+        {
+          "key": "tileType",
+          "type": "string",
+          "min": null,
+          "max": null,
+          "notes": "tile category id (e.g., rock, dirt)"
+        },
+        {
+          "key": "hardness",
+          "type": "int",
+          "min": 0,
+          "max": 15,
+          "notes": "mining hardness tier 0..15"
+        },
+        {
+          "key": "oreType",
+          "type": "string",
+          "min": null,
+          "max": null,
+          "notes": "ore id if present else empty"
+        },
+        {
+          "key": "flags",
+          "type": "int",
+          "min": 0,
+          "max": 4294967295,
+          "notes": "uint32 bitfield of tile flags"
+        }
+      ],
+      "defaults": {
+        "tileType": "rock",
+        "hardness": 3,
+        "oreType": "",
+        "flags": 0
+      }
+    },
+    {
+      "name": "Projectile",
+      "bit": 14,
+      "fields": [
+        {
+          "key": "speedPxPerSec",
+          "type": "int",
+          "min": 0,
+          "max": 2048,
+          "notes": "flight speed in px/s"
+        },
+        {
+          "key": "lifeMs",
+          "type": "int",
+          "min": 0,
+          "max": 60000,
+          "notes": "lifetime before despawn in ms"
+        },
+        {
+          "key": "dirX",
+          "type": "number",
+          "min": -1,
+          "max": 1,
+          "notes": "normalized X heading"
+        },
+        {
+          "key": "dirY",
+          "type": "number",
+          "min": -1,
+          "max": 1,
+          "notes": "normalized Y heading"
+        },
+        {
+          "key": "ownerId",
+          "type": "int",
+          "min": 0,
+          "max": null,
+          "notes": "spawning entity id (0 for world)"
+        },
+        {
+          "key": "damage",
+          "type": "int",
+          "min": 0,
+          "max": 999,
+          "notes": "damage on hit"
+        },
+        {
+          "key": "poiseDamage",
+          "type": "int",
+          "min": 0,
+          "max": 999,
+          "notes": "poise damage on hit"
+        }
+      ],
+      "defaults": {
+        "speedPxPerSec": 220,
+        "lifeMs": 600,
+        "dirX": 1,
+        "dirY": 0,
+        "ownerId": 0,
+        "damage": 4,
+        "poiseDamage": 8
+      }
+    }
+  ]
+}
