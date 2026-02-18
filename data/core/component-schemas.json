@@ -1,466 +1,215 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://the-far-mine/schema/component-schemas.json",
   "version": 1,
-  "components": [
-    {
-      "name": "Position",
-      "bit": 0,
-      "fields": [
-        {
-          "name": "x",
-          "type": "int",
-          "default": 0,
-          "min": -131072,
-          "max": 131071
-        },
-        {
-          "name": "y",
-          "type": "int",
-          "default": 0,
-          "min": -131072,
-          "max": 131071
-        },
-        {
-          "name": "dirX",
-          "type": "number",
-          "default": 1,
-          "min": -1,
-          "max": 1
-        },
-        {
-          "name": "dirY",
-          "type": "number",
-          "default": 0,
-          "min": -1,
-          "max": 1
-        }
-      ]
+  "$defs": {
+    "int": { "type": "integer" },
+    "nonNegInt": { "type": "integer", "minimum": 0 },
+    "posInt": { "type": "integer", "minimum": 1 },
+    "finiteNum": { "type": "number" },
+    "dirDeg": { "type": "integer", "minimum": 0, "maximum": 359 },
+    "tileType": { "enum": ["rock", "floor", "ore.copper", "ore.iron", "ore.quartz"] },
+    "tileHardness": { "enum": [3, 4, 5, 7] },
+    "colliderKind": { "enum": ["actor", "tile", "attack"] },
+    "aiState": { "type": "string" },
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "itemStack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["itemId", "qty"],
+      "properties": {
+        "itemId": { "$ref": "#/$defs/nonEmptyString" },
+        "qty": { "$ref": "#/$defs/nonNegInt" },
+        "durability": { "$ref": "#/$defs/nonNegInt" }
+      }
     },
-    {
-      "name": "Velocity",
-      "bit": 1,
-      "fields": [
-        {
-          "name": "vx",
-          "type": "number",
-          "default": 0,
-          "min": null,
-          "max": null
-        },
-        {
-          "name": "vy",
-          "type": "number",
-          "default": 0,
-          "min": null,
-          "max": null
-        },
-        {
-          "name": "maxSpeed",
-          "type": "int",
-          "default": 120,
-          "min": 0,
-          "max": 2000
-        }
-      ]
-    },
-    {
-      "name": "Attributes",
-      "bit": 2,
-      "fields": [
-        {
-          "name": "attackPower",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 999
-        },
-        {
-          "name": "defense",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 999
-        }
-      ]
-    },
-    {
-      "name": "Health",
-      "bit": 3,
-      "fields": [
-        {
-          "name": "value",
-          "type": "int",
-          "default": 1,
-          "min": 0,
-          "max": null
-        },
-        {
-          "name": "max",
-          "type": "int",
-          "default": 1,
-          "min": 1,
-          "max": 100000
-        }
-      ]
-    },
-    {
-      "name": "Stamina",
-      "bit": 4,
-      "fields": [
-        {
-          "name": "value",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null
-        },
-        {
-          "name": "max",
-          "type": "int",
-          "default": 100,
-          "min": 1,
-          "max": 100000
-        },
-        {
-          "name": "regenPerSec",
-          "type": "number",
-          "default": 14,
-          "min": 0,
-          "max": 1000
-        },
-        {
-          "name": "regenDelayAfterActionMs",
-          "type": "int",
-          "default": 600,
-          "min": 0,
-          "max": 10000
-        }
-      ]
-    },
-    {
-      "name": "Poise",
-      "bit": 5,
-      "fields": [
-        {
-          "name": "value",
-          "type": "int",
-          "default": 100,
-          "min": 0,
-          "max": null
-        },
-        {
-          "name": "max",
-          "type": "int",
-          "default": 100,
-          "min": 1,
-          "max": 100000
-        },
-        {
-          "name": "recoverPerSec",
-          "type": "number",
-          "default": 35,
-          "min": 0,
-          "max": 1000
-        },
-        {
-          "name": "breakDurationMs",
-          "type": "int",
-          "default": 800,
-          "min": 0,
-          "max": 10000
-        }
-      ]
-    },
-    {
-      "name": "Inventory",
-      "bit": 6,
-      "fields": [
-        {
-          "name": "slots",
-          "type": "int",
-          "default": 16,
-          "min": 0,
-          "max": 256
-        },
-        {
-          "name": "selectedIndex",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 255
-        }
-      ]
-    },
-    {
-      "name": "Renderable",
-      "bit": 7,
-      "fields": [
-        {
-          "name": "spriteId",
-          "type": "string",
-          "default": "",
-          "min": null,
-          "max": null
-        },
-        {
-          "name": "depth",
-          "type": "int",
-          "default": 0,
-          "min": -100000,
-          "max": 100000
-        },
-        {
-          "name": "visible",
-          "type": "bool",
-          "default": true,
-          "min": null,
-          "max": null
-        },
-        {
-          "name": "tintToken",
-          "type": "string",
-          "default": "",
-          "min": null,
-          "max": null
-        }
-      ]
-    },
-    {
-      "name": "Collider",
-      "bit": 8,
-      "fields": [
-        {
-          "name": "w",
-          "type": "int",
-          "default": 12,
-          "min": 0,
-          "max": 4096
-        },
-        {
-          "name": "h",
-          "type": "int",
-          "default": 12,
-          "min": 0,
-          "max": 4096
-        },
-        {
-          "name": "offsetX",
-          "type": "int",
-          "default": 0,
-          "min": -4096,
-          "max": 4096
-        },
-        {
-          "name": "offsetY",
-          "type": "int",
-          "default": 0,
-          "min": -4096,
-          "max": 4096
-        },
-        {
-          "name": "solid",
-          "type": "bool",
-          "default": true,
-          "min": null,
-          "max": null
-        },
-        {
-          "name": "isTrigger",
-          "type": "bool",
-          "default": false,
-          "min": null,
-          "max": null
-        },
-        {
-          "name": "hurtboxPadPx",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 8
-        }
-      ]
-    },
-    {
-      "name": "AI",
-      "bit": 9,
-      "fields": [
-        {
-          "name": "state",
-          "type": "string",
-          "default": "idle",
-          "min": null,
-          "max": null
-        },
-        {
-          "name": "targetId",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 16777215
-        },
-        {
-          "name": "aggroRangePx",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 100000
-        },
-        {
-          "name": "leashRangePx",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 100000
-        },
-        {
-          "name": "thinkCooldownMs",
-          "type": "int",
-          "default": 250,
-          "min": 0,
-          "max": 10000
-        }
-      ]
-    },
-    {
-      "name": "Player",
-      "bit": 10,
-      "fields": [
-        {
-          "name": "idTag",
-          "type": "string",
-          "default": "",
-          "min": null,
-          "max": null
-        }
-      ]
-    },
-    {
-      "name": "Enemy",
-      "bit": 11,
-      "fields": [
-        {
-          "name": "kindId",
-          "type": "string",
-          "default": "",
-          "min": null,
-          "max": null
-        }
-      ]
-    },
-    {
-      "name": "Item",
-      "bit": 12,
-      "fields": [
-        {
-          "name": "itemId",
-          "type": "string",
-          "default": "",
-          "min": null,
-          "max": null
-        },
-        {
-          "name": "qty",
-          "type": "int",
-          "default": 1,
-          "min": 0,
-          "max": 9999
-        },
-        {
-          "name": "onGround",
-          "type": "bool",
-          "default": true,
-          "min": null,
-          "max": null
-        }
-      ]
-    },
-    {
-      "name": "Tile",
-      "bit": 13,
-      "fields": [
-        {
-          "name": "tileType",
-          "type": "string",
-          "default": "rock",
-          "min": null,
-          "max": null
-        },
-        {
-          "name": "hardness",
-          "type": "int",
-          "default": 3,
-          "min": 0,
-          "max": 100
-        },
-        {
-          "name": "oreType",
-          "type": "string",
-          "default": "",
-          "min": null,
-          "max": null
-        },
-        {
-          "name": "flags",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 4294967295
-        }
-      ]
-    },
-    {
-      "name": "Projectile",
-      "bit": 14,
-      "fields": [
-        {
-          "name": "speedPxPerSec",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 5000
-        },
-        {
-          "name": "lifeMs",
-          "type": "int",
-          "default": 1000,
-          "min": 0,
-          "max": 60000
-        },
-        {
-          "name": "dirX",
-          "type": "number",
-          "default": 1,
-          "min": -1,
-          "max": 1
-        },
-        {
-          "name": "dirY",
-          "type": "number",
-          "default": 0,
-          "min": -1,
-          "max": 1
-        },
-        {
-          "name": "ownerId",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 16777215
-        },
-        {
-          "name": "damage",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 10000
-        },
-        {
-          "name": "poiseDamage",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 10000
-        }
-      ]
+    "hitboxRect": {
+      "type": "object",
+      "required": ["w", "h", "offsetX", "offsetY"],
+      "additionalProperties": false,
+      "properties": {
+        "w": { "$ref": "#/$defs/nonNegInt" },
+        "h": { "$ref": "#/$defs/nonNegInt" },
+        "offsetX": { "$ref": "#/$defs/int" },
+        "offsetY": { "$ref": "#/$defs/int" }
+      }
     }
-  ]
+  },
+  "components": {
+    "Position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "dirDeg"],
+      "properties": {
+        "x": { "$ref": "#/$defs/int" },
+        "y": { "$ref": "#/$defs/int" },
+        "dirDeg": { "$ref": "#/$defs/dirDeg" }
+      }
+    },
+    "Velocity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vx", "vy", "maxSpeed"],
+      "properties": {
+        "vx": { "$ref": "#/$defs/finiteNum" },
+        "vy": { "$ref": "#/$defs/finiteNum" },
+        "maxSpeed": { "$ref": "#/$defs/nonNegInt" }
+      }
+    },
+    "Health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max", "value"],
+      "properties": {
+        "max": { "$ref": "#/$defs/posInt" },
+        "value": { "$ref": "#/$defs/nonNegInt" }
+      }
+    },
+    "Stamina": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max", "value", "regenPerSec", "regenDelayAfterActionMs", "regenCooldownUntilMs"],
+      "properties": {
+        "max": { "$ref": "#/$defs/nonNegInt" },
+        "value": { "$ref": "#/$defs/nonNegInt" },
+        "regenPerSec": { "$ref": "#/$defs/finiteNum" },
+        "regenDelayAfterActionMs": { "$ref": "#/$defs/nonNegInt" },
+        "regenCooldownUntilMs": { "$ref": "#/$defs/nonNegInt" }
+      }
+    },
+    "Poise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max", "value", "recoverPerSec", "breakDurationMs", "brokenUntilMs"],
+      "properties": {
+        "max": { "$ref": "#/$defs/nonNegInt" },
+        "value": { "$ref": "#/$defs/nonNegInt" },
+        "recoverPerSec": { "$ref": "#/$defs/finiteNum" },
+        "breakDurationMs": { "$ref": "#/$defs/nonNegInt" },
+        "brokenUntilMs": { "$ref": "#/$defs/nonNegInt" }
+      }
+    },
+    "Attributes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attackPower", "defense"],
+      "properties": {
+        "attackPower": { "$ref": "#/$defs/nonNegInt" },
+        "defense": { "$ref": "#/$defs/nonNegInt" }
+      }
+    },
+    "Inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slots", "selectedIndex"],
+      "properties": {
+        "slots": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/itemStack" }
+        },
+        "selectedIndex": { "type": "integer", "minimum": -1 }
+      }
+    },
+    "Renderable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["spriteId", "tintToken", "depth"],
+      "properties": {
+        "spriteId": { "$ref": "#/$defs/nonEmptyString" },
+        "tintToken": { "$ref": "#/$defs/nonEmptyString" },
+        "depth": { "$ref": "#/$defs/int" }
+      }
+    },
+    "Collider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["w", "h", "offsetX", "offsetY", "kind", "solid", "mask"],
+      "properties": {
+        "w": { "$ref": "#/$defs/nonNegInt" },
+        "h": { "$ref": "#/$defs/nonNegInt" },
+        "offsetX": { "$ref": "#/$defs/int" },
+        "offsetY": { "$ref": "#/$defs/int" },
+        "kind": { "$ref": "#/$defs/colliderKind" },
+        "solid": { "type": "boolean" },
+        "mask": { "$ref": "#/$defs/nonNegInt" }
+      }
+    },
+    "AI": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "targetId", "aggroRangePx", "leashRangePx", "cooldownUntilMs"],
+      "properties": {
+        "state": { "$ref": "#/$defs/aiState" },
+        "targetId": {
+          "anyOf": [
+            { "$ref": "#/$defs/nonNegInt" },
+            { "type": "null" }
+          ]
+        },
+        "aggroRangePx": { "$ref": "#/$defs/nonNegInt" },
+        "leashRangePx": { "$ref": "#/$defs/nonNegInt" },
+        "cooldownUntilMs": { "$ref": "#/$defs/nonNegInt" }
+      }
+    },
+    "PlayerTag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {}
+    },
+    "EnemyTag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kindId"],
+      "properties": {
+        "kindId": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "Tile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tileType", "hardness", "flags"],
+      "properties": {
+        "tileType": { "$ref": "#/$defs/tileType" },
+        "hardness": { "$ref": "#/$defs/tileHardness" },
+        "flags": { "$ref": "#/$defs/nonNegInt" }
+      }
+    },
+    "AttackIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attackId", "requestedAtMs"],
+      "properties": {
+        "attackId": {
+          "anyOf": [
+            { "$ref": "#/$defs/nonEmptyString" },
+            { "type": "null" }
+          ]
+        },
+        "requestedAtMs": { "$ref": "#/$defs/nonNegInt" }
+      }
+    },
+    "Hitbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active", "w", "h", "offsetX", "offsetY", "ownerId"],
+      "properties": {
+        "active": { "type": "boolean" },
+        "w": { "$ref": "#/$defs/nonNegInt" },
+        "h": { "$ref": "#/$defs/nonNegInt" },
+        "offsetX": { "$ref": "#/$defs/int" },
+        "offsetY": { "$ref": "#/$defs/int" },
+        "ownerId": { "$ref": "#/$defs/nonNegInt" }
+      }
+    },
+    "AudioEmitter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["spatialized", "lastEventMs"],
+      "properties": {
+        "spatialized": { "type": "boolean" },
+        "lastEventMs": { "$ref": "#/$defs/nonNegInt" }
+      }
+    }
+  }
 }
