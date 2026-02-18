@@ -1,390 +1,344 @@
-# The Far Mine — Community Engagement Playbook v0.1 (Sprint 1)
+# The Far Mine — Community Engagement Playbook (Sprint 1)
 
-Owner: Brewmaster Alehart (Theta)  
-Version: 0.1  
-Date: 2026-02-18
+- Description: Actionable plan for Discord community operations during Sprint 1
+- Owner: Brewmaster Alehart (Theta)
+- Version: v0.1
+- Date: 2026-02-18T00:00:00Z
+- Scope: Channel/role map, daily rituals (Hearthfire Roll Call, Mine Mood), 2-week content calendar with concrete prompts, moderation/CoC, feedback triage SOP, onboarding, automation/scheduling, templates, risks, and iteration plan. Links to ready-to-use templates included.
 
-This is the Discord-first community operations plan for Mine Level 1’s vertical slice. Targets: active dev coordination, newcomer onboarding, feedback triage, and lightweight rituals that convert daily chatter into progress signals.
+## 1) Title & Purpose
 
----
+- Title: The Far Mine — Community Engagement Playbook (Sprint 1)
+- Purpose: Keep the community informed, welcomed, and productive as co-creators; align communications with sprint milestones and maintain momentum through daily rituals and weekly beats.
+- Success metrics (Sprint 1, lightweight):
+  - Time-to-acknowledge feedback: under 24 hours
+  - Daily roll-call participation: number of replies per day (target: ≥ team size, stretch: +25% including community)
+  - Weekly clip posts: at least 2 shipped to #build-in-public
+  - Onboarding completion rate: percentage completing welcome sequence reactions/DM confirmations (target: ≥60% reach step 3 within 24h)
 
-## 1) Title & Scope
+## 2) Channel & Role Map (Discord)
 
-- Scope
-  - Discord-first ops during Sprint 1, focused on:
-    - Daily alignment of core contributors
-    - Newcomer welcome and path to first post
-    - Feedback intake and triage to issues
-    - Lightweight, repeatable rituals with visible output
-  - Coverage: All channels listed in the Channel Map; Friday live sessions; manual digest/triage
-
----
-
-## 2) Goals & Success Criteria
-
-- Goals
-  - Keep contributors aligned daily
-  - Welcome and retain newcomers
-  - Convert chatter into actionable feedback
-  - Celebrate visible progress
-
-- Success (first 2 weeks)
-  - ≥80% daily Hearthfire Roll Call participation from domain owners
-  - ≤24h response on feedback threads (weekdays)
-  - 2 build-in-public posts/week minimum
-  - Newcomer welcome flow D1 response rate ≥90%
-
----
-
-## 3) Channel Map
-
-Guidance is “threads-first” to keep the surface tidy. Pins are for templates, checklists, and current builds only.
+Channels (create and order as listed):
 
 - #announcements
-  - Purpose: Top-line beats; crucial updates; sprint framing.
-  - Lead: Brewmaster (Theta).
-  - Posting rules: Brewmaster-only posts; replies locked; emoji reactions allowed.
-  - Permissions summary: Post = Brewmaster; Reply = locked; Threads = off.
-  - Pin policy: Only Brewmaster pins; maintain ≤5 active pins (latest replaces oldest).
+  - Purpose: One-way studio updates; cross-post key build-in-public wins and weekly digests.
+  - Example posts: sprint goal pin, end-of-week digest, Lunchline Live recaps, survey links.
+  - Permissions: Post-locked to staff (Theta, Domain Owners, Moderators). Everyone can react. Threads disabled.
 
 - #project-orchestration
-  - Purpose: Daily Mine Mood + Hearthfire Roll Call threads; blocking/unblocking; plan of day.
-  - Lead: Brewmaster (Theta).
-  - Posting rules: Threads-only; 1 thread/day for Roll Call; mine mood post top-level then thread.
-  - Permissions summary: Post = staff/core; Reply = everyone in thread; Threads = encouraged.
-  - Pin policy: Pin latest roll call template + checklist; keep ≤3 pins.
+  - Purpose: Daily Mine Mood + Hearthfire Roll Call; EOD digests; sprint scaffolding.
+  - Example posts: daily roll call prompt, Mine Mood callout, EOD wins/slips/carries.
+  - Permissions: Post-locked to staff for top-level posts (Theta). Threads open for all replies in daily thread.
 
 - #build-in-public
-  - Purpose: Weekly WIP clips/notes; in-flight progress; behind-the-scenes.
-  - Lead: Founders/Core Devs (Alpha–Eta).
-  - Posting rules: Use template; 1–2 posts/week; community replies encouraged.
-  - Permissions summary: Post = devs/owners; Reply = everyone; Threads = encouraged for each post.
-  - Pin policy: Pin post template + current week highlight; ≤4 pins.
-
-- #tavern-talk
-  - Purpose: General chat; meet-and-greet; off-topic within reason.
-  - Lead: Moderators.
-  - Posting rules: Light moderation; spoilers in threads; label WIP.
-  - Permissions summary: Post/Reply = everyone; Threads = for extended topics.
-  - Pin policy: Pin weekly vendor/self-promo thread; rotate weekly; ≤3 pins.
-
-- #playtest-pit
-  - Purpose: Session calls; test builds; bug repros; voice session links.
-  - Lead: Brewmaster + domain owners during sessions.
-  - Posting rules: Use pinned test checklist; link build hash; threads per session.
-  - Permissions summary: Post = staff/devs; Reply = playtesters/staff; Threads = per session required.
-  - Pin policy: Pin test checklist + latest build hash; ≤5 pins.
+  - Purpose: Weekly dev updates, short clips, and links to PRs using the ready template.
+  - Example posts: GIF/short video of a new mechanic; text + PR link using template.
+  - Permissions: Staff can post top-level; community replies encouraged. Threads for each update.
 
 - #feedback-forge
-  - Purpose: Feature/UX suggestions using [Feedback] template; tag domains.
-  - Lead: Brewmaster (triage) + domain owners (response).
-  - Posting rules: Template required; tags required; one topic per thread.
-  - Permissions summary: Post = everyone; Reply = everyone; Threads = required; Owner acknowledges.
-  - Pin policy: Pin template + tag key; ≤3 pins.
+  - Purpose: Structured feedback threads; enforced tag taxonomy.
+  - Example posts: “[worldgen] Ore seam variance vs seed 1234” thread; “[ui] HUD text readability @ scale”.
+  - Permissions: Everyone can post using template; Moderators and Domain Owners manage tags/threads.
 
-- #bug-reports
-  - Purpose: Reproducible issues with required fields; link build hash.
-  - Lead: Moderators (format) + dev owners (triage).
-  - Posting rules: Use template; 1 bug/thread; add [bugs] + relevant domain tags.
-  - Permissions summary: Post = everyone; Reply = everyone; Threads = required.
-  - Pin policy: Pin template + repro guide; ≤3 pins.
-
-- #lore-weave
-  - Purpose: Narrative/language explorations; Mine Mood lexicon votes.
-  - Lead: Epsilon (proposes) + Brewmaster (posts mood).
-  - Posting rules: Thread per topic; emoji voting for lexicon candidates.
-  - Permissions summary: Post/Reply = everyone; Threads = encouraged.
-  - Pin policy: Pin lexicon index and vote key; ≤4 pins.
-
-- #art-foundry
-  - Purpose: Visual/UI shares; palette links; asset requests.
-  - Lead: Art/UI owners.
-  - Posting rules: Thread per asset/topic; include references.
-  - Permissions summary: Post = devs/community; Reply = everyone; Threads = encouraged.
-  - Pin policy: Pin palette, asset request template, delivery board link; ≤5 pins.
-
-- #sound-forge
-  - Purpose: SFX/music shares; manifest IDs; audition polls.
-  - Lead: Audio owner.
-  - Posting rules: Include manifest ID and short context; emoji polls for picks.
-  - Permissions summary: Post = devs/community; Reply = everyone; Threads = encouraged.
-  - Pin policy: Pin manifest index + poll key; ≤4 pins.
+- #tavern-talk
+  - Purpose: General chat; welcome greets and casual questions.
+  - Example posts: intros, memes (tasteful), quick Q&A, milestone cheers.
+  - Permissions: Open to all. Moderators keep convo aligned with CoC.
 
 - #forge-log
-  - Purpose: PR links, CI pings, build hashes; read-only firehose.
-  - Lead: CI Bot.
-  - Posting rules: Automated feed; no replies.
-  - Permissions summary: Post = CI Bot; Reply = locked; Threads = off.
-  - Pin policy: Pin “Latest build” pointer auto-updated by Brewmaster; ≤1 pin.
+  - Purpose: Merge logs and technical notes; link PRs and branches for transparency.
+  - Example posts: “Merged PR #482 ‘Hammer swing timing’ to develop”; “Branch: feature/ui-hud-v2”.
+  - Permissions: Staff post top-level; community read-only; threads open for clarifications.
 
-- #tavern-door
-  - Purpose: Welcome and onboarding; reaction-roles.
-  - Lead: Welcome Bot (manual SOP until wired) + Moderators.
-  - Posting rules: One welcome thread/day; reactions grant @Playtesters and opt-in interest roles.
-  - Permissions summary: Post = Brewmaster/Mods/Bot; Reply = newcomers; Threads = per-day.
-  - Pin policy: Pin onboarding map + role legend + welcome DM link; ≤4 pins.
+- #playtest-pit
+  - Purpose: Playtest calls, seed sharing, bug repro steps and session coordination.
+  - Example posts: call for testers, test build hashes, repro templates with system specs.
+  - Permissions: Everyone can post; @Playtesters is pingable. Moderators maintain thread hygiene.
 
----
+- Optional domain lounges (create as needed)
+  - #lore-inkwell — narrative beats, names, timelines; [lore]
+  - #art-anvil — sprites, palettes, tilesets; [art]
+  - #audio-bellows — SFX, ambiences, mixes; [audio]
+  - #ui-brasspanel — HUD, typography, flows; [ui]
+  - Permissions: Open posting; Domain Owners steward content and summaries.
 
-## 4) Roles & Mentions
+Roles and responsibilities:
 
-- Roles
-  - @Brewmaster (Theta): Runs rituals/templates/digests, triages community, keeps pins clean.
-  - @Founders/Core Devs (Alpha–Eta): Daily Roll Call, weekly WIP, triage within SLA, attend Fri sessions.
-  - @Moderators: Time-zone coverage, CoC enforcement, thread hygiene, welcome flow nudges.
-  - @Playtesters: Opt-in via reaction in #tavern-door; pingable for builds/sessions.
-  - @Bots: Welcome Bot, CI Bot, Digest Bot (manual SOP until wiring complete).
+- @Theta (Brewmaster)
+  - Owns daily rituals (Mine Mood, Hearthfire Roll Call), content calendar execution, onboarding, and EOD/weekly digests.
+  - Keeps templates fresh and enforces formatting/tag hygiene.
 
-- Mention map
-  - @here: Rare. Use for Friday live session starting now, critical hotfix notes, or build-breaking changes.
-  - Domain mentions: Tag specific owner when a blocker exists or SLA is approaching; otherwise thread-only.
-  - Thread-only: Routine feedback, WIP discussion, and non-blocking FYIs stay within threads; no channel-wide pings.
+- @Domain Owners (Alpha–Eta)
+  - Acknowledge/triage feedback in their domain within 24–48 hours.
+  - Provide weekly build-in-public clips or text+PRs; join Lunchline Live rotation.
 
----
+- @Moderators
+  - Enforce CoC, maintain thread hygiene, and run an off-hours ping rota.
+  - Operate /report queue (when enabled) and log actions.
 
-## 5) Rituals (exact formats and timing)
+- @Playtesters
+  - Opt-in role for build tries and feedback pings; priority tagging in #playtest-pit.
 
-- Hearthfire Roll Call — daily at 10:00 PT in #project-orchestration
-  - Format: “Focus (1 sentence) | Commit (one concrete deliverable by EOD) | Blockers (if any)”
-  - Thread: One thread per day. Owners post by 10:15 PT; late arrivals add under the thread.
+Permissions snapshot:
 
-- Mine Mood — daily at 10:00 PT
-  - Epsilon proposes by 09:50 PT: “Mine Mood: <Name> — <5-word vibe>”
-  - Theta posts at 10:00 PT in #project-orchestration and cross-links to #lore-weave for lexicon votes.
-  - Default: “Stillshift” if none by 10:05 PT.
-  - Maintain a living lexicon with emoji votes; weekly top terms pinned.
+- #announcements and #project-orchestration: post-locked to staff; threads open for replies where noted.
+- #forge-log: staff top-level only; threads open.
+- Others: open posting with tag and template guidance; Moderators can slowmode when needed.
 
-- End-of-Day Hearth Digest — by 18:00 PT
-  - Brief bullet per domain: commit hit/missed, notable clips/links, blockers escalated.
-  - Posted in #project-orchestration (thread) and mirrored to #announcements if community-facing.
+## 3) Rituals
 
----
+Hearthfire Roll Call (daily)
 
-## 6) Two-Week Content Calendar (day-by-day beats)
+- Schedule: 10:00 PT in #project-orchestration
+- Template: “Focus (1 sentence) | Commit (1 deliverable by EOD) | Blockers (if any)”
+- Threading: Brewmaster posts the top-level prompt; all replies go into the single daily thread labelled with date (YYYY-MM-DD).
+- EOD (by 17:30 PT): Brewmaster posts a 3–6 bullet digest (wins, slips, carries) in the same thread; tag Domain Owners as needed.
 
-Times default to PT. Assets live in shared drive or GitHub links. CTAs are thread-first.
+Mine Mood Integration
 
-- Week 1
-  - Mon
-    - Owner: Brewmaster (+ Art/UI owners)
-    - Post time: 09:45 pre-pins; 10:00 kickoff in #announcements; Roll Call launch in #project-orchestration
-    - Asset ask: Palette link + UI reference board; onboarding map pinned
-    - CTA: React in #tavern-door for @Playtesters; post a 1-line intro
-  - Tue
-    - Owner: Beta (ECS/worldgen) + Brewmaster
-    - Post time: 11:00 in #build-in-public
-    - Asset ask: 10–30s cave-gen WIP clip + 1 screenshot
-    - CTA: Reply 3 words on “mining feel”; tag [worldgen][ui] in follow-ups
-  - Wed
-    - Owner: Brewmaster (poll) + Epsilon (lore)
-    - Post time: 12:00 in #tavern-talk (poll) + #lore-weave (teaser)
-    - Asset ask: 1 lore teaser line; poll image optional
-    - CTA: Vote on midweek check-in; propose 1 lexicon term in thread
-  - Thu
-    - Owner: Gamma (combat) or mining-impact owner
-    - Post time: 14:00 in #build-in-public
-    - Asset ask: 15–45s clip of combat timing or mining impact
-    - CTA: Thread: “what felt late/early?” tag [combat] or [tools]
-  - Fri (12:30 PT)
-    - Owner: Brewmaster
-    - Post time: 09:30 create Discord Event; 12:25 reminder @here; 12:30 live in voice
-    - Asset ask: Agenda doc; recording note; 2–3 WIP clips from owners
-    - CTA: Drop one question in event thread; react if you want speaking slot
-  - Sat
-    - Owner: Moderators
-    - Post time: 10:00 in #tavern-talk
-    - Asset ask: Screenshot Saturday prompt image
-    - CTA: Share one screenshot; react with ⛏ if it matches the Mine Mood
-  - Sun
-    - Owner: Moderators
-    - Post time: 16:00 in #tavern-talk
-    - Asset ask: None
-    - CTA: Chill thread: “one win, one wish” for next week
+- Process:
+  - By 09:50 PT: Epsilon proposes label + one-line vibe to Theta via DM or #project-orchestration internal note.
+  - 10:00 PT: Theta posts the Mine Mood alongside the Roll Call.
+- Format: “Mine Mood: <Name> — <5-word vibe>”
+- Fallback: If no proposal by 10:05 PT, default to “Stillshift — steady hands, quiet picks” and log the miss.
+- Lexicon: Living list of Mine Mood names and short descriptors tracked here: docs/narrative/founding-lore.md
+- Community input: Emoji votes in daily thread suggest additions; Theta curates monthly.
 
-- Week 2
-  - Mon
-    - Owner: Delta (greybox) + Brewmaster
-    - Post time: 10:30 in #playtest-pit
-    - Asset ask: Greybox slice link + build hash + checklist
-    - CTA: React in thread to get @Playtesters role; sign up for a 20-min slot
-  - Tue
-    - Owner: Zeta (crafting/systems)
-    - Post time: 11:30 in #build-in-public
-    - Asset ask: Crafting stub GIF/screenshot + data schema note
-    - CTA: Propose 1 recipe; tag [tools][ui] with constraints
-  - Wed
-    - Owner: Eta (UI/Accessibility) + Moderators
-    - Post time: 12:00 in #art-foundry
-    - Asset ask: Palette check + UI contrast grid
-    - CTA: List one accessibility concern; vote with ✅/🧭 for ready/direction
-  - Thu
-    - Owner: Audio owner
-    - Post time: 13:00 in #sound-forge
-    - Asset ask: 3 pickaxe impact timbre options (short WAV/MP3) with manifest IDs
-    - CTA: Vote: 🇦/🇧/🇨; add “why” in thread; tag [audio]
-  - Fri (12:30 PT)
-    - Owner: Brewmaster
-    - Post time: 09:30 event; 12:25 @here reminder; 12:30 live
-    - Asset ask: Sprint close preview deck; thank-you reel (30–60s)
-    - CTA: Share your standout moment; drop 1-line testimonial for reel
+Weekly Beats
 
----
+- Friday 12:30 PT: Lunchline Live — short demo/clip or GIF + Q&A thread in #build-in-public; recap cross-posted to #announcements with top-3 takeaways and links.
 
-## 7) Moderation & CoC (concise)
+## 4) Two-Week Content Calendar (Sprint 1)
 
-- Respect first. No harassment, slurs, or personal attacks. Keep critique kind and specific.
-- No leaks of private builds or internal docs outside approved channels.
-- Spoilers go in threads; label WIP clearly.
-- Vendor/self-promo belongs in the weekly #tavern-talk promo thread only.
-- Enforcement ladder: nudge → move-to-thread → 12–24h timeout → ban. Edge cases escalate to founders.
+Notes
+- D+0 is Sprint Day 0 (Monday). Adjust exact calendar dates on sprint start.
+- Daily Mine Mood + Roll Call at 10:00 PT by Theta unless noted.
+- Each item includes Owner, Post Time (PT), CTA, and Asset/ID checklist.
 
----
+Week 1 (D+0–D+4)
 
-## 8) Feedback Intake & Triage SOP
+- D+0 (Mon)
+  - Daily: Mine Mood + Roll Call (Owner: Theta, 10:00)
+    - CTA: Reply in thread with Focus | Commit | Blockers.
+    - Assets/IDs: N/A
+  - Sprint goal pin + channel map refresher (Owner: Theta, 11:30, #announcements)
+    - CTA: React with ✅ after reading; ask setup questions in #tavern-talk.
+    - Assets/IDs: docs/community/engagement-playbook.md; Channel list snippet; sprint goals bullet list (paste)
+- D+1 (Tue)
+  - Build-in-Public clip (Alpha/Beta focus) (Owner: Alpha or Beta, 12:15, #build-in-public)
+    - CTA: Drop thoughts in #feedback-forge with [worldgen]; include seed if applicable.
+    - Assets/IDs: clips/w1-d1-worldgen-seams.mp4; PR link(s); seed IDs: 1247, 3301; refs: data/art/color-palette.json
+- D+2 (Wed)
+  - Midweek Poll: Feel of mining hits (rock vs copper) (Owner: Epsilon, 13:00, #tavern-talk)
+    - CTA: Vote and comment with sound ID favorites; tag [audio].
+    - Assets/IDs: data/audio/sound-manifest.json -> sfx_mine_hit_rock_v1/v2, sfx_mine_hit_copper_v1/v2; short GIF of strike
+- D+3 (Thu)
+  - Build-in-Public clip (Gamma/Delta focus) (Owner: Gamma or Delta, 12:15, #build-in-public)
+    - CTA: In #feedback-forge, start a thread with [combat][tools] on timing/readability.
+    - Assets/IDs: clips/w1-d3-combat-tools-tune.gif; PR #512; branch feature/combat-timing; inputs: docs/community/build-in-public-template.md
+- D+4 (Fri)
+  - Lunchline Live (Owner: Theta host; rotating demo by Domain Owner, 12:30, #build-in-public)
+    - CTA: Post questions in the event thread; upvote topics to prioritize answers.
+    - Assets/IDs: event banner assets/community/lunchline-live.png; stream link (Discord Stage); notes doc link
+  - End-of-week digest (Owner: Theta, 16:30, #announcements)
+    - CTA: React with 🪓 if read; reply with 1 clip you want expanded next week.
+    - Assets/IDs: top-3 PRs; top-5 feedback threads; Mine Mood recap links
 
-- Post template (required in #feedback-forge)
-  - [Title]
-  - [Context] where you saw it; build/hash
-  - [Problem] what’s off and why it matters
-  - [Suggested Outcome] desired player/dev experience
-  - [Rough Priority] low/med/high
-  - [Refs] screenshots, clips, links
+Week 2 (D+5–D+9)
 
-- Tag taxonomy
+- D+5 (Mon)
+  - Daily: Mine Mood + Roll Call (Owner: Theta, 10:00)
+  - Lore spotlight: Orecasters (Owner: Epsilon, 11:45, #lore-inkwell or #announcements if lounge absent)
+    - CTA: In #feedback-forge, tag [lore] with 1 tooltip snippet idea (≤120 chars).
+    - Assets/IDs: docs/narrative/founding-lore.md (section: Orecasters); lore_tooltips_v0.csv
+- D+6 (Tue)
+  - UI HUD peek (Eta wireframe) (Owner: Eta, 12:00, #build-in-public)
+    - CTA: Start a [ui] thread on legibility at 85% scale; include monitor DPI or device info.
+    - Assets/IDs: ui/wireframes/hud_v2.png; figma link; font IDs from data/art/color-palette.json typography notes
+- D+7 (Wed)
+  - Audio bed A/B (amb.tavern vs mine_l1) (Owner: Epsilon, 13:00, #audio-bellows or #build-in-public)
+    - CTA: Vote A or B; in #feedback-forge tag [audio] with 1 context where it excels/fails.
+    - Assets/IDs: data/audio/sound-manifest.json -> amb_tavern_v1, amb_mine_l1_v2; 30s MP3 snippets
+- D+8 (Thu)
+  - Build-in-Public clip (integration slice) (Owner: Alpha+Gamma pair, 12:15, #build-in-public)
+    - CTA: Report issues in #feedback-forge with [bugs]; include repro steps and build hash.
+    - Assets/IDs: clips/w2-d4-integration-slice.mp4; build hash: 0.9.0-alpha+2023; PRs: #540 #541; repro template link below
+- D+9 (Fri)
+  - Lunchline Live (Owner: Theta host; demo by Delta/Eta, 12:30, #build-in-public)
+    - CTA: Ask 1 question live; vote on next sprint’s focus poll at end.
+    - Assets/IDs: event banner assets/community/lunchline-live.png; clip/gif of feature; poll link stub
+  - Sprint wrap thread + survey link stub (Owner: Theta, 16:30, #announcements)
+    - CTA: Complete 3-min survey; reply with top 1 win and 1 wish.
+    - Assets/IDs: survey stub (forms/sprint1-retro-draft); top-5 feedback decisions; velocity snapshot
+
+## 5) Moderation & Code of Conduct (CoC)
+
+Tenets
+
+- Dwarven kindness: assume good intent; be welcoming to newcomers.
+- Constructive craft: critique the work, not the worker; be specific and actionable.
+- No slurs or hate speech, zero tolerance.
+- Tasteful alcohol references only; no encouragement of harmful behavior.
+- Spoilers must be tagged and placed behind spoiler formatting.
+- No promises of drops/rates or misleading representations of rewards.
+
+Enforcement ladder
+
+- Step 1: Gentle nudge (public or DM) with guidance and link to CoC.
+- Step 2: Thread guide — move or split threads; apply proper tags and templates.
+- Step 3: Temporary timeout (up to 24–72h) with written rationale logged.
+- Step 4: Admin review for bans or longer actions; consensus among Moderators + Theta.
+
+Reporting
+
+- DM @Moderators or use /report (when enabled).
+- Escalation path: Moderator on duty → Moderator lead → Theta (final arbiter).
+- Moderator log: timestamp, user, issue, action, link, follow-up date.
+
+## 6) Feedback Triage SOP
+
+Where and how
+
+- Location: #feedback-forge
+- One topic per thread; enforce tags at the start of the title using the taxonomy:
   - [combat], [worldgen], [ui], [audio], [lore], [tools], [bugs]
+- Use the starter post template below; attach clips/saves as needed.
 
-- SLA and workflow
-  - Acknowledge: Domain owner replies within 24h on weekdays.
-  - Pre-triage: Brewmaster tags/threads within 12h; ensures template completeness.
-  - Routing: High-signal items converted to GitHub issues (label: community). Link back to the Discord thread and paste the issue link in the thread header.
-  - States: Acknowledged → Need Repro → In Backlog → In Progress → Shipped. Update thread on state changes.
+SLA
 
-- Conversion criteria
-  - Clear problem/outcome
-  - Repro steps or concrete example
-  - Aligned with sprint scope or explicitly parked
+- Acknowledge within 24 hours by the Domain Owner or Theta.
+- Triage within 48 hours into one of:
+  - backlog (accepted, not this sprint)
+  - sprint-consider (evaluate for current sprint scope)
+  - needs-repro (request more info or steps)
+  - closed (duplicate, out-of-scope, or resolved)
 
----
+Tracking
 
-## 9) Automation Plan (MVP) + Manual SOP
+- Lightweight sheet columns:
+  - date, tag(s), summary, owner, status, link (Discord thread/PR), decision
+- Weekly surfacing: Top-5 items (by community impact/feasibility) highlighted in Friday digest.
 
-- MVP now (manual but reliable)
-  - Manual posts + pinned templates
-  - Google Sheet: feedback log (ID, tags, owner, status, GH link)
-  - Discord Scheduled Events for Friday sessions
-  - CI Bot already posts to #forge-log; Brewmaster updates “Latest build” pin
+Starter post template (copy-ready)
 
-- Near-term wiring
-  - Welcome Bot reads data/community/welcome-sequence.json
-  - Reaction-role for @Playtesters in #tavern-door
-  - Weekly digest via simple script (reads roll call thread + #forge-log)
+```
+Title: [<tag>] <short, specific title>
+Body:
+• Summary: <1–2 sentences, include context>
+• Steps/Repro: <numbered steps, include seed/build hash if relevant>
+• Expected vs Actual: <concise contrast>
+• Attachments: <clips, screenshots, save/seed, logs>
+• System/Build: OS/GPU (if relevant), build hash
+• Priority: low | medium | high
+```
 
-- Daily manual checklists (Theta/Mods)
-  - 09:45: Prep Roll Call thread; ping Epsilon for Mine Mood
-  - 10:00: Post Mine Mood + Roll Call
-  - 12:00/16:00: Feedback triage sweep (#feedback-forge, #bug-reports)
-  - 18:00: Compile and post End-of-Day Hearth Digest
+## 7) Onboarding & Welcome Flow
 
----
+Reference
 
-## 10) Templates (inline quick refs; full versions linked)
+- Sequence file: data/community/welcome-sequence.json
+  - 5 steps: welcome, rules/CoC, how to contribute, current sprint, feedback guide
 
-- Roll Call (post in daily thread)
-  - “Focus: <1 sentence> | Commit: <one EOD deliverable> | Blockers: <if any>”
-  - Example: “Focus: polish cave-light falloff | Commit: push LUT variant B with switch | Blockers: CI stuck on macOS runner”
+Manual SOP (until bot)
 
-- Digest snippet (per domain)
-  - Owner: <name/role>
-  - Commit: <what was promised> → Result: <hit/missed + 1-line reason>
-  - Links: <PR/clip/build>
-  - Blockers: <if any, who’s needed>
+- Theta posts a welcome greet in #tavern-talk when a new member joins (mention username, invite to react for @Playtesters).
+- Theta DMs step 1 of the sequence, linking:
+  - CoC summary and channel map
+  - docs/community/engagement-playbook.md (this doc)
+  - docs/community/build-in-public-template.md
+  - docs/narrative/founding-lore.md (for Mine Mood lexicon)
+- Pin references in #tavern-talk for easy access.
+- React role: Newcomers add ⚒️ in #tavern-talk to receive @Playtesters.
 
-- Build-in-public skeleton
-  - Title: [WIP] <feature/area> — <one-liner>
-  - Clip/Screens: <embed/link>
-  - What changed: <3 bullets>
-  - What we’re testing for: <2 bullets>
-  - CTA: <one prompt> (Please reply in thread)
-  - Full template: docs/community/build-in-public-template.md
+Future automation
 
-- Welcome DM bullets
-  - “Welcome to The Far Mine!”
-  - Where to start: #tavern-door, #tavern-talk
-  - How to help: #playtest-pit, #feedback-forge (use template)
-  - Stay aligned: #project-orchestration daily thread
-  - Opt-in roles: react in #tavern-door for @Playtesters
-  - Full sequence: data/community/welcome-sequence.json
+- Wire JSON sequence to the welcome bot; run test in staging first.
+- Metrics: percentage reaching step 3 (how to contribute) within 24h; track opt-ins to @Playtesters.
 
----
+## 8) Automation & Scheduling Plan
 
-## 11) Metrics & Review
+Tools
 
-- Track (daily/weekly)
-  - Daily Roll Call participation %
-  - Feedback acknowledged <24h (count/ratio)
-  - # of WIP posts/week (target ≥2)
-  - Newcomer conversion: first post within 48h
-  - Sentiment skim: weekly “vibe” tag from moderators (👍/😐/⚠️)
+- Use Discord scheduled events and scheduled messages where available.
+- Manual checklists as fallback; keep a daily log (Google Doc or Notion).
 
-- Weekly 15-min retro (Fri post-session or Mon morning)
-  - What landed
-  - What felt performative
-  - One tweak for next week
-  - Owner: Brewmaster; notes pinned in #project-orchestration
+Daily checklist (09:45–10:15 PT)
 
----
+- 09:45: Confirm Mine Mood from Epsilon; if absent, prepare Stillshift fallback.
+- 10:00: Post Mine Mood + Hearthfire Roll Call in #project-orchestration.
+- 10:05–10:15: Log participants; DM gentle nudges to missing core team; set reminder for EOD digest at 17:15.
 
-## 12) Risks & Mitigations
+Posting helpers
 
-- Risk: Domain owners overloaded
-  - Mitigation: Limit asks to one concrete clip/post per week; Brewmaster drafts scaffolds/templates.
-- Risk: Automation lag
-  - Mitigation: Manual SOP with pinned checklists; volunteer mods cover late hours; keep scripts simple.
-- Risk: Ritual fatigue
-  - Mitigation: Keep daily posts minimal; rotate spotlight; skip non-essentials on heavy build days.
+- Use docs/community/build-in-public-template.md for all dev updates.
+- Keep short links to assets ready; verify IDs against:
+  - data/audio/sound-manifest.json
+  - data/art/color-palette.json
 
----
+## 9) Templates (inline, copy-ready)
 
-## Appendix A: Emoji Key (vote meanings)
+Hearthfire Roll Call (top post, max 3 lines)
 
-- 👍 Agree/ship direction
-- ✅ Looks good — no action needed
-- 🧭 Needs direction/tweak
-- ⛏ Fits current Mine Mood
-- 🧪 Needs testing/repro
-- 🐛 Bug spotted
-- 🕯 Stillshift (default mood) acknowledgement
-- 📌 Request pin (moderator will review)
-- 🇦 🇧 🇨 Poll choices (audio/UI/etc.)
-- ❗ Urgent (mods/devs review)
+```
+Mine Mood: <Name> — <5-word vibe>
+Hearthfire Roll Call (reply in thread): Focus | Commit | Blockers
+Note: EOD digest at 17:30 PT — keep commits realistic, axes sharp.
+```
 
-Use only one “summary” reaction per user on polls; stack others for nuance if needed.
+EOD Digest (3–6 bullets)
 
----
+```
+EOD Digest — <YYYY-MM-DD>
+• Wins: <top 1–2 concrete outcomes w/ links>
+• Slips: <brief note, no blame, link if relevant>
+• Carries: <items moving to tomorrow, owner named>
+• Feedback: <top thread(s) surfaced, decision state>
+• Shoutouts: <1–2 contributors/community boosts>
+```
 
-## Appendix B: Tag Dictionary
+Feedback thread starter (for #feedback-forge)
 
-- [combat]: Timing, hit feedback, damage curves, enemy interactions
-- [worldgen]: Cave layout, biome rules, prop density, seeds
-- [ui]: HUD, menus, palette, contrast, input legibility
-- [audio]: SFX/Music, mix, spatialization, timbre selection
-- [lore]: Names, terms, Mine Mood lexicon, narrative beats
-- [tools]: Mining/crafting tools, durability, recipes, workbenches
-- [bugs]: Crashes, repro steps, erroneous states (pair with build hash)
+```
+Title: [<tag>] <short, specific title>
+Body:
+• Summary: <1–2 sentences>
+• Steps/Repro: <numbered steps; include seed/build hash>
+• Expected vs Actual: <clear contrast>
+• Attachments: <clips/screens/logs>
+• System/Build: <OS/GPU/Build hash>
+• Priority: low | medium | high
+```
 
-Tag rules
-- Minimum one domain tag; add [bugs] if reporting a defect.
-- Include build hash from #forge-log when relevant.
+Cross-links
 
----
+- Build-in-public template: docs/community/build-in-public-template.md
+- Mine Mood lexicon: docs/narrative/founding-lore.md
+- Audio IDs: data/audio/sound-manifest.json
+- Color/typography references: data/art/color-palette.json
 
-## Appendix C: Time Zones (PT baseline)
+## 10) Risks & Mitigations
 
-- PT (Pacific): UTC−8 standard / UTC−7 DST (baseline for times here)
-- ET (Eastern): UTC−5 / UTC−4
-- UTC: always +0 (use for bots/schedules if needed)
-- CET: UTC+1 / UTC+2
-- IST (India): UTC+5:30
-- AET (Sydney): UTC+10 / UTC+11
+- Risk: Delayed Mine Mood proposal
+  - Mitigation: Default to Stillshift at 10:05; log miss; Epsilon/Theta retro weekly to prevent recurrence.
+- Risk: Clip asset delays
+  - Mitigation: Use GIF fallback or text + PR links; set 24h buffer asks for Domain Owners; maintain a “spare clip” folder.
+- Risk: Off-hours moderation gap
+  - Mitigation: Draft a UTC rota; recruit 1–2 community volunteers; enable slowmode overnight as needed.
+- Risk: Thread sprawl in #feedback-forge
+  - Mitigation: Moderators merge duplicates; weekly tag audit; pin template.
+- Risk: Low roll-call participation
+  - Mitigation: Friendly pings + spotlight wins in digests; keep prompts tight; rotate a fun mini-prompt on Fridays.
 
-When unsure, default to PT and add UTC in parentheses for live events.
+## 11) Review & Iteration Plan
+
+- Mid-sprint retro (end of D+6):
+  - Review rituals (Roll Call, Mine Mood cadence), participation metrics, and SLA adherence.
+  - Adjust content calendar for D+7–D+9 based on asset readiness and feedback density.
+- Versioning:
+  - Publish v0.2 with SLA tweaks or channel adjustments if needed; update #announcements pin.
+- Post-sprint:
+  - Compile metric snapshot (ack times, roll-call counts, clip cadence, onboarding completion).
+  - Propose Sprint 2 refinements (automation level, additional lounges, expanded templates).
+
+— Signed with a steady hand and a warm mug,  
+Brewmaster Alehart (Theta)
