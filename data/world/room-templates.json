@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "room.tunnel.basic",
+      "kind": "tunnel",
+      "name": "Three‑Wide Tunnel",
+      "rotate": true,
+      "width": 9,
+      "height": 5,
+      "grid": [
+        "#########",
+        "D.......D",
+        "D.......D",
+        "D.......D",
+        "#########"
+      ],
+      "notes": [
+        "3‑wide straight lane; doors on W/E edges (3‑high).",
+        "Rotation allowed to produce N/S tunnels."
+      ]
+    },
+    {
+      "id": "room.cavern.small",
+      "kind": "cavern",
+      "name": "Small Cavern (Four Doors)",
+      "rotate": true,
+      "width": 13,
+      "height": 11,
+      "grid": [
+        "#####DDD#####",
+        "####.....####",
+        "###.......###",
+        "##.........##",
+        "D...........D",
+        "D...........D",
+        "D...........D",
+        "##.........##",
+        "###.......###",
+        "####.....####",
+        "#####DDD#####"
+      ],
+      "notes": [
+        "Compact oval chamber with 3‑wide doors on all cardinal sides.",
+        "Interior maintains ≥3‑tile approach lanes beyond each doorway."
+      ]
+    },
+    {
+      "id": "room.ore_vein.pocket",
+      "kind": "ore_vein",
+      "name": "Vein Pocket (South Door)",
+      "rotate": true,
+      "width": 9,
+      "height": 9,
+      "grid": [
+        "#########",
+        "###OOO###",
+        "##O###O##",
+        "#O##.##O#",
+        "#O#...#O#",
+        "#O##.##O#",
+        "##O###O##",
+        "###OOO###",
+        "###DDD###"
+      ],
+      "notes": [
+        "Rock 'O' marks ore‑preferred seam; stamped as rock with ORE_PREF flag.",
+        "Single 3‑wide southern doorway with a small workable pocket inside.",
+        "Rotation allowed to vary seam orientation and approach."
+      ]
+    }
+  ]
+}
