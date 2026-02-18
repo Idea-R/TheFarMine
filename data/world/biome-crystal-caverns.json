@@ -2,34 +2,54 @@
   "version": 1,
   "id": "biome.crystal_caverns",
   "name": "Crystal Caverns",
-  "tiles": {
-    "rock": { "tileType": "rock", "hardness": 3 },
-    "floor": { "tileType": "floor", "hardness": 0 },
-    "ores": {
-      "copper": { "tileType": "ore.copper", "hardness": 4, "density": 0.012, "minCluster": 3, "maxCluster": 7 },
-      "iron": { "tileType": "ore.iron", "hardness": 5, "density": 0.006, "minCluster": 2, "maxCluster": 5 },
-      "quartz": { "tileType": "ore.quartz", "hardness": 7, "density": 0.003, "minCluster": 2, "maxCluster": 4 }
+  "dims": { "w": 96, "h": 64 },
+  "approachDepth": 3,
+  "roomBudget": { "min": 6, "max": 10 },
+  "corridorJitter": 0.15,
+  "ca": {
+    "enabled": true,
+    "iterations": 2,
+    "birthThreshold": 14,
+    "surviveThreshold": 12
+  },
+  "ore": {
+    "rates": {
+      "copper": 0.10,
+      "iron": 0.06,
+      "quartz": 0.015
+    },
+    "veins": {
+      "minLen": 4,
+      "maxLen": 12,
+      "branchChance": 0.18,
+      "turnBias": 0.3
+    },
+    "pedagogy": {
+      "preferCopperNearDoorDepth": 6,
+      "preferIronMinDistanceFromDoor": 8,
+      "preferQuartzMinDistanceFromDoor": 14
     }
   },
-  "rooms": { "min": 6, "max": 10 },
-  "approachDepth": 3,
-  "ca": {
-    "use8": true,
-    "rules": { "birthMin": 5, "surviveMin": 4 },
-    "iterations": 2,
-    "preNoisePercent": 0.0
+  "lamp": {
+    "spacingMin": 8,
+    "spacingMax": 10,
+    "roomBellyCount": { "min": 1, "max": 2 },
+    "avoidDoorDepth": 5
   },
-  "corridors": { "method": "astar", "jitter": 0.15 },
-  "lamps": { "minSpacing": 7, "targetPerFloorTiles": 0.06 },
-  "spawns": {
-    "minDistFromDoor": 5,
-    "minDistFromLamp": 6,
-    "table": [
-      { "id": "enemy.goblin.grunt", "weight": 7 },
-      { "id": "enemy.cave.burrower", "weight": 5 }
+  "spawn": {
+    "minFromDoor": 6,
+    "goblin": { "weight": 0.65 },
+    "burrower": { "weight": 0.35 },
+    "avoidLampRadius": 5
+  },
+  "audio": {
+    "ambienceBaseId": "amb.biome.crystal_caverns.base.loopA",
+    "layers": [
+      "amb.layer.drip.sparse",
+      "amb.layer.crystal.resonance",
+      "amb.layer.steam.hiss"
     ]
   },
-  "notes": [
-    "Hardness gates align with crafting-design.md: rock 3, copper 4, iron 5, quartz 6–7."
-  ]
+  "lore": { "biomeToken": "lore.biome.crystal_caverns" },
+  "debug": { "allowFallbackStraightCarve": true }
 }
