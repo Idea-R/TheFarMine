@@ -1,84 +1,138 @@
 {
   "version": 1,
-  "messages": [
+  "meta": {
+    "author": "theta",
+    "updated": "2026-02-18T12:00:00Z",
+    "notes": [
+      "Initial version of Discord newcomer onboarding sequence.",
+      "Replace <GUILD_ID>, <ID:#...>, <THREAD_ID:...>, and <MESSAGE_ID:...> placeholders before deploy.",
+      "Variables {username}, {current_sprint}, {mine_mood_name}, {mine_mood_vibe} are substituted at send time."
+    ]
+  },
+  "steps": [
     {
-      "id": "welcome",
-      "sendTo": "channel",
-      "channelToken": "{{channel.welcome}}",
-      "delayMs": 0,
-      "content": "Ho there, traveler! I’m Brewmaster Alehart, keeping the hearth warm for The Far Mine. Grab a stool, take a sip, and drop a quick hello in {{channel.tavern_talk}} so the crew can welcome you proper. When you share images or clips, add short alt-text so every dwarf can follow the tale.",
-      "links": {
-        "tavern_talk": "{{channel.tavern_talk}}"
+      "id": "welcome.1.hello",
+      "kind": "dm",
+      "targetChannelId": null,
+      "delayMs": 2000,
+      "content": {
+        "text": "Hail, {username}! Brewmaster Alehart here—welcome to the Far Mine. The hearth is warm, the mugs are clean, and the shafts hum with ideas. Our Hearthfire Roll Call runs daily at 10:00 PT. Start in #tavern-talk and skim the house rules linked below.",
+        "attachments": []
       },
+      "actions": [
+        {
+          "type": "link",
+          "label": "Open #tavern-talk",
+          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#tavern-talk>",
+          "role": null
+        },
+        {
+          "type": "link",
+          "label": "Rules & Conduct",
+          "url": "https://github.com/example/the-far-mine/blob/main/CODE_OF_CONDUCT.md",
+          "role": null
+        }
+      ],
       "reactions": [
-        "👋"
+        ":beer:"
       ]
     },
     {
-      "id": "rules",
-      "sendTo": "channel",
-      "channelToken": "{{channel.welcome}}",
-      "delayMs": 1500,
-      "content": "House rules are simple: be kind, debate ideas not folks, and leave slurs or harassment outside the gate. Tag spoilers so fresh delvers aren’t blindsided, and add alt-text on images and clips. The full code of conduct lives in {{channel.rules}}—give it a quick read before you clink mugs.",
-      "links": {
-        "rules": "{{channel.rules}}"
+      "id": "welcome.2.rules_and_roles",
+      "kind": "dm",
+      "targetChannelId": null,
+      "delayMs": 15000,
+      "content": {
+        "text": "Quick conduct notes:\n- Be kind; assume good intent.\n- Critique ideas, not people.\n- Keep it SFW.\n- No spoilers without tags.\nTo catch playtest news, opt into @Delver pings via the upcoming reaction-role post in #project-orchestration. While you wait, say hello in #tavern-talk.",
+        "attachments": []
       },
+      "actions": [
+        {
+          "type": "link",
+          "label": "Project Orchestration",
+          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#project-orchestration>",
+          "role": null
+        },
+        {
+          "type": "link",
+          "label": "Tavern Talk",
+          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#tavern-talk>",
+          "role": null
+        }
+      ],
       "reactions": [
-        "📜"
+        ":scroll:"
       ]
     },
     {
-      "id": "contribute",
-      "sendTo": "channel",
-      "channelToken": "{{channel.welcome}}",
-      "delayMs": 1500,
-      "content": "Want to pitch in? Share progress threads in {{channel.build_in_public}}, and sign up for playtests in {{channel.playtest_queue}}. Post short clips or screenshots with brief alt-text so feedback lands true.",
-      "links": {
-        "build_in_public": "{{channel.build_in_public}}",
-        "playtest_queue": "{{channel.playtest_queue}}"
+      "id": "welcome.3.how_to_contribute",
+      "kind": "dm",
+      "targetChannelId": null,
+      "delayMs": 30000,
+      "content": {
+        "text": "How to lend a hand today:\n1) Join the Hearthfire Roll Call thread and post: Focus | Commit | Blockers.\n2) Drop feedback in #feedback-triage with this template: [Area] [Brief] [Why it matters] [Repro/Sketch].\n3) Share art or lore in #art-audio-showcase or #lore-sparks. Small sparks welcome.",
+        "attachments": []
       },
+      "actions": [
+        {
+          "type": "link",
+          "label": "Open #feedback-triage",
+          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#feedback-triage>",
+          "role": null
+        },
+        {
+          "type": "link",
+          "label": "Open #build-in-public",
+          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#build-in-public>",
+          "role": null
+        }
+      ],
       "reactions": [
-        "🛠️",
-        "⛏️"
+        ":pick:",
+        ":hammer:"
       ]
     },
     {
-      "id": "sprint",
-      "sendTo": "channel",
-      "channelToken": "{{channel.welcome}}",
-      "delayMs": 1500,
-      "content": "Sprint 1 focus: core loop, basic combat, and mining feel—hammer to anvil. Watch {{channel.announcements}} for weekly threads, sign-ups, and patch notes so you can swing where it counts.",
-      "links": {
-        "announcements": "{{channel.announcements}}"
+      "id": "welcome.4.current_sprint",
+      "kind": "channel",
+      "targetChannelId": "<ID:#build-in-public>",
+      "delayMs": 45000,
+      "content": {
+        "text": "Welcome, {username}! Current sprint: {current_sprint}. Peek the latest build-in-public thread below and drop a hello or a question. We're glad you're here.",
+        "attachments": []
       },
+      "actions": [
+        {
+          "type": "link",
+          "label": "Latest weekly update",
+          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#build-in-public>/<THREAD_ID:weekly-update>",
+          "role": null
+        }
+      ],
       "reactions": [
-        "🧭"
+        ":sparkles:"
       ]
     },
     {
-      "id": "feedback",
-      "sendTo": "channel",
-      "channelToken": "{{channel.welcome}}",
-      "delayMs": 1500,
-      "content": "For feedback in {{channel.feedback_mine}}, start with clear notes and tags like [ui], [combat], [worldgen], [crafting], [audio], [lore]. For bugs in {{channel.bug_reports}}, include version/hash, seed, repro steps, and a 10–20s clip or GIF. Keep it friendly and concrete—helps us fix faster than a goblin can blink.",
-      "links": {
-        "feedback_mine": "{{channel.feedback_mine}}",
-        "bug_reports": "{{channel.bug_reports}}"
+      "id": "welcome.5.mine_mood",
+      "kind": "channel",
+      "targetChannelId": "<ID:#project-orchestration>",
+      "delayMs": 60000,
+      "content": {
+        "text": "Today's Mine Mood: {mine_mood_name} — {mine_mood_vibe}. Cast a reaction vote on the mood post to steer future vibes, and consider a quick Hearthfire Roll Call reply—even async is grand. The thread link is below.",
+        "attachments": []
       },
+      "actions": [
+        {
+          "type": "link",
+          "label": "Today's Roll Call thread",
+          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#project-orchestration>/<THREAD_ID:hearthfire-roll-call>/<MESSAGE_ID:today>",
+          "role": null
+        }
+      ],
       "reactions": [
-        "🧪",
-        "✅"
+        ":fire:"
       ]
     }
-  ],
-  "meta": {
-    "owner": "@theta",
-    "notes": [
-      "Authoritative v1 onboarding; bot posts five messages to {{channel.welcome}} in order.",
-      "Use delayMs to space posts: first at 0, then wait 1500ms between the rest.",
-      "After each post, add the listed reactions in order.",
-      "Replace {{channel.*}} tokens in channelToken, content, and links with server-specific channel mentions or IDs during deployment.",
-      "sendTo is fixed to channel for MVP; schema and key order are stable for simple parsing."
-    ]
-  }
+  ]
 }
