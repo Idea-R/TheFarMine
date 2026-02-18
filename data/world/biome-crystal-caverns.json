@@ -1,83 +1,151 @@
 {
   "version": 1,
   "id": "biome.crystal_caverns",
-  "name": "Crystal Caverns",
-  "dims": {
-    "w": 96,
-    "h": 64
+  "meta": {
+    "author": "beta",
+    "date": "2026-02-18T00:00:00Z",
+    "notes": "Mine Level 1: Crystal Caverns. Step G–H ready. Stable tile codes 1–11; quartz has faint cyan glow variants in deco. Walls are hard-stop at hardness 99 to prevent uncontrolled tunneling. Floor openness tuned for early-path readability."
   },
-  "approachDepth": 5,
-  "roomBudget": {
-    "min": 6,
-    "max": 10,
-    "weights": {
-      "tunnel": 5,
-      "cavern": 3,
-      "ore_pocket": 2
-    }
+  "palette_tokens": {
+    "glow_crystal": "effects.glow.crystal_soft",
+    "lamp_warm": "effects.glow.lamp_warm"
   },
-  "corridorJitter": {
-    "straightBias": 0.6,
-    "turnPenalty": 0.9,
-    "postApproachJitter": 0.18,
-    "maxExpansions": 12000
-  },
-  "ca": {
-    "enabled": true,
-    "iterations": 2,
-    "birthThreshold": 13,
-    "surviveThreshold": 12
-  },
-  "ore": {
-    "rates": {
-      "copper": 1.0,
-      "iron": 0.75,
-      "quartz": 0.35
+  "tiles": {
+    "rock": {
+      "code": 1,
+      "hardness": 1.0,
+      "tool_tier": "t0",
+      "break_yield": [
+        { "id": "mat.rock.rubble", "qty": [1, 3], "chance": 1.0 }
+      ],
+      "notes": "Base cave substrate; common fill outside carved corridors. Harvestable with starter tools."
     },
-    "veins": {
-      "minLen": 6,
-      "maxLen": 28,
-      "branchChance": 0.18,
-      "turnBias": 0.45,
-      "minFromDoor": 2,
-      "minFromLamp": 2
+    "floor": {
+      "code": 2,
+      "nav": { "walkable": true, "cost": 1 },
+      "notes": "Carved/open floor tile for traversal and anchor placement."
     },
-    "pedagogy": {
-      "copperNearDoorBonus": 1.6,
-      "ironDoorAvoidRadius": 5,
-      "quartzDepthBias": 0.05
+    "wall": {
+      "code": 3,
+      "hardness": 99.0,
+      "tool_tier": "t2",
+      "notes": "Solid boundary; generator may selectively carve. Effectively unmineable at Level 1."
+    },
+    "ore_copper": {
+      "code": 4,
+      "hardness": 1.4,
+      "tool_tier": "t1",
+      "drops": [
+        { "id": "mat.ore.copper", "qty": [1, 3], "chance": 1.0 }
+      ],
+      "cluster": { "base_radius": 3, "jitter": 1 },
+      "notes": "Common early-game ore. Slight bias to main-path margins per distribution rules."
+    },
+    "ore_iron": {
+      "code": 5,
+      "hardness": 1.8,
+      "tool_tier": "t1_5",
+      "drops": [
+        { "id": "mat.ore.iron", "qty": [1, 2], "chance": 1.0 }
+      ],
+      "cluster": { "base_radius": 2, "jitter": 1 },
+      "notes": "Less common ore. Prefers side caverns and larger components."
+    },
+    "ore_quartz": {
+      "code": 6,
+      "hardness": 1.6,
+      "tool_tier": "t1",
+      "drops": [
+        { "id": "mat.crystal.quartz", "qty": [1, 2], "chance": 1.0 }
+      ],
+      "notes": "Crystalline nodes in walls/ceilings. No large clusters; occurs as small pockets."
+    },
+    "spawn": {
+      "code": 7,
+      "notes": "Player spawn insertion; guaranteed reachable and lit baseline."
+    },
+    "exit": {
+      "code": 8,
+      "notes": "Level exit/transition anchor. Pathfinding target."
+    },
+    "lamp_anchor": {
+      "code": 9,
+      "notes": "Candidate anchor for lamp placement; prefers adjacency to walls."
+    },
+    "enemy_anchor": {
+      "code": 10,
+      "notes": "Enemy spawn anchor used by runtime spawn systems."
+    },
+    "deco_crystal": {
+      "code": 11,
+      "light_emit": { "radius_tiles": 4, "intensity": 0.35, "color_token": "effects.glow.crystal_soft" },
+      "notes": "Ambient glow crystal formation. Faint cyan light; avoid main path centerline."
     }
   },
-  "lamp": {
-    "spacingMin": 7,
-    "spacingMax": 11,
-    "avoidDoorDepth": 5,
-    "avoidLampRadius": 4,
-    "cavernBellyCount": {
-      "min": 1,
-      "max": 2
+  "distribution": {
+    "floor_open_ratio_target": { "min": 0.38, "max": 0.52 },
+    "ore": {
+      "copper": {
+        "density": 0.012,
+        "near_main_path": true,
+        "path_dist_tiles": [6, 18],
+        "wall_adjacency_required": true
+      },
+      "iron": {
+        "density": 0.004,
+        "near_main_path": false,
+        "side_cavern_bias": true,
+        "min_component_area": 24,
+        "wall_adjacency_required": true
+      },
+      "quartz": {
+        "density": 0.002,
+        "ceiling_bias": true,
+        "wall_adjacency_required": true
+      }
+    },
+    "deco": {
+      "crystals": {
+        "density": 0.006,
+        "min_separation": 3,
+        "avoid_main_path_margin": 2,
+        "light_emit": true
+      }
     }
   },
-  "spawn": {
-    "minFromDoor": 6,
-    "avoidLampRadius": 3,
-    "weights": {
-      "goblinCorridor": 1.0,
-      "burrowerCavern": 1.0
+  "lighting": {
+    "ambient": { "rgb": "#0b1020", "vignette_strength": 0.35 },
+    "lamps": { "preferred_spacing_tiles": [18, 26], "wall_preference": true, "color_token": "effects.glow.lamp_warm" }
+  },
+  "spawns": {
+    "enemies": [
+      { "id": "enemy.goblin.grunt", "weight": 70, "min_dist_from_start": 24, "min_dist_from_exit": 16, "near_path_bias": 0.4 },
+      { "id": "enemy.cave_burrower", "weight": 30, "min_dist_from_start": 28, "min_dist_from_exit": 20, "side_cavern_bias": 0.6 }
+    ],
+    "max_per_64x64": 10
+  },
+  "constraints": {
+    "three_wide_law": { "corridor_min_width": 3 },
+    "forbid_ore_on_path": true,
+    "forbid_deco_on_path": true,
+    "hardness_tiers": {
+      "t0": { "max_hardness": 1.1 },
+      "t1": { "max_hardness": 1.65 },
+      "t1_5": { "max_hardness": 1.9 },
+      "t2": { "max_hardness": 99.0 }
     }
   },
-  "audio": {
-    "ambienceBedId": "amb.biome.crystal_caverns.base.loopA",
-    "layers": [
-      "amb.layer.drip.sparse",
-      "amb.layer.crystal.resonance"
-    ]
+  "integration": {
+    "tile_codes_align_with_legend": true,
+    "ecs_spawn": { "ore_entity": "OreVein", "light_entity": "Light" },
+    "mining_audio_map": {
+      "rock": "event.MineHit.rock",
+      "copper": "event.MineHit.copper",
+      "iron": "event.MineHit.iron",
+      "quartz": "event.MineHit.quartz"
+    }
   },
-  "lore": {
-    "chapter": "m1_crystal_intro",
-    "blurb": "Glimmering walls and humming quartz veins guide new delvers; easy copper near doors, rarer riches deeper within."
-  },
-  "debug": {
-    "allowFallbackStraightCarve": true
+  "acceptance": {
+    "notes": "Validate that tile codes 1–11 are present and unique; densities within [0,0.05]; all hardness values >= 0; tool_tier in {\"t0\",\"t1\",\"t1_5\",\"t2\"}."
   }
 }
