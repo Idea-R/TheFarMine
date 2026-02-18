@@ -1,86 +1,78 @@
 {
   "version": 1,
-  "id": "biome.crystal.caverns",
+  "biomeId": "biome.crystal.caverns",
   "name": "Crystal Caverns",
-  "mapDefaults": {
-    "width": 96,
-    "height": 64
-  },
   "tiles": {
-    "floor": {
-      "tileType": "floor",
-      "hardness": 1
-    },
-    "rock": {
-      "tileType": "rock",
-      "hardness": 3
-    },
+    "floor": { "hardness": 0, "tileType": "floor" },
+    "rock": { "hardness": 3, "tileType": "rock" },
     "ore": {
-      "tileType": "rock.ore",
-      "baseHardness": 4,
+      "baseTileType": "rock.ore",
       "oreTypes": [
-        { "id": "ore.copper", "weight": 0.64 },
-        { "id": "ore.iron", "weight": 0.3 },
-        { "id": "shard.quartz", "weight": 0.06 }
-      ]
+        { "id": "ore.copper", "weight": 60, "hardnessDelta": 0 },
+        { "id": "ore.iron", "weight": 34, "hardnessDelta": 1 },
+        { "id": "shard.quartz", "weight": 6, "hardnessDelta": 2 }
+      ],
+      "laneClearanceTiles": 2
     }
+  },
+  "oreSeeding": {
+    "noise": { "octaves": 3, "scale": 0.12, "threshold": 0.58, "seedJitter": 7 },
+    "edgeBias": 0.25,
+    "candidates": {
+      "preferTemplateFlagged": true,
+      "adjacentToFloor": true
+    },
+    "clusters": {
+      "defaultMax": 5,
+      "byOre": [
+        { "id": "ore.copper", "min": 2, "max": 6 },
+        { "id": "ore.iron", "min": 2, "max": 5 },
+        { "id": "shard.quartz", "min": 1, "max": 3 }
+      ]
+    },
+    "limits": { "maxSeeds": 48 }
   },
   "lighting": {
     "ambientTintToken": "mapping.depthTint.l0",
     "lamps": {
-      "atDoors": true,
+      "tintToken": "mapping.lighting.lampWarm",
       "intervalTiles": 12,
-      "tintToken": "mapping.lighting.lampWarm"
+      "doorLampOffset": 1
     },
-    "crystalTintToken": "mapping.lighting.crystalCool"
-  },
-  "oreSeeding": {
-    "edgeBias": 0.7,
-    "noise": {
-      "octaves": 2,
-      "scale": 0.12,
-      "threshold": 0.58
-    },
-    "cluster": {
-      "min": 2,
-      "max": 6
-    },
-    "laneClearanceTiles": 1
+    "crystals": {
+      "tintToken": "mapping.lighting.crystalCool",
+      "spawnOnAlcoves": true
+    }
   },
   "decoration": {
     "crystalOnAlcove": true,
     "maxCrystals": 28,
-    "cluster": {
-      "min": 1,
-      "max": 3,
-      "minSeparation": 2
-    },
-    "props": [
-      { "kind": "crystal", "tintToken": "mapping.lighting.crystalCool" }
-    ]
+    "cluster": { "min": 1, "max": 3 },
+    "minSeparationTiles": 4
   },
   "spawnRules": {
-    "enemyWeights": {
-      "enemy.goblin.grunt": 0.6,
-      "enemy.cave.burrower": 0.4
-    },
-    "minSeparationTiles": 8,
     "preferCorridors": true,
-    "doorExclusionRadius": 6
+    "doorExclusionRadius": 6,
+    "minSeparationTiles": 7,
+    "sampleEveryTiles": 6,
+    "enemyWeights": [
+      { "id": "enemy.goblin.grunt", "weight": 7 },
+      { "id": "enemy.cave.burrower", "weight": 3 }
+    ]
   },
   "minimap": {
     "tokens": {
+      "bg": "minimap.bg",
       "room": "minimap.room",
       "corridor": "minimap.corridor",
-      "player": "minimap.player",
-      "enemy": "minimap.enemy",
       "ore": "minimap.ore",
-      "bg": "minimap.bg"
+      "player": "minimap.player",
+      "enemy": "minimap.enemy"
     }
   },
-  "notes": [
-    "Quartz is rare here. It can appear as rock.ore with very low weight; per Crafting §6, its effective hardness should gate to T3 (Steam Drill). For MVP, engines may treat shard.quartz ore tiles with hardness=baseHardness+2 (implementation detail in Mining/Worldgen); alternatively keep weight low and rely on loot/decor.",
-    "Corridors observe the Three-wide Law. Lamps spawn at doors and ~every 12 tiles to keep lanes lit.",
-    "Hardness contract: floor 0–1, rock 3, copper seam ~4, iron seam ~5, quartz seam ~6–7 (if present)."
-  ]
+  "tuning": {
+    "roomAttempts": 14,
+    "corridor": { "turnCost": 0.22 },
+    "ca": { "iterations": 1 }
+  }
 }
