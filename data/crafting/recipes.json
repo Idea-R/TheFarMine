@@ -1,42 +1,71 @@
 [
   {
-    "id": "recipe.tool.pick.t1.basic",
-    "name": "Forge Basic Pickaxe",
-    "stationId": "station.workbench.t1",
+    "id": "recipe.smelting.iron_ingot",
+    "name": "Smelt Iron Ingot",
+    "station": "forge",
     "stationTier": 1,
-    "timeMs": 1500,
+    "timeMs": 4000,
     "inputs": [
-      { "id": "mat.ore.copper", "qty": 8 },
-      { "id": "mat.scrap.copper", "qty": 2 }
+      {
+        "id": "mat.ore.iron",
+        "qty": 3
+      }
     ],
-    "outputs": [ { "id": "tool.pick.t1.basic", "qty": 1 } ],
-    "unlock": { "knownByDefault": true }
+    "output": {
+      "id": "mat.ingot.iron",
+      "qty": 1
+    },
+    "unlockedBy": "known",
+    "notes": [
+      "Baseline smelt ratio 3:1 (ore→ingot)",
+      "Feeds Reinforced Pick recipe"
+    ]
   },
   {
-    "id": "recipe.tool.pick.t2.reinforced",
-    "name": "Forge Reinforced Pickaxe",
-    "stationId": "station.forge.t2",
-    "stationTier": 2,
-    "timeMs": 2000,
+    "id": "recipe.smelting.copper_ingot",
+    "name": "Smelt Copper Ingot",
+    "station": "forge",
+    "stationTier": 1,
+    "timeMs": 3500,
     "inputs": [
-      { "id": "mat.ore.iron", "qty": 8 },
-      { "id": "mat.ore.copper", "qty": 4 }
+      {
+        "id": "mat.ore.copper",
+        "qty": 3
+      }
     ],
-    "outputs": [ { "id": "tool.pick.t2.reinforced", "qty": 1 } ],
-    "unlock": { "knownByDefault": false }
+    "output": {
+      "id": "mat.ingot.copper",
+      "qty": 1
+    },
+    "unlockedBy": "known",
+    "notes": [
+      "Pedagogy smelt; supports future bronze branch"
+    ]
   },
   {
-    "id": "recipe.tool.drill.t3.steam",
-    "name": "Assemble Steam Drill",
-    "stationId": "station.steamworks.t3",
-    "stationTier": 3,
-    "timeMs": 2400,
+    "id": "recipe.crafting.pick_reinforced",
+    "name": "Craft Reinforced Pickaxe",
+    "station": "workbench",
+    "stationTier": 1,
+    "timeMs": 5000,
     "inputs": [
-      { "id": "mat.ore.iron", "qty": 6 },
-      { "id": "mat.crystal.quartz", "qty": 2 },
-      { "id": "mat.core.steam", "qty": 1 }
+      {
+        "id": "mat.ingot.iron",
+        "qty": 2
+      },
+      {
+        "id": "mat.wood.shaft",
+        "qty": 1
+      }
     ],
-    "outputs": [ { "id": "tool.drill.t3.steam", "qty": 1 } ],
-    "unlock": { "knownByDefault": false }
+    "output": {
+      "id": "tool.pick.t2.reinforced",
+      "qty": 1
+    },
+    "unlockedBy": "known",
+    "notes": [
+      "Computable path from starter pick: mine → smelt iron → craft pick",
+      "Wood Shaft sourced via vendor or stub recipe later"
+    ]
   }
 ]
