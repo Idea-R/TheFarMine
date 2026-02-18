@@ -10,7 +10,7 @@
     "durabilityMax": 60,
     "durabilityPerHit": 1,
     "swingMs": 300,
-    "notes": ["Gates: rock(3), copper(4)"]
+    "notes": ["Starter kit; teaches gates 3/4", "Heavier stamina tax"]
   },
   {
     "id": "tool.pick.t2.reinforced",
@@ -23,7 +23,7 @@
     "durabilityMax": 120,
     "durabilityPerHit": 1,
     "swingMs": 300,
-    "notes": ["Adds iron(5)"]
+    "notes": ["Iron gate opener", "Smoother cadence vs T1"]
   },
   {
     "id": "tool.drill.t3.steam",
@@ -36,6 +36,6 @@
     "durabilityMax": 200,
     "durabilityPerHit": 1,
     "swingMs": 220,
-    "notes": ["Adds quartz(7)", "Craft requires Steam Core; no runtime fuel in MVP"]
+    "notes": ["Requires Steam Core to craft (no runtime fuel in MVP)", "Lower stamina; brisk cadence"]
   }
 ]
