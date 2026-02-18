@@ -1,426 +1,357 @@
 {
-  "version": 1,
-  "meta": {
-    "author": "delta",
-    "updated": "2026-02-18T00:00:00Z",
-    "notes": [
-      "Strict JSON UTF-8; no comments; top-level keys ordered: version, meta, kinds, common_fields, kind_fields, validation_rules, examples.",
-      "Schema is authoritative for MVP; loaders/validators consume this bespoke map (not JSON Schema draft-07).",
-      "DEV mode rejects on violation; PROD clamps to bounds then warns (parity with component schemas).",
-      "IDs are lowercase, dot-delimited, and stable across versions.",
-      "Tools must have stack_size=1.",
-      "Explicit mapping tool.mining_power → tile.hardness bands (0=floor, 3=rock, 4=ore.copper, 5=ore.iron, 7=ore.quartz) aligned with data/core/component-schemas.json.",
-      "Material_type 'ore' must carry tag 'ore'.",
-      "Rarity informs drop weights but is non-functional in MVP.",
-      "Cross-ref: data/core/component-schemas.json defines tile.hardness bands and clamps used by mining.",
-      "Cross-ref: data/crafting/recipes.json inputs/outputs must reference valid item ids described by this schema.",
-      "Cross-ref: docs/technology-systems/crafting-design.md contains balancing/tuning notes used alongside this schema."
-    ]
-  },
-  "kinds": [
-    "material",
-    "tool",
-    "component",
-    "consumable"
-  ],
-  "common_fields": {
-    "id": {
-      "name": "id",
-      "type": "string",
-      "required": true,
-      "default": "",
-      "min": null,
-      "max": null,
-      "enum": [],
-      "notes": [
-        "lowercase dot-delimited, stable"
-      ]
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://thefarmine.dev/schemas/item-schema-v1.json",
+  "title": "The Far Mine — Item Schema v1",
+  "description": "Strict schema for item definitions consumed by the MVP data loader. Aligns with P4 contracts and current IDs. Validates base Item shape and subtypes: tool, material, component, consumable.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Data format version for item records. Must be 1 for this MVP."
     },
-    "name": {
-      "name": "name",
+    "id": {
       "type": "string",
-      "required": true,
-      "default": "",
-      "min": null,
-      "max": 48,
-      "enum": [],
-      "notes": [
-        "≤48 chars for UI"
-      ]
+      "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$",
+      "description": "Stable item identifier. Lowercase dot-delimited path, segments may include underscore after the first. Example: tool.pick.t0.starter"
     },
     "kind": {
-      "name": "kind",
       "type": "string",
-      "required": true,
-      "default": "material",
-      "min": null,
-      "max": null,
-      "enum": [
-        "material",
-        "tool",
-        "component",
-        "consumable"
-      ],
-      "notes": []
+      "enum": ["tool", "material", "component", "consumable"],
+      "description": "Discriminator for item subtype. MVP uses tool and material; component and consumable are allowed for forward compatibility."
     },
-    "stack_size": {
-      "name": "stack_size",
-      "type": "int",
-      "required": true,
-      "default": 1,
-      "min": 1,
-      "max": 999,
-      "enum": [],
-      "notes": [
-        "tools shall have stack_size=1"
-      ]
+    "name": {
+      "type": "string",
+      "maxLength": 48,
+      "description": "Display name (<= 48 chars)."
     },
-    "weight": {
-      "name": "weight",
-      "type": "number",
-      "required": true,
-      "default": 1.0,
-      "min": 0.0,
-      "max": 100.0,
-      "enum": [],
-      "notes": [
-        "abstract weight for carry constraints (future)"
-      ]
-    },
-    "value": {
-      "name": "value",
-      "type": "int",
-      "required": true,
-      "default": 0,
-      "min": 0,
-      "max": 100000,
-      "enum": [],
-      "notes": [
-        "shop/currency hooks later"
-      ]
+    "description": {
+      "type": "string",
+      "maxLength": 160,
+      "description": "Optional short description or flavor text (<= 160 chars)."
     },
     "tags": {
-      "name": "tags",
-      "type": "array<string>",
-      "required": false,
-      "default": [],
-      "min": 0,
-      "max": 32,
-      "enum": [],
-      "notes": [
-        "free-form grouping: ['ore','wood','binding']"
-      ]
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "description": "Optional classification tags for UI/logic such as ore, metal, wood, craft_only, non_drop."
+    },
+    "stack_size": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Stacking capacity. For tools must be exactly 1. For non-tools typically 20–99."
+    },
+    "icon_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional UI icon token id."
+    },
+    "rarity": {
+      "type": "string",
+      "enum": ["common", "uncommon", "rare", "epic"],
+      "default": "common",
+      "description": "Optional rarity tier. Defaults to common if omitted."
+    },
+
+    "subtype": {
+      "type": "string",
+      "enum": ["pickaxe", "drill", "hammer"],
+      "description": "Tool subtype. MVP uses pickaxe."
+    },
+    "tier": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Tool tier (>= 0). T0 starter, T1 copper, T2 reinforced, T3 steel (future)."
+    },
+    "durability": {
+      "$ref": "#/$defs/Durability"
+    },
+    "mining": {
+      "$ref": "#/$defs/Mining"
+    },
+    "combat": {
+      "$ref": "#/$defs/Combat"
+    },
+    "tool_effects": {
+      "type": "object",
+      "properties": {
+        "can_mine": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "description": "List of ore/rock tags the tool can break (e.g., rock.t0, ore.copper, ore.iron.t1p) for UI gating."
+        }
+      },
+      "required": ["can_mine"],
+      "additionalProperties": false
+    },
+    "weight": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Optional mass for future encumbrance systems."
+    },
+    "equip_slot": {
+      "type": "string",
+      "const": "hands",
+      "description": "Equip slot. MVP tools use hands."
+    },
+    "repair": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "costs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/QtyRef" },
+          "minItems": 1,
+          "description": "If repairs are enabled, the cost items required."
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": false,
+      "description": "Repair configuration. MVP may disable repairs."
+    },
+
+    "material_type": {
+      "type": "string",
+      "enum": ["ore", "ingot", "binding", "wood", "crystal", "scrap"],
+      "description": "Material classification."
+    },
+    "value": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional economy stub value in base units."
+    },
+    "drops_from": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/IdRef" },
+      "uniqueItems": true,
+      "description": "Documentary references to node/enemy sources (e.g., node.ore.copper, enemy.goblin.grunt)."
+    },
+
+    "component_type": {
+      "type": "string",
+      "enum": ["binding", "haft", "mechanism", "lens"],
+      "description": "Component classification."
+    },
+
+    "effect_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$",
+      "description": "Consumable effect identifier (e.g., consumable.buff.stamina)."
+    },
+    "duration_sec": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Duration in seconds for time-based consumable effects."
     }
   },
-  "kind_fields": {
-    "material": [
-      {
-        "name": "material_type",
-        "type": "string",
-        "required": true,
-        "default": "ore",
-        "min": null,
-        "max": null,
-        "enum": [
-          "ore",
-          "wood",
-          "scrap",
-          "gem",
-          "alloy"
-        ],
-        "notes": [
-          "used by drop/generator rules"
-        ]
+  "required": ["version", "id", "kind", "name"],
+  "additionalProperties": false,
+
+  "allOf": [
+    {
+      "if": {
+        "properties": { "kind": { "const": "tool" } },
+        "required": ["kind"]
       },
-      {
-        "name": "rarity",
-        "type": "string",
-        "required": true,
-        "default": "common",
-        "min": null,
-        "max": null,
-        "enum": [
-          "common",
-          "uncommon",
-          "rare"
-        ],
-        "notes": []
-      },
-      {
-        "name": "node_ids",
-        "type": "array<string>",
-        "required": false,
-        "default": [],
-        "min": 0,
-        "max": 16,
-        "enum": [],
-        "notes": [
-          "resource nodes that can drop this (e.g., 'node.ore.copper.vein')"
-        ]
-      }
-    ],
-    "component": [
-      {
-        "name": "component_type",
-        "type": "string",
-        "required": true,
-        "default": "binding",
-        "min": null,
-        "max": null,
-        "enum": [
-          "binding",
-          "shaft",
-          "gear",
-          "plate"
-        ],
-        "notes": []
-      },
-      {
-        "name": "grade",
-        "type": "int",
-        "required": false,
-        "default": 1,
-        "min": 1,
-        "max": 5,
-        "enum": [],
-        "notes": []
-      }
-    ],
-    "tool": [
-      {
-        "name": "tool_type",
-        "type": "string",
-        "required": true,
-        "default": "pick",
-        "min": null,
-        "max": null,
-        "enum": [
-          "pick",
-          "drill"
-        ],
-        "notes": [
-          "MVP uses 'pick'"
-        ]
-      },
-      {
-        "name": "tier",
-        "type": "int",
-        "required": true,
-        "default": 1,
-        "min": 0,
-        "max": 5,
-        "enum": [],
-        "notes": [
-          "0=starter, 1=copper/bronze, 2=reinforced, etc."
-        ]
-      },
-      {
-        "name": "mining_power",
-        "type": "int",
-        "required": true,
-        "default": 1,
-        "min": 0,
-        "max": 20,
-        "enum": [],
-        "notes": [
-          "compared against tile.hardness bands: 0(floor),3(rock),4(ore.copper),5(ore.iron),7(ore.quartz)"
-        ]
-      },
-      {
-        "name": "mining_speed",
-        "type": "number",
-        "required": true,
-        "default": 1.0,
-        "min": 0.1,
-        "max": 10.0,
-        "enum": [],
-        "notes": [
-          "tiles/sec vs base rock (UI pacing)"
-        ]
-      },
-      {
-        "name": "durability_max",
-        "type": "int",
-        "required": true,
-        "default": 100,
-        "min": 1,
-        "max": 9999,
-        "enum": [],
-        "notes": []
-      },
-      {
-        "name": "stamina_per_swing",
-        "type": "int",
-        "required": true,
-        "default": 8,
-        "min": 0,
-        "max": 100,
-        "enum": [],
-        "notes": [
-          "sync with combat stamina model"
-        ]
-      },
-      {
-        "name": "repairable",
-        "type": "boolean",
-        "required": true,
-        "default": false,
-        "min": null,
-        "max": null,
-        "enum": [],
-        "notes": [
-          "MVP may keep false to avoid repair loop"
-        ]
-      },
-      {
-        "name": "allowed_tile_types",
-        "type": "array<string>",
-        "required": false,
-        "default": [],
-        "min": 0,
-        "max": 16,
-        "enum": [
-          "rock",
-          "floor",
-          "ore.copper",
-          "ore.iron",
-          "ore.quartz"
-        ],
-        "notes": [
-          "optional override; otherwise infer from mining_power"
-        ]
-      }
-    ],
-    "consumable": [
-      {
-        "name": "effect_id",
-        "type": "string",
-        "required": true,
-        "default": "",
-        "min": null,
-        "max": null,
-        "enum": [],
-        "notes": [
-          "future hook; unused in MVP"
-        ]
-      },
-      {
-        "name": "duration_ms",
-        "type": "int",
-        "required": false,
-        "default": 0,
-        "min": 0,
-        "max": 3600000,
-        "enum": [],
-        "notes": []
-      }
-    ]
-  },
-  "validation_rules": {
-    "id_rules": [
-      "lowercase",
-      "dot-delimited",
-      "stable across versions"
-    ],
-    "tool_invariants": [
-      "tools must have stack_size=1",
-      "tool.mining_power gates tile.hardness: must be ≥ hardness to damage tile",
-      "stamina_per_swing integrates with stamina component; if player stamina < cost, mining fails",
-      "durability_max ≥ 1; runtime decrements per swing; on 0, disable mining actions"
-    ],
-    "material_invariants": [
-      "material_type 'ore' must carry tag 'ore'",
-      "rarity informs drop weights but is non-functional in MVP"
-    ],
-    "cross_refs": [
-      "data/core/component-schemas.json: tile.hardness bands",
-      "data/crafting/recipes.json: inputs/outputs must reference valid item ids",
-      "docs/technology-systems/crafting-design.md: tuning notes"
-    ],
-    "numeric_clamps": {
-      "mining_power": {
-        "min": 0,
-        "max": 20
-      },
-      "mining_speed": {
-        "min": 0.1,
-        "max": 10.0
-      },
-      "stamina_per_swing": {
-        "min": 0,
-        "max": 100
-      },
-      "durability_max": {
-        "min": 1,
-        "max": 9999
-      },
-      "stack_size": {
-        "min": 1,
-        "max": 999
+      "then": {
+        "properties": { "stack_size": { "const": 1 } },
+        "required": ["stack_size"]
       }
     }
+  ],
+
+  "oneOf": [
+    {
+      "title": "Tool",
+      "properties": {
+        "kind": { "const": "tool" }
+      },
+      "required": ["subtype", "tier", "durability", "mining", "equip_slot", "stack_size"],
+      "additionalProperties": true
+    },
+    {
+      "title": "Material",
+      "properties": {
+        "kind": { "const": "material" }
+      },
+      "required": ["material_type", "stack_size"],
+      "allOf": [
+        {
+          "not": {
+            "anyOf": [
+              { "required": ["durability"] },
+              { "required": ["mining"] },
+              { "required": ["combat"] },
+              { "required": ["equip_slot"] }
+            ]
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    {
+      "title": "Component",
+      "properties": {
+        "kind": { "const": "component" }
+      },
+      "required": ["component_type", "stack_size"],
+      "allOf": [
+        {
+          "not": {
+            "anyOf": [
+              { "required": ["durability"] },
+              { "required": ["mining"] }
+            ]
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    {
+      "title": "Consumable",
+      "properties": {
+        "kind": { "const": "consumable" }
+      },
+      "required": ["effect_id", "duration_sec", "stack_size"],
+      "allOf": [
+        {
+          "not": {
+            "anyOf": [
+              { "required": ["durability"] },
+              { "required": ["mining"] }
+            ]
+          }
+        }
+      ],
+      "additionalProperties": true
+    }
+  ],
+
+  "$defs": {
+    "IdRef": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$",
+      "description": "Identifier reference. Lowercase dot path with underscores allowed after the first segment."
+    },
+    "QtyRef": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/IdRef" },
+        "qty": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": ["id", "qty"],
+      "additionalProperties": false,
+      "description": "Reference to an item and a positive quantity."
+    },
+    "Durability": {
+      "type": "object",
+      "properties": {
+        "max": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum durability as stored in data."
+        },
+        "current": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Runtime field; when present must be <= max (enforced at runtime)."
+        }
+      },
+      "required": ["max"],
+      "additionalProperties": false,
+      "description": "Durability stats for tools."
+    },
+    "Mining": {
+      "type": "object",
+      "properties": {
+        "power": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Mining power. Compared to TileData.hardness; power >= hardness allows progress. Sub-threshold may increase durability loss in future rules. Mapped to MineHitEvent.power."
+        },
+        "speed": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Swing rate in swings/sec (hits/sec). UI may derive time-per-tile ~= hardness/power adjusted."
+        },
+        "stamina_cost": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Stamina consumed per swing; aligns with Gamma defaults where applicable."
+        }
+      },
+      "required": ["power", "speed", "stamina_cost"],
+      "additionalProperties": false,
+      "description": "Mining performance characteristics. ECS mapping: MineHitEvent.power sourced from mining.power."
+    },
+    "Combat": {
+      "type": "object",
+      "properties": {
+        "damage_base": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Base damage if used as a weapon."
+        },
+        "poise_damage": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Poise/stagger damage if used as a weapon."
+        }
+      },
+      "required": ["damage_base", "poise_damage"],
+      "additionalProperties": false,
+      "description": "Optional combat stats for tools doubling as weapons."
+    }
   },
+
   "examples": [
     {
-      "id": "mat.ore.copper",
-      "name": "Copper Ore",
-      "kind": "material",
+      "version": 1,
+      "id": "tool.pick.t0.starter",
+      "kind": "tool",
+      "name": "Starter Pickaxe",
+      "description": "A basic pick for soft stone.",
+      "tags": ["tool", "pickaxe", "starter"],
       "stack_size": 1,
-      "weight": 1.0,
-      "value": 0,
-      "tags": [
-        "ore"
-      ],
-      "material_type": "ore",
       "rarity": "common",
-      "node_ids": [
-        "node.ore.copper.vein"
-      ]
+      "subtype": "pickaxe",
+      "tier": 0,
+      "durability": { "max": 50 },
+      "mining": { "power": 1.0, "speed": 1.2, "stamina_cost": 5 },
+      "equip_slot": "hands",
+      "tool_effects": { "can_mine": ["rock.t0", "ore.copper"] }
     },
     {
+      "version": 1,
+      "id": "mat.ore.copper",
+      "kind": "material",
+      "name": "Copper Ore",
+      "tags": ["ore", "metal"],
+      "material_type": "ore",
+      "stack_size": 99,
+      "value": 3,
+      "drops_from": ["node.ore.copper"]
+    },
+    {
+      "version": 1,
       "id": "mat.binding.copper",
-      "name": "Copper Binding",
       "kind": "component",
-      "stack_size": 1,
-      "weight": 1.0,
-      "value": 0,
-      "tags": [
-        "binding"
-      ],
+      "name": "Copper Binding",
       "component_type": "binding",
-      "grade": 1
-    },
-    {
-      "id": "tool.pick.t1.copper",
-      "name": "Copper Pickaxe T1",
-      "kind": "tool",
-      "stack_size": 1,
-      "weight": 1.0,
-      "value": 0,
-      "tags": [],
-      "tool_type": "pick",
-      "tier": 1,
-      "mining_power": 4,
-      "mining_speed": 1.1,
-      "durability_max": 120,
-      "stamina_per_swing": 8,
-      "repairable": false
-    },
-    {
-      "id": "tool.pick.t2.reinforced",
-      "name": "Reinforced Pickaxe T2",
-      "kind": "tool",
-      "stack_size": 1,
-      "weight": 1.0,
-      "value": 0,
-      "tags": [],
-      "tool_type": "pick",
-      "tier": 2,
-      "mining_power": 5,
-      "mining_speed": 1.2,
-      "durability_max": 180,
-      "stamina_per_swing": 9,
-      "repairable": false
+      "stack_size": 50,
+      "value": 2
     }
-    ]
+  ]
 }
