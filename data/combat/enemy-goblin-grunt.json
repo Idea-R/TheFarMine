@@ -1,196 +1,202 @@
 {
   "version": 1,
   "id": "enemy.goblin.grunt",
-  "meta": {
-    "author": "gamma",
-    "date": "2026-02-18",
-    "notes": "Goblin Grunt baseline per combat design §11 and §14. Tuned for ~30s solo TTK vs Pickaxe T0; verify in Cave-Start encounter mix."
+  "name": "Goblin Grunt",
+  "faction": "faction.goblin",
+  "sprite_id": "sprite.enemy.goblin_grunt.t0",
+  "defense": 0,
+  "health": {
+    "max": 130,
+    "regen_per_sec": 0
   },
-  "visuals": {
-    "sprite_id": "sprite.enemy.goblin.grunt",
-    "scale": 1.0,
-    "telegraph_color_token": "telegraph.arc.amber",
-    "additionalProperties": false
-  },
-  "audio": {
-    "telegraph_start_sfx": "event.Combat.telegraph.start",
-    "poise_break_sfx": "event.Combat.poise.break",
-    "swing_light_sfx": "event.Combat.swing.light",
-    "hit_light_sfx": "event.Combat.hit.light",
-    "block_impact_sfx": "event.Combat.block.impact",
-    "additionalProperties": false
-  },
-  "stats": {
-    "health": {
-      "max": 140,
-      "additionalProperties": false
-    },
-    "defense": 1,
-    "damage_multiplier": 1.0,
-    "poise": {
-      "max": 40,
-      "recover_per_sec": 9,
-      "break_duration_ms": 700,
-      "additionalProperties": false
-    },
-    "additionalProperties": false
+  "poise": {
+    "max": 40,
+    "recover_per_sec": 9,
+    "break_stun_ms": 700,
+    "break_cooldown_ms": 1000
   },
   "movement": {
-    "approach_range_px": 22,
-    "leash_range_px": 160,
-    "move_speed_pxps": 48,
-    "strafe_chance": 0.25,
-    "retreat_threshold_hp_ratio": 0.15,
-    "additionalProperties": false
+    "speed_px_per_s": 60,
+    "approach_dist_px": {
+      "min": 28,
+      "max": 40
+    },
+    "retreat_threshold_hp_pct": 20
   },
   "ai": {
-    "behavior": "melee_grunt",
-    "target_acquire_range_px": 200,
     "attack_weights": {
       "jab": 0.6,
-      "slash": 0.4,
-      "additionalProperties": false
+      "slash": 0.4
     },
-    "min_attack_interval_ms": 800,
+    "min_attack_cooldown_ms": 900,
+    "max_attack_cooldown_ms": 1300,
     "feint_chance": 0.08,
-    "parry_bait_bias": 0.0,
-    "windup_jitter_ms": 40,
-    "post_attack_backoff_ms": 180,
-    "additionalProperties": false
+    "reengage_after_miss_ms": 800
   },
   "attacks": [
     {
       "id": "jab",
       "name": "Jab",
-      "geometry": {
-        "range_px": 34,
-        "arc_deg": 50,
-        "multiHit": false,
-        "additionalProperties": false
-      },
-      "timings": {
-        "windup_ms": 300,
-        "active_ms": 70,
-        "recovery_ms": 260,
-        "cooldown_ms": 420,
-        "additionalProperties": false
-      },
-      "staminaCost": 0,
-      "poiseDamage": 10,
-      "damageBase": 9,
-      "hitStop": {
-        "attackerMs": 10,
-        "victimMs": 22,
-        "additionalProperties": false
+      "damage_base": 6,
+      "poise_damage": 10,
+      "timing_ms": {
+        "windup": 260,
+        "active": 70,
+        "recovery": 260
       },
       "telegraph": {
-        "flashAtMs": -110,
-        "colorToken": "telegraph.arc.amber",
-        "arcOverlay": true,
-        "additionalProperties": false
+        "flashAtMs": -160,
+        "color_token": "telegraph.arc.amber",
+        "arc_deg": 40,
+        "range_px": 36
       },
-      "onHit": {
-        "knockbackPx": 8,
-        "applyStagger": "light",
-        "additionalProperties": false
+      "hitstop_ms": {
+        "attacker": 10,
+        "victim": 22
       },
-      "sfxOverrides": {
-        "swing": "event.Combat.swing.light",
-        "hit": "event.Combat.hit.light",
-        "additionalProperties": false
-      },
-      "acceptance": {
-        "clamps": true,
-        "notes": [
-          "Windup and cooldown balanced with ai.min_attack_interval_ms to prevent unavoidable chains.",
-          "Short arc and range adhere to melee_grunt close-quarters role."
-        ],
-        "additionalProperties": false
-      },
-      "additionalProperties": false
+      "sfx": {
+        "telegraph": "sfx.combat.telegraph.goblin",
+        "hit": "sfx.combat.hit.goblin"
+      }
     },
     {
       "id": "slash",
-      "name": "Wide Slash",
-      "geometry": {
-        "range_px": 38,
-        "arc_deg": 80,
-        "multiHit": false,
-        "additionalProperties": false
-      },
-      "timings": {
-        "windup_ms": 360,
-        "active_ms": 90,
-        "recovery_ms": 320,
-        "cooldown_ms": 520,
-        "additionalProperties": false
-      },
-      "staminaCost": 0,
-      "poiseDamage": 12,
-      "damageBase": 12,
-      "hitStop": {
-        "attackerMs": 12,
-        "victimMs": 26,
-        "additionalProperties": false
+      "name": "Slash",
+      "damage_base": 8,
+      "poise_damage": 14,
+      "timing_ms": {
+        "windup": 360,
+        "active": 90,
+        "recovery": 320
       },
       "telegraph": {
-        "flashAtMs": -120,
-        "colorToken": "telegraph.arc.amber",
-        "arcOverlay": true,
-        "additionalProperties": false
+        "flashAtMs": -200,
+        "color_token": "telegraph.arc.amber",
+        "arc_deg": 90,
+        "range_px": 42
       },
-      "onHit": {
-        "knockbackPx": 12,
-        "applyStagger": "light",
-        "additionalProperties": false
+      "hitstop_ms": {
+        "attacker": 16,
+        "victim": 30
       },
-      "sfxOverrides": {
-        "swing": "event.Combat.swing.light",
-        "hit": "event.Combat.hit.light",
-        "additionalProperties": false
-      },
-      "acceptance": {
-        "clamps": true,
-        "notes": [
-          "Wider coverage trades longer recovery to maintain counterplay windows.",
-          "Telegraph flash aligns at -120ms relative to active start."
-        ],
-        "additionalProperties": false
-      },
-      "additionalProperties": false
+      "sfx": {
+        "telegraph": "sfx.combat.telegraph.goblin",
+        "hit": "sfx.combat.hit.goblin"
+      }
     }
   ],
-  "loot": {
-    "xp": 6,
-    "table": [
-      {
-        "id": "mat.scrap.metal",
-        "qty": [
-          1,
-          2
-        ],
-        "chance": 0.35,
-        "additionalProperties": false
-      },
+  "loot_table": {
+    "currency_min": 1,
+    "currency_max": 5,
+    "drops": [
       {
         "id": "mat.ore.copper",
-        "qty": [
-          0,
-          1
-        ],
-        "chance": 0.2,
-        "additionalProperties": false
+        "weight": 35,
+        "qty_min": 1,
+        "qty_max": 2
+      },
+      {
+        "id": "mat.scrap.leather",
+        "weight": 25,
+        "qty_min": 1,
+        "qty_max": 1
+      },
+      {
+        "id": "mat.scrap.cloth",
+        "weight": 20,
+        "qty_min": 1,
+        "qty_max": 2
+      },
+      {
+        "id": "mat.shard.flint",
+        "weight": 20,
+        "qty_min": 1,
+        "qty_max": 1
       }
-    ],
-    "additionalProperties": false
+    ]
   },
-  "acceptance": {
-    "notes": [
-      "TTK ~25–35s vs player with pickaxe_t0 under mixed_chain.",
-      "TelegraphStartEvent fires at windup + flashAtMs; flashAtMs negative.",
-      "PoiseBreakEvent emitted when poise ≤ 0 with duration_ms=700."
+  "tuning_notes": "Baseline L1 goblin for MVP. No defense; low poise with fast recovery. Amber telegraph arcs and goblin SFX. AI favors quick jabs with occasional wider slash. Targets 25–35 s TTK vs Pickaxe_T0 with intermittent stagger windows.",
+  "acceptance_targets": {
+    "ttk_sec": [
+      25,
+      35
     ],
-    "additionalProperties": false
+    "stagger_window_sec": [
+      0.7,
+      1.1
+    ]
   },
-  "additionalProperties": false
+  "_meta": {
+    "doc": "Schema-less enemy definition used by combat runtime. All IDs are stable tokens. Numeric units: ms for timing, px for range/positions.",
+    "fields": {
+      "version": "Integer schema version for this data blob.",
+      "id": "Stable token ID for this enemy.",
+      "name": "Short display name.",
+      "faction": "Faction token used for AI aggro/ally logic.",
+      "sprite_id": "Art/sprite token (Eta pipeline).",
+      "defense": "Flat damage reduction applied after mitigation (>=0).",
+      "health": {
+        "max": "Max HP.",
+        "regen_per_sec": "HP per second regen (float)."
+      },
+      "poise": {
+        "max": "Poise capacity before break.",
+        "recover_per_sec": "Poise recovery per second while not recently broken.",
+        "break_stun_ms": "Stun duration applied on PoiseBreakEvent.",
+        "break_cooldown_ms": "Cooldown after a break before poise can break again."
+      },
+      "movement": {
+        "speed_px_per_s": "Ground speed in pixels per second.",
+        "approach_dist_px": "Preferred distance band to maintain from target.",
+        "retreat_threshold_hp_pct": "Retreat behavior if HP% <= this value."
+      },
+      "ai": {
+        "attack_weights": "Roll weights for attack selection; normalized at runtime.",
+        "min_attack_cooldown_ms": "Lower bound of post-attack cooldown roll.",
+        "max_attack_cooldown_ms": "Upper bound of post-attack cooldown roll.",
+        "feint_chance": "Probability [0..1] to cancel before active frames.",
+        "reengage_after_miss_ms": "Delay before re-approach after a miss/whiff."
+      },
+      "attacks": {
+        "id": "Local token for the attack.",
+        "name": "Display name for UI/log.",
+        "damage_base": "Base damage before defense.",
+        "poise_damage": "Poise damage applied on hit.",
+        "timing_ms": {
+          "windup": "Startup before active frames.",
+          "active": "Active hit window duration.",
+          "recovery": "Post-attack recovery lockout."
+        },
+        "telegraph": {
+          "flashAtMs": "Relative time (negative) from windup start to fire TelegraphStartEvent; actual = windup + flashAtMs.",
+          "color_token": "VFX color token for arc flashing.",
+          "arc_deg": "Sweep arc used for telegraph and hit shape.",
+          "range_px": "Effective reach in pixels."
+        },
+        "hitstop_ms": {
+          "attacker": "Hitstop applied to attacker on hit.",
+          "victim": "Hitstop applied to victim on hit."
+        },
+        "sfx": {
+          "telegraph": "Sound to play at TelegraphStartEvent.",
+          "hit": "Sound to play on DamageEvent."
+        }
+      },
+      "loot_table": {
+        "currency_min": "Minimum coin drop.",
+        "currency_max": "Maximum coin drop.",
+        "drops": "Weighted item drop entries; qty range inclusive."
+      },
+      "acceptance_targets": {
+        "ttk_sec": "Expected Time-To-Kill range vs Pickaxe_T0.",
+        "stagger_window_sec": "Expected effective punish window after PoiseBreak."
+      }
+    },
+    "ecs_contract": {
+      "telegraph_start_event": "Fired at (timing_ms.windup + telegraph.flashAtMs).",
+      "damage_event": "Fired on first frame of active window that collides.",
+      "poise_break_event": "Fired when poise <= 0 and not in break_cooldown.",
+      "hitstop_event": "Applied to both entities per hitstop_ms on hit."
+    }
+  }
 }
