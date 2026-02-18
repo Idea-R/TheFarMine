@@ -2,136 +2,149 @@
   "version": 1,
   "meta": {
     "author": "theta",
-    "updated": "2026-02-18T12:00:00Z",
-    "notes": [
-      "Initial version of Discord newcomer onboarding sequence.",
-      "Replace <GUILD_ID>, <ID:#...>, <THREAD_ID:...>, and <MESSAGE_ID:...> placeholders before deploy.",
-      "Variables {username}, {current_sprint}, {mine_mood_name}, {mine_mood_vibe} are substituted at send time."
-    ]
+    "date": "2026-02-18T00:00:00Z",
+    "notes": "Discord newcomer welcome sequence v1 for The Far Mine; single-locale, 5-step DM flow with gentle dwarven tavern tone."
   },
-  "steps": [
+  "config": {
+    "enabled": true,
+    "dm_fallback_channel_id": "<TBD>",
+    "throttle_sec": 5,
+    "locale_default": "en-US",
+    "retry_policy": {
+      "attempts": 3,
+      "backoff_sec": 20
+    },
+    "analytics": {
+      "cohort_tag": "onb-v1-2026w08",
+      "utm_base": "https://thefarmine.game/?utm_source=discord&utm_medium=welcome"
+    }
+  },
+  "channels": {
+    "announcements": "<TBD>",
+    "project_orchestration": "<TBD>",
+    "build_updates": "<TBD>",
+    "tavern_talk": "<TBD>",
+    "bug_reports": "<TBD>",
+    "ideas_workbench": "<TBD>",
+    "playtest_queue": "<TBD>"
+  },
+  "roles": {
+    "playtester": "<TBD>",
+    "moderators": "<TBD>",
+    "owners": "<TBD>"
+  },
+  "sequence": [
     {
-      "id": "welcome.1.hello",
+      "id": "welcome.step1.hello.v1",
       "kind": "dm",
-      "targetChannelId": null,
-      "delayMs": 2000,
-      "content": {
-        "text": "Hail, {username}! Brewmaster Alehart here—welcome to the Far Mine. The hearth is warm, the mugs are clean, and the shafts hum with ideas. Our Hearthfire Roll Call runs daily at 10:00 PT. Start in #tavern-talk and skim the house rules linked below.",
-        "attachments": []
+      "delay_hours": 0,
+      "locale": "en-US",
+      "text": "Ho there, traveler! I'm Brewmaster Alehart—mind the casks and find a stool. Glad you found The Far Mine.\nSay hello in #tavern-talk so we can clink mugs. Peek at #announcements for news and the pinned Code of Conduct summary.",
+      "reactions_suggested": [
+        "🍻",
+        "👋"
+      ],
+      "gates": {
+        "first_time_only": true
       },
-      "actions": [
+      "tags": [
+        "welcome",
+        "tone",
+        "coc"
+      ]
+    },
+    {
+      "id": "welcome.step2.rules.v1",
+      "kind": "dm",
+      "delay_hours": 0.15,
+      "locale": "en-US",
+      "text": "House rules, short and stout: PG-13 tavern talk, be kind, keep threads tidy and on-topic.\nFull CoC is pinned in #announcements; mods guide first, owners step in if needed. Questions? Ask in #tavern-talk.",
+      "reactions_suggested": [
+        "✅",
+        "🧹"
+      ],
+      "gates": {
+        "first_time_only": true
+      },
+      "tags": [
+        "rules",
+        "safety"
+      ]
+    },
+    {
+      "id": "welcome.step3.sprint.v1",
+      "kind": "dm",
+      "delay_hours": 1,
+      "locale": "en-US",
+      "text": "Our current sprint: a vertical slice of the core loop—delve, gather, craft, light your way.\nCatch the latest in #build-updates. Want to help? Hop into the Playtest Queue or drop a gem in the Ideas Workbench.",
+      "buttons": [
         {
-          "type": "link",
-          "label": "Open #tavern-talk",
-          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#tavern-talk>",
-          "role": null
+          "label": "Sprint Post",
+          "url": "https://thefarmine.game/sprint"
         },
         {
-          "type": "link",
-          "label": "Rules & Conduct",
-          "url": "https://github.com/example/the-far-mine/blob/main/CODE_OF_CONDUCT.md",
-          "role": null
-        }
-      ],
-      "reactions": [
-        ":beer:"
-      ]
-    },
-    {
-      "id": "welcome.2.rules_and_roles",
-      "kind": "dm",
-      "targetChannelId": null,
-      "delayMs": 15000,
-      "content": {
-        "text": "Quick conduct notes:\n- Be kind; assume good intent.\n- Critique ideas, not people.\n- Keep it SFW.\n- No spoilers without tags.\nTo catch playtest news, opt into @Delver pings via the upcoming reaction-role post in #project-orchestration. While you wait, say hello in #tavern-talk.",
-        "attachments": []
-      },
-      "actions": [
-        {
-          "type": "link",
-          "label": "Project Orchestration",
-          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#project-orchestration>",
-          "role": null
+          "label": "Playtest Queue",
+          "url": "https://thefarmine.game/playtest-queue"
         },
         {
-          "type": "link",
-          "label": "Tavern Talk",
-          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#tavern-talk>",
-          "role": null
+          "label": "Ideas Workbench",
+          "url": "https://thefarmine.game/ideas-workbench"
         }
       ],
-      "reactions": [
-        ":scroll:"
+      "reactions_suggested": [
+        "⛏️",
+        "💡"
+      ],
+      "gates": {
+        "first_time_only": true
+      },
+      "tags": [
+        "sprint",
+        "how-to-help"
       ]
     },
     {
-      "id": "welcome.3.how_to_contribute",
+      "id": "welcome.step4.bugs-feedback.v1",
       "kind": "dm",
-      "targetChannelId": null,
-      "delayMs": 30000,
-      "content": {
-        "text": "How to lend a hand today:\n1) Join the Hearthfire Roll Call thread and post: Focus | Commit | Blockers.\n2) Drop feedback in #feedback-triage with this template: [Area] [Brief] [Why it matters] [Repro/Sketch].\n3) Share art or lore in #art-audio-showcase or #lore-sparks. Small sparks welcome.",
-        "attachments": []
-      },
-      "actions": [
-        {
-          "type": "link",
-          "label": "Open #feedback-triage",
-          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#feedback-triage>",
-          "role": null
-        },
-        {
-          "type": "link",
-          "label": "Open #build-in-public",
-          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#build-in-public>",
-          "role": null
-        }
+      "delay_hours": 24,
+      "locale": "en-US",
+      "text": "Bug to squash or a clever fix? In #bug-reports, use:\nTitle; Steps; Expected; Actual; Seed/Build; System.\nIdeas belong in #ideas-workbench, one idea per post - use reactions to vote. Owners aim to acknowledge within 48h.",
+      "reactions_suggested": [
+        "🐛",
+        "✅"
       ],
-      "reactions": [
-        ":pick:",
-        ":hammer:"
+      "gates": {
+        "first_time_only": true
+      },
+      "tags": [
+        "bugs",
+        "feedback",
+        "templates"
       ]
     },
     {
-      "id": "welcome.4.current_sprint",
-      "kind": "channel",
-      "targetChannelId": "<ID:#build-in-public>",
-      "delayMs": 45000,
-      "content": {
-        "text": "Welcome, {username}! Current sprint: {current_sprint}. Peek the latest build-in-public thread below and drop a hello or a question. We're glad you're here.",
-        "attachments": []
-      },
-      "actions": [
+      "id": "welcome.step5.roles-rituals.v1",
+      "kind": "dm",
+      "delay_hours": 72,
+      "locale": "en-US",
+      "text": "Want pings for test calls? Opt into the Playtester role.\nDaily rituals: Mine Mood and Hearthfire Roll Call at 10:00 PT; plans live in #project-orchestration.\nJoin our weekly live peek on Fridays at 12:30 PT. Grab the role when ready.",
+      "buttons": [
         {
-          "type": "link",
-          "label": "Latest weekly update",
-          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#build-in-public>/<THREAD_ID:weekly-update>",
-          "role": null
+          "label": "Get Playtester Role",
+          "url": "https://thefarmine.game/roles/playtester"
         }
       ],
-      "reactions": [
-        ":sparkles:"
-      ]
-    },
-    {
-      "id": "welcome.5.mine_mood",
-      "kind": "channel",
-      "targetChannelId": "<ID:#project-orchestration>",
-      "delayMs": 60000,
-      "content": {
-        "text": "Today's Mine Mood: {mine_mood_name} — {mine_mood_vibe}. Cast a reaction vote on the mood post to steer future vibes, and consider a quick Hearthfire Roll Call reply—even async is grand. The thread link is below.",
-        "attachments": []
-      },
-      "actions": [
-        {
-          "type": "link",
-          "label": "Today's Roll Call thread",
-          "url": "https://discord.com/channels/<GUILD_ID>/<ID:#project-orchestration>/<THREAD_ID:hearthfire-roll-call>/<MESSAGE_ID:today>",
-          "role": null
-        }
+      "reactions_suggested": [
+        "🔥",
+        "🧪"
       ],
-      "reactions": [
-        ":fire:"
+      "gates": {
+        "first_time_only": true
+      },
+      "tags": [
+        "roles",
+        "rituals",
+        "playtester"
       ]
     }
   ]
