@@ -1,74 +1,104 @@
 {
   "version": 1,
-  "tokens": {
-    "terrain.rock.base": "#2B2F38",
-    "terrain.rock.shadow": "#1C2128",
-    "terrain.rock.highlight": "#3B414C",
-    "terrain.floor.base": "#363C45",
-    "terrain.floor.shadow": "#2C323B",
-    "terrain.floor.highlight": "#464D58",
-    "terrain.ore.copper.base": "#8E5A26",
-    "terrain.ore.copper.highlight": "#B97735",
-    "terrain.ore.copper.spark": "#FFC46B",
-    "terrain.ore.iron.base": "#505A64",
-    "terrain.ore.iron.highlight": "#7A8792",
-    "terrain.ore.iron.spark": "#D0D8E2",
-    "terrain.ore.quartz.base": "#90A9B8",
-    "terrain.ore.quartz.highlight": "#D4E4EF",
-    "terrain.ore.quartz.spark": "#CFE7F9",
-
-    "metal.copper.base": "#C17734",
-    "metal.copper.highlight": "#DA8F4C",
-    "metal.brass.base": "#C2A947",
-    "metal.brass.highlight": "#E1C76E",
-    "crystal.quartz.base": "#A7D2E6",
-    "crystal.quartz.glint": "#CFE7F9",
-
-    "ui.panel.bg": "#151A20",
-    "ui.panel.border": "#6F5A2A",
-    "ui.frame.copper": "#C17734",
-    "ui.frame.brass": "#C2A947",
-    "ui.frame.crystal": "#7EDAE8",
-    "ui.text.primary": "#E8EEF5",
-    "ui.text.secondary": "#B7C4CF",
-    "ui.text.disabled": "#6E7781",
-    "ui.text.warning": "#F2B341",
-    "ui.button.bg": "#222A33",
-    "ui.button.hover": "#2B3440",
-    "ui.button.active": "#374252",
-
-    "ui.gauge.health.bg": "#3F1612",
-    "ui.gauge.health.fill": "#E05633",
-    "ui.gauge.stamina.bg": "#103A3A",
-    "ui.gauge.stamina.fill": "#20B7B3",
-    "ui.hotbar.slot.bg": "#1A2129",
-    "ui.hotbar.slot.active": "#C17734",
-
-    "minimap.bg": "#0B0F14",
-    "minimap.room": "#808A95",
-    "minimap.corridor": "#6E7882",
-    "minimap.ore": "#E7B14D",
-    "minimap.player": "#20C3BC",
-    "minimap.enemy": "#E0463E",
-
-    "characters.player.base": "#3C5568",
-    "characters.player.beard": "#5B3824",
-    "characters.player.outline": "#E9D39B",
-    "characters.goblin.skin": "#78A83A",
-    "characters.goblin.cloth": "#4D3A68",
-    "characters.goblin.outline": "#E6F2AE",
-
-    "effects.hitFlash": "#FFF1A8",
-    "effects.poiseBreakFlash": "#B8F4FF",
-    "effects.sparkRock": "#DADFE6",
-    "effects.sparkOre": "#FFD48A",
-    "effects.debris.rockA": "#39404A",
-    "effects.debris.rockB": "#2F353E",
-    "effects.smokePuff": "#6A7078",
-
-    "mapping.lighting.lampWarm": "#F4C66F",
-    "mapping.lighting.crystalCool": "#7FE3F4",
-    "mapping.telegraph.arc.amber": "#F2A93B",
-    "mapping.depthTint.l0": "#0E1F2B"
+  "meta": {
+    "name": "Brass, Stone, and Crystal — v1",
+    "notes": [
+      "All in-engine tints must reference these tokens; no hard-coded hex in code.",
+      "Primary UI text contrast ≥4.5:1 over ui.panel.bg; secondary ≥3:1; gauge fills ≥3:1 over their bgs.",
+      "Telegraph and lighting tokens are non-UI and may use additive blend in-engine."
+    ]
+  },
+  "palette": {
+    "terrain": {
+      "rock.base": "#3a2f2a",
+      "rock.shadow": "#251e1a",
+      "rock.highlight": "#4b3e38",
+      "floor.base": "#2c2420",
+      "ore.copper.base": "#9c5b2e",
+      "ore.copper.spark": "#f2a35a",
+      "ore.iron.base": "#6a717a",
+      "ore.iron.spark": "#c6d0da",
+      "ore.quartz.base": "#7bd3e6",
+      "ore.quartz.spark": "#c5f2ff"
+    },
+    "ui": {
+      "panel.bg": "#1b1512",
+      "panel.border": "#3e2f25",
+      "text.primary": "#f2eadb",
+      "text.secondary": "#c6bcae",
+      "text.error": "#ff5e4d",
+      "gauge.health.bg": "#4a2222",
+      "gauge.health.fill": "#d54a3a",
+      "gauge.stamina.bg": "#263a33",
+      "gauge.stamina.fill": "#3fb07a",
+      "hotbar.slot.bg": "#2a211c",
+      "hotbar.slot.active": "#c7a348",
+      "frame.brass": "#b88d2d",
+      "frame.copper": "#a7642c",
+      "frame.crystal": "#57c0d4",
+      "icon.tint": "#e6d7b8"
+    },
+    "characters": {
+      "player.base": "#6d5242",
+      "player.beard": "#9e6b3a",
+      "player.metal": "#c4b088",
+      "goblin.skin": "#6a7e3b",
+      "goblin.cloth": "#3a4a2d",
+      "outline.light": "#f2eadb",
+      "outline.dark": "#0f0c0a"
+    },
+    "effects": {
+      "hitFlash": "#ffffff",
+      "poiseBreakFlash": "#c7f0ff",
+      "debris.rockA": "#4b3e38",
+      "debris.rockB": "#2c2420",
+      "smokePuff": "#675b52"
+    },
+    "minimap": {
+      "bg": "#0e0b09",
+      "tile.rock": "#2a221d",
+      "tile.floor": "#6e5b4e",
+      "tile.ore.copper": "#cf7b3a",
+      "tile.ore.iron": "#93a1ad",
+      "tile.ore.quartz": "#9adfed",
+      "player": "#f2eadb",
+      "enemy": "#f05a4a",
+      "lamp": "#e3b95a"
+    },
+    "mapping": {
+      "telegraph.arc.amber": "#f0b14a",
+      "lighting.lampWarm": "#ffdd99",
+      "lighting.crystalCool": "#8fe8ff",
+      "depthTint.l0": "#000000"
+    }
+  },
+  "accessibility": {
+    "requirements": [
+      { "pair": ["ui.text.primary", "ui.panel.bg"], "contrastRatioMin": 4.5 },
+      { "pair": ["ui.text.secondary", "ui.panel.bg"], "contrastRatioMin": 3.0 },
+      { "pair": ["ui.gauge.health.fill", "ui.gauge.health.bg"], "contrastRatioMin": 3.0 },
+      { "pair": ["ui.gauge.stamina.fill", "ui.gauge.stamina.bg"], "contrastRatioMin": 3.0 }
+    ],
+    "notes": [
+      "Engineers: do not opacity-wash primary text below 90% alpha; preserve contrast.",
+      "Hover/active states may brighten frame.* by +8–12% in shader; keep text unchanged.",
+      "Verify stated contrast pairs with the automated checker in the dev HUD; flag if any fall below thresholds."
+    ]
+  },
+  "integration": {
+    "phaser": {
+      "tintUsage": [
+        "Sprite base tint via sprite.setTint for subtle palette modulation.",
+        "Flash effects use setTintFill with effects.hitFlash for 1–2 frames.",
+        "Telegraph arcs draw with Graphics strokeStyle using mapping.telegraph.arc.amber."
+      ]
+    },
+    "ecs": {
+      "field": "Renderable.tintToken",
+      "examples": [
+        { "token": "characters.outline.light", "hex": "#f2eadb" },
+        { "token": "ui.frame.brass", "hex": "#b88d2d" }
+      ]
+    }
   }
 }
