@@ -1,111 +1,182 @@
 {
   "version": 1,
   "id": "enemy.goblin.grunt",
-  "name": "Goblin Grunt",
-  "kind": "goblin",
-  "render": {
-    "spriteId": null,
-    "tintToken": "characters.goblin.base"
+  "meta": {
+    "author": "gamma",
+    "updated": "2026-02-18T00:00:00Z",
+    "notes": [
+      "Baseline early-game melee unit; simple AI with single light slash.",
+      "Tuned to MVP combat baselines from combat-design.md.",
+      "Poise tuned for predictable early parry/break teaching moments."
+    ]
   },
-  "attributes": {
-    "attackPower": 5,
-    "defense": 1
+  "visuals": {
+    "spriteId": "sprites/enemies/goblin_grunt",
+    "tintToken": "characters.goblin.base",
+    "accentToken": "characters.goblin.accent"
   },
-  "health": {
-    "max": 95,
-    "value": 95
+  "audio": {
+    "telegraphSfxId": "sfx.combat.telegraph.whoosh",
+    "swingLightSfxId": "sfx.combat.swing.whoosh.light",
+    "hitLightSfxId": "sfx.combat.hit.light",
+    "blockImpactSfxId": "sfx.combat.block.impact",
+    "parrySuccessSfxId": "sfx.combat.parry.success",
+    "poiseBreakSfxId": "sfx.combat.poise.break"
   },
-  "poise": {
-    "max": 35,
-    "value": 35,
-    "recoverPerSec": 9,
-    "breakDurationMs": 700
+  "stats": {
+    "health": {
+      "max": 100,
+      "value": 100
+    },
+    "attributes": {
+      "attackPower": 5,
+      "defense": 1
+    },
+    "poise": {
+      "max": 35,
+      "value": 35,
+      "recoverPerSec": 9,
+      "breakDurationMs": 700
+    }
   },
   "movement": {
-    "speed": 56,
-    "approachRangePx": 34,
-    "retreatRangePx": 54
+    "speedPxPerSec": 56,
+    "approachRangePx": 24,
+    "retreatRangePx": 46
   },
   "ai": {
     "state": "idle",
-    "telegraphDebounceMs": 280,
+    "telegraphDebounceMs": 120,
     "cooldownMsRange": {
-      "min": 900,
-      "max": 1200
+      "min": 420,
+      "max": 650
+    },
+    "attackWeights": {
+      "light_slash": 1.0
     }
   },
   "attacks": [
     {
-      "id": "attack.goblin.light_slash",
+      "id": "light_slash",
       "name": "Light Slash",
-      "kind": "melee",
-      "patternWeight": 1,
-      "windupMs": 340,
-      "activeMs": 90,
-      "recoveryMs": 360,
-      "cooldownMs": 520,
-      "rangePx": 20,
-      "arcDeg": 80,
-      "hitbox": {
-        "w": 22,
-        "h": 14,
-        "offsetX": 10,
-        "offsetY": 0
-      },
       "damage": {
-        "base": 5,
-        "poiseDamage": 12
+        "base": 5
       },
-      "hitStopMs": {
-        "attacker": 18,
-        "victim": 34
+      "poiseDamage": 10,
+      "timings": {
+        "windupMs": 340,
+        "activeMs": 90,
+        "recoveryMs": 320,
+        "cooldownMs": 520,
+        "flashAtMs": -100
       },
-      "knockback": {
-        "px": 8,
-        "direction": "forward"
+      "geometry": {
+        "rangePx": 20,
+        "arcDeg": 75
+      },
+      "hitStop": {
+        "attackerMs": 18,
+        "victimMs": 34
       },
       "telegraph": {
         "colorToken": "mapping.telegraph.arc.amber",
-        "arcOverlay": true,
-        "flashAtMs": -100
+        "arcOverlay": true
+      },
+      "onHit": {
+        "knockbackPx": 8
+      },
+      "sfxOverrides": {
+        "swingId": null,
+        "hitId": null
       }
     }
-    ]
-  ,
+  ],
   "loot": {
-    "currencyMin": 0,
-    "currencyMax": 2,
-    "drops": [
+    "table": [
       {
-        "id": "mat.scrap.goblin",
-        "min": 1,
-        "max": 2,
-        "weight": 1
+        "id": "mat.scrap.metal",
+        "qtyMin": 1,
+        "qtyMax": 2,
+        "weight": 3.0
+      },
+      {
+        "id": "coins.copper",
+        "qtyMin": 5,
+        "qtyMax": 12,
+        "weight": 3.5
       },
       {
         "id": "mat.ore.copper",
-        "min": 1,
-        "max": 1,
-        "weight": 0.35
-      },
-      {
-        "id": "mat.wood.shaft",
-        "min": 1,
-        "max": 1,
-        "weight": 0.15
+        "qtyMin": 1,
+        "qtyMax": 1,
+        "weight": 1.2
       }
+    ],
+    "rolls": 2,
+    "notes": [
+      "Common scrap and copper coins; occasional copper ore.",
+      "Weights tuned for early progression pacing."
     ]
   },
-  "audio": {
-    "onSpawn": null,
-    "onTelegraph": null,
-    "onSwing": null,
-    "onHit": null,
-    "onDeath": null
-  },
-  "notes": [
-    "MVP grunt tuned to §7 melee baselines; uses single light slash with conservative poise damage.",
-    "Per-attack cooldown set to 520ms to align with global AI cadence (900–1200ms).",
-    "Sprite placeholder null; color tint uses characters.goblin.base. Telegraph color maps to mapping.telegraph.arc.amber."
-  ]
+  "acceptance": {
+    "clamps": {
+      "attack.timings.windupMs": [
+        200,
+        700
+      ],
+      "attack.timings.activeMs": [
+        70,
+        120
+      ],
+      "attack.timings.recoveryMs": [
+        200,
+        600
+      ],
+      "attack.timings.cooldownMs": [
+        250,
+        800
+      ],
+      "attack.timings.flashAtMs": [
+        -180,
+        -80
+      ],
+      "attack.geometry.rangePx": [
+        14,
+        28
+      ],
+      "attack.geometry.arcDeg": [
+        40,
+        110
+      ],
+      "attack.hitStop.attackerMs": [
+        0,
+        40
+      ],
+      "attack.hitStop.victimMs": [
+        0,
+        80
+      ],
+      "ai.telegraphDebounceMs.min": 0,
+      "ai.cooldownMsRange.minmax": [
+        0,
+        2000
+      ],
+      "poise.defaults": {
+        "max": 35,
+        "recoverPerSec": 9,
+        "breakDurationMs": 700
+      }
+    },
+    "crossRefs": [
+      "characters.goblin.base",
+      "characters.goblin.accent",
+      "mapping.telegraph.arc.amber",
+      "sfx.combat.telegraph.whoosh",
+      "sfx.combat.swing.whoosh.light",
+      "sfx.combat.hit.light",
+      "sfx.combat.block.impact",
+      "sfx.combat.parry.success",
+      "sfx.combat.poise.break"
+    ]
+  }
 }
