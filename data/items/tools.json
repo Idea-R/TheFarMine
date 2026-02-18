@@ -1,44 +1,121 @@
 [
   {
+    "version": 1,
     "id": "tool.pick.t0.starter",
+    "kind": "tool",
     "name": "Starter Pickaxe",
-    "kind": "pickaxe",
+    "description": "A humble pick; good for soft rock.",
+    "tags": [
+      "tool",
+      "pickaxe",
+      "starter"
+    ],
+    "stack_size": 1,
+    "subtype": "pickaxe",
     "tier": 0,
-    "miningPower": 4,
-    "miningSpeed": 1.00,
-    "staminaCost": 10,
-    "durability": 160,
-    "swingMs": 320,
-    "repairable": false,
-    "unlockedBy": "known",
-    "notes": ["Starter loadout; teaches copper near doors"]
+    "durability": {
+      "max": 60
+    },
+    "mining": {
+      "power": 1.0,
+      "speed": 0.6,
+      "stamina_cost": 5
+    },
+    "combat": {
+      "damage_base": 4,
+      "poise_damage": 2
+    },
+    "tool_effects": {
+      "can_mine": [
+        "rock.t0"
+      ]
+    },
+    "equip_slot": "hands",
+    "repair": {
+      "enabled": false
+    },
+    "rarity": "common",
+    "icon_id": "icon.tool.pick.t0"
   },
   {
+    "version": 1,
+    "id": "tool.pick.t1.copper",
+    "kind": "tool",
+    "name": "Copper Pickaxe",
+    "description": "Re-cast head and better bite; handles copper and quartz.",
+    "tags": [
+      "tool",
+      "pickaxe",
+      "tier1"
+    ],
+    "stack_size": 1,
+    "subtype": "pickaxe",
+    "tier": 1,
+    "durability": {
+      "max": 120
+    },
+    "mining": {
+      "power": 1.5,
+      "speed": 0.8,
+      "stamina_cost": 6
+    },
+    "combat": {
+      "damage_base": 6,
+      "poise_damage": 3
+    },
+    "tool_effects": {
+      "can_mine": [
+        "rock.t0",
+        "ore.copper",
+        "crystal.quartz.t1"
+      ]
+    },
+    "equip_slot": "hands",
+    "repair": {
+      "enabled": false
+    },
+    "rarity": "common",
+    "icon_id": "icon.tool.pick.t1.copper"
+  },
+  {
+    "version": 1,
     "id": "tool.pick.t2.reinforced",
+    "kind": "tool",
     "name": "Reinforced Pickaxe",
-    "kind": "pickaxe",
+    "description": "Iron-banded haft and tempered edge; can bite into iron seams.",
+    "tags": [
+      "tool",
+      "pickaxe",
+      "tier2"
+    ],
+    "stack_size": 1,
+    "subtype": "pickaxe",
     "tier": 2,
-    "miningPower": 5,
-    "miningSpeed": 1.15,
-    "staminaCost": 11,
-    "durability": 220,
-    "swingMs": 300,
-    "repairable": false,
-    "unlockedBy": "known",
-    "notes": ["Matches data/crafting/recipes.json output id", "Gate to iron veins"]
-  },
-  {
-    "id": "tool.pick.t3.steam_drill",
-    "name": "Steam Drill",
-    "kind": "drill",
-    "tier": 3,
-    "miningPower": 7,
-    "miningSpeed": 1.40,
-    "staminaCost": 14,
-    "durability": 320,
-    "swingMs": 280,
-    "repairable": false,
-    "unlockedBy": "milestone",
-    "notes": ["Progression preview; not obtainable in Sprint 1"]
+    "durability": {
+      "max": 180
+    },
+    "mining": {
+      "power": 1.9,
+      "speed": 1.0,
+      "stamina_cost": 7
+    },
+    "combat": {
+      "damage_base": 7,
+      "poise_damage": 4
+    },
+    "tool_effects": {
+      "can_mine": [
+        "rock.t0",
+        "ore.copper",
+        "crystal.quartz.t1",
+        "ore.iron.t1_5"
+      ]
+    },
+    "equip_slot": "hands",
+    "repair": {
+      "enabled": false
+    },
+    "rarity": "uncommon",
+    "icon_id": "icon.tool.pick.t2.reinforced"
   }
 ]
