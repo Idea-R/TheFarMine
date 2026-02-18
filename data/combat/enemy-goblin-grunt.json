@@ -2,95 +2,105 @@
   "version": 1,
   "id": "enemy.goblin.grunt",
   "name": "Goblin Grunt",
-  "render": { "spriteKey": "goblin_grunt", "baseFrame": "idle_f01", "tintToken": "characters.goblin.tint", "scale": 1 },
-  "stats": {
-    "attributes": { "attackPower": 8, "defense": 0 },
-    "health": { "max": 120, "value": 120 },
-    "poise": { "max": 90, "value": 90, "recoverPerSec": 34, "breakDurationMs": 800 }
+  "kind": "melee",
+  "body": {
+    "w": 12,
+    "h": 12,
+    "speedPxPerSec": 48,
+    "turnRateDegPerSec": 360
   },
-  "movement": {
-    "speedPxPerSec": 52,
-    "chaseSpeedPxPerSec": 68,
-    "aggroRadiusPx": 120,
-    "deaggroRadiusPx": 180,
-    "leashRadiusPx": 240,
-    "idleWander": { "enabled": true, "radiusPx": 20, "pauseMs": { "min": 600, "max": 1000 } }
+  "attributes": {
+    "attackPower": 4,
+    "defense": 0
   },
+  "health": { "max": 60, "value": 60 },
+  "poise":  { "max": 60, "value": 60 },
   "ai": {
-    "behavior": "goblin",
-    "state": "idle",
-    "targetId": 0,
-    "attackCooldownMs": 360,
+    "aggroRangePx": 120,
+    "leashRangePx": 220,
+    "attackCooldownMs": 900,
+    "repositionOnMissMs": 400,
     "preferOpenLane": true,
-    "attackWeights": { "slash_sweep": 0.55, "stab_jab": 0.45 },
-    "repositionOnMissMs": 600
+    "feintChance": 0.08,
+    "keepDistancePx": 10,
+    "attackWeights": [
+      { "id": "slash_sweep", "weight": 6 },
+      { "id": "stab_jab",    "weight": 4 }
+    ]
   },
-  "telegraphs": {
+  "telegraph": {
     "colorToken": "mapping.telegraph.arc.amber",
-    "groundHalo": false,
-    "arcOverlay": true
+    "useGlobalAudio": true,
+    "sfxId": "sfx.combat.telegraph.swing"
   },
   "attacks": [
     {
       "id": "slash_sweep",
-      "name": "Slash Sweep",
+      "name": "Wide Slash",
       "kind": "melee",
       "windupMs": 420,
-      "activeMs": 96,
+      "activeMs": 90,
       "recoveryMs": 480,
-      "cooldownMs": 380,
+      "cooldownMs": 360,
       "rangePx": 22,
       "arcDeg": 110,
-      "hitbox": { "w": 22, "h": 14, "offsetX": 10, "offsetY": 0 },
-      "damage": { "base": 8, "poiseDamage": 16 },
-      "hitStopMs": { "attacker": 24, "victim": 46 },
+      "hitbox": { "w": 16, "h": 12, "offsetX": 10, "offsetY": 0 },
+      "damage": { "base": 6, "poiseDamage": 12 },
+      "hitStopMs": { "attacker": 22, "victim": 42 },
       "knockback": { "px": 16, "direction": "forward" },
-      "telegraph": { "useGlobalAudio": true, "visual": "arc" },
-      "notes": ["Clear 420 ms windup; blockable with good timing; softened hit-stop on block per combat spec."]
+      "telegraph": {
+        "colorToken": "mapping.telegraph.arc.amber",
+        "arcOverlay": true,
+        "flashAtMs": -120
+      },
+      "notes": [
+        "Primary opener; readable 420 ms windup for new players.",
+        "Max arc at lane-safe 110°; forward-biased hitbox to prevent wall clipping."
+      ]
     },
     {
       "id": "stab_jab",
-      "name": "Stab Jab",
+      "name": "Quick Jab",
       "kind": "melee",
       "windupMs": 280,
       "activeMs": 80,
       "recoveryMs": 420,
-      "cooldownMs": 340,
+      "cooldownMs": 320,
       "rangePx": 24,
       "arcDeg": 60,
-      "hitbox": { "w": 16, "h": 12, "offsetX": 12, "offsetY": 0 },
-      "damage": { "base": 9, "poiseDamage": 12 },
+      "hitbox": { "w": 12, "h": 10, "offsetX": 12, "offsetY": 0 },
+      "damage": { "base": 8, "poiseDamage": 14 },
       "hitStopMs": { "attacker": 22, "victim": 42 },
-      "knockback": { "px": 12, "direction": "forward" },
-      "telegraph": { "useGlobalAudio": true, "visual": "arc" },
-      "notes": ["Fast tell; punishes greedy steps; narrow lane-safe line."]
+      "knockback": { "px": 14, "direction": "forward" },
+      "telegraph": {
+        "colorToken": "mapping.telegraph.arc.amber",
+        "arcOverlay": true,
+        "flashAtMs": -90
+      },
+      "notes": [
+        "Faster, narrower poke to punish close hesitation.",
+        "Slightly deeper reach than sweep; keep offsets to avoid corner clipping."
+      ]
     }
   ],
-  "collision": {
-    "body": { "w": 12, "h": 12, "offsetX": 0, "offsetY": 0 },
-    "hurtboxPadPx": 2
-  },
-  "audio": {
-    "onTelegraph": "sfx.combat.telegraph.swing",
+  "sfx": {
     "onHit": "sfx.combat.hit.light",
     "onBlock": "sfx.combat.block",
     "onPoiseBreak": "sfx.combat.poiseBreak"
   },
   "loot": {
     "drops": [
-      { "itemId": "ore.copper", "qty": { "min": 1, "max": 2 }, "chance": 0.28 },
-      { "itemId": "shard.quartz", "qty": { "min": 1, "max": 1 }, "chance": 0.08 }
-    ]
-  },
-  "tuning": {
-    "targetTTKSeconds": 30,
-    "expectedPlayer": { "attackPower": 8, "defense": 0, "hitRate": 0.6 },
-    "laneLaw": { "threeWideRequired": true },
-    "blockTeachBias": 0.65
+      { "itemId": "ore.copper",  "min": 1, "max": 2, "weight": 8 },
+      { "itemId": "ore.iron",    "min": 1, "max": 1, "weight": 3 },
+      { "itemId": "shard.quartz","min": 1, "max": 1, "weight": 1 }
+    ],
+    "nothingWeight": 10
   },
   "notes": [
-    "Sweep telegraph ~420 ms; block to conserve stamina.",
-    "Jab is narrow; sidestep or perfect block.",
-    "Hitboxes are forward-biased to keep walls honest in 3-wide lanes."
-    ]
+    "Baseline melee minion aimed at a ~30 s duel vs AP 8; introduce in pairs for pressure.",
+    "If backstep trivializes sweep, consider +60 ms recovery on slash_sweep.",
+    "If TTK is low, trial health 68 or defense 1; prefer health first.",
+    "Monitor poise lock; if chain-stagger occurs, reduce jab poiseDamage to 12.",
+    "Verify telegraph visibility in dim biomes; adjust amber brightness only via palette."
+  ]
 }
