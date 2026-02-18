@@ -1,104 +1,54 @@
-{
-  "version": 1,
-  "meta": {
-    "author": "delta",
-    "updated": "2026-02-18T00:00:00Z",
-    "notes": [
-      "MVP path: starter → binding → T1 → T2",
-      "All recipes at tier 1 for MVP",
-      "Durations per crafting spec §7",
-      "IDs aligned with planned item manifests"
-    ]
+[
+  {
+    "version": 1,
+    "id": "recipe.tool.handle.wood",
+    "name": "Wood Handle",
+    "workbench_tier": 0,
+    "time_sec": 4,
+    "inputs": [
+      { "id": "mat.wood.plank", "qty": 2 }
+    ],
+    "outputs": [
+      { "id": "mat.component.handle.wood", "qty": 1 }
+    ],
+    "unlocks": [],
+    "tags": ["category:component"],
+    "notes": "Hand-crafted wooden handle component"
   },
-  "recipes": [
-    {
-      "id": "recipe.binding.copper",
-      "name": "Copper Binding",
-      "workstation": "workbench",
-      "requiresTier": 1,
-      "inputs": [
-        {
-          "id": "mat.scrap.metal",
-          "qty": 2
-        },
-        {
-          "id": "mat.ore.copper",
-          "qty": 1
-        }
-      ],
-      "outputs": [
-        {
-          "id": "mat.binding.copper",
-          "qty": 1
-        }
-      ],
-      "time_sec": 2.0,
-      "notes": [
-        "Workbench assembly from scrap + copper ore.",
-        "Produces mat.binding.copper for tool crafting."
-      ]
-    },
-    {
-      "id": "recipe.tool.pick.t1.copper",
-      "name": "Copper Pickaxe (T1)",
-      "workstation": "forge",
-      "requiresTier": 1,
-      "inputs": [
-        {
-          "id": "mat.ore.copper",
-          "qty": 8
-        },
-        {
-          "id": "mat.binding.copper",
-          "qty": 1
-        },
-        {
-          "id": "mat.shaft.wood",
-          "qty": 1
-        }
-      ],
-      "outputs": [
-        {
-          "id": "tool.pick.t1.copper",
-          "qty": 1
-        }
-      ],
-      "time_sec": 5.0,
-      "notes": [
-        "Forged from copper ore; add wooden shaft and binding.",
-        "MVP allows direct ore input (no smelting stage)."
-      ]
-    },
-    {
-      "id": "recipe.tool.pick.t2.reinforced",
-      "name": "Reinforced Pickaxe (T2)",
-      "workstation": "forge",
-      "requiresTier": 1,
-      "inputs": [
-        {
-          "id": "tool.pick.t1.copper",
-          "qty": 1
-        },
-        {
-          "id": "mat.ore.iron",
-          "qty": 6
-        },
-        {
-          "id": "mat.binding.copper",
-          "qty": 1
-        }
-      ],
-      "outputs": [
-        {
-          "id": "tool.pick.t2.reinforced",
-          "qty": 1
-        }
-      ],
-      "time_sec": 6.0,
-      "notes": [
-        "Upgrades and consumes T1 copper pick.",
-        "Adds iron reinforcement; requires copper binding."
-      ]
-    }
-  ]
-}
+  {
+    "version": 1,
+    "id": "recipe.tool.pick.copper",
+    "name": "Copper Pickaxe",
+    "workbench_tier": 1,
+    "time_sec": 8,
+    "inputs": [
+      { "id": "mat.ore.copper", "qty": 6 },
+      { "id": "mat.component.handle.wood", "qty": 1 },
+      { "id": "mat.leather.strip", "qty": 1 }
+    ],
+    "outputs": [
+      { "id": "tool.pick.t1.copper", "qty": 1 }
+    ],
+    "unlocks": [],
+    "tags": ["category:tools", "tier:1"],
+    "notes": "Tier 1 copper pickaxe; ore-to-tool shortcut for MVP"
+  },
+  {
+    "version": 1,
+    "id": "recipe.tool.pick.reinforced",
+    "name": "Reinforced Pickaxe",
+    "workbench_tier": 2,
+    "time_sec": 10,
+    "inputs": [
+      { "id": "tool.pick.t1.copper", "qty": 1 },
+      { "id": "mat.ingot.bronze", "qty": 2 },
+      { "id": "mat.leather.strip", "qty": 2 }
+    ],
+    "outputs": [
+      { "id": "tool.pick.t1b.reinforced", "qty": 1 }
+    ],
+    "unlocks": [],
+    "tags": ["category:tools", "tier:1b"],
+    "notes": "Bronze-reinforced upgrade to Tier 1 pick"
+  }
+]
