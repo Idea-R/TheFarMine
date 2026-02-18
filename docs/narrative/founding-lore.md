@@ -1,174 +1,112 @@
 # The Far Mine — Founding Lore & Narrative Framework (Sprint 1)
 
 Owner: Lorekeeper Runebeard (Epsilon)  
-Version: v0.1 — 2026-02-18
+Version: v0.1-s1 — 2026-02-18
 
-Scope: Applies to Mine Level 1 vertical slice while setting the backbone for future seasons. Stable tokens included in brackets for cross-team hooks. This doc favors concise, diegetic language without promising mechanics.
+## 1) Title & Scope
+- Scope: Provide MVP vertical slice narrative grounding; define stable tokens/IDs for places, moods, civs, and artifacts; set tone and boundaries shared across writing, art, level, audio, and systems teams.  
+- Output targets: UI-safe snippets (≤96 chars), tooltips, loading lines, non-mechanical flavor.  
+- This file seeds cross-file references and anchors dialogue barks and room dressing.
 
+## 2) Founding Myth (500–700 words)
+Dwarves do not call it a hole. They call it a seam—clean, promising, and endless as breath. The tale is sung more than told: on a fogged dawn, a crew chasing a vein of bright iron chased it farther than prudence. Their picks found stone that answered, each strike ringing a second tone below the first. The capstone split without shatter, like a hatch eased from within, and a breeze came up, warm enough to mist the beards and set the lanterns bowing.
 
-## 1) Title Block
+Omens came quick. Smoke rose straight; the fen geese turned their necks south and would not settle; a blacksmith’s water clock ran twice its marks. An old drummaster set a kettle on the breach and heard it sing before the flame caught. They called that sound the Deepsong, a hum right behind the bones, steady, patient, and not unfriendly. Later crews said the Deepsong shifted with weather, with songs, even with the humor of the shift, but the first delvers only nodded and set the braces.
 
-- Title: The Far Mine — Founding Lore & Narrative Framework (Sprint 1)  
-- Owner: Lorekeeper Runebeard (Epsilon)  
-- Version/Date: v0.1 — 2026-02-18  
-- Scope Note: Covers Level 1 vertical slice with forward-compatible world law. Tokens and tones herein seed later depths and seasons.
+The first delves went by the Three‑Wide Law: no throat narrower than thrice a dwarf’s shoulders, no unsupported sill, and no ballad longer than your breath. They cut steps, chalked sigils against slough, and inked a ledger for every brace—no one goes missing in a myth if the ledger is good. They found seams that did not match the hills above, crystals that rang when named, and rust that refused to belong to any tool they knew. The lanterns drank the dark and gave it back in a brass sheen. Even the water that sweat from the stone came up warm as a bathhouse.
 
+Why does it not end? Ask three, get three whys, and keep your boots tied.
 
-## 2) Narrative Pillars
+- The World-Engine theory holds that ancient machinery—older than kin, older than the map of stars—still turns beneath us. The Far Mine is its maintenance spine, a corridor for smoke and servitors and all the heat a world’s heart throws off. The hum is a bearing’s hymn; the gears itch for grease. Engineers love this tale because it makes tools out of secrets.
 
-- Stone Keeps the Score
-  - Intent: The world remembers every strike and oath; consequence echoes.
-  - Acceptance:
-    - Scars in walls tell who mined and why.
-    - NPC lines recall prior shifts and spills.
-  - Do-not: Do not reset consequences between sessions or scenes without diegetic cover.
+- The Stone-Dream says the earth sleeps and dreams itself anew. Where the dream is deep, stone grows like bark and splits the old, curling passages down and down. The Deepsong is the voice of that sleep; our picks are only a polite knock on the door of a giant’s nap. Priests and poets favor this, and the fenfolk nod when the fog is kind.
 
-- Steam Serves the Stubborn
-  - Intent: Effort harnesses pressure; grit turns hazard into help.
-  - Acceptance:
-    - Tools and rigs look patched, purposeful, and earn their keep.
-    - Audio favors hisses, valves, cadence over spectacle.
-  - Do-not: Do not make steam magic; keep it mechanical and fallible.
+- The Sundered Stair remembers a civilization’s spiral shattered. The Orecasters (we name them by their work) wound a great stair through the crust, a promenade of brass and crystal and steam. Something broke it—time, folly, or war—and its shards drifted and rejoined, never again in the same place. Our delves find landings and rails and guardians, and the dark between is not empty but rearranged. Old captains keep this one close.
 
-- Guild Fires, Shared Hearth
-  - Intent: Rival guilds compete fiercely, yet gather at one warm center.
-  - Acceptance:
-    - Conflicts cool within [lore.place.tavern.hearth_and_anvil].
-    - Banners differ, mugs clink the same.
-  - Do-not: Do not escalate rivalries to civil war in L1 scope.
+None of these tales promises a bottom, and none owes you one. The Far Mine is true because we work it, because the ledgers fill, and because the songs carry up the shaft with more than echo. Every shift finishes at the same place: a mug, a mark in the book, and the heat of a room that does not judge you for taking the dark’s coin.
 
-- Depth Has a Memory
-  - Intent: The Mine breathes in patterns; deeper layers reply to surface deeds.
-  - Acceptance:
-    - Echo motifs repeat across biomes with variation.
-    - Recurring symbols: brass helix, crystal rune, pressure glyph.
-  - Do-not: Do not foreshadow entities we cannot surface this season.
+- lore.place.town.brassfen — Brassfen: a frontier steamhaven above the fen, built on piles and planks, kettles and valves hissing, market close to the hoist.  
+- lore.place.tavern.hearth_and_anvil — The Hearth & Anvil: the tavern hub at Brassfen’s hoist-yard; keeper hears every rumor and sells only enough truth to wet the tongue.
 
+> “Three‑Wide and steady—stone hears haste.”
 
-## 3) Origin of The Far Mine
+> “Deepsong low? Lanterns high and mouths shut.”
 
-- The Legend (mythic): When the skyfall engine tore the mountain’s crown, its heart met the ley-crystal’s hum. The Bedrock Choir woke, sang one long inhale, and the stone opened in answer—no bottom, only breath and memory.
-- The Account (dieg.): An ancient impact drive lodged beneath the peak caused a resonant faulting event with local ley crystals. Subsequent collapses formed a near-vertical complex threaded by stable caverns and strata.
-- Designer Note: “Bottomless” is expressed via biome layering and season-based deepening; each season unlocks a new strata band below [lore.place.biome.crystal_caverns], maintaining continuity with prior layers.
+## 3) The Ancient Below (200–300 words)
+We call them the Orecasters, for they spoke to ore and it moved. Their marks score brass and basalt alike: spirals nested in triangles, runes that double as valves, and latticed channels fused into the rock. Their craft wove steam and crystal harmonics—tuning stone to carry power and message in one breath. Where we bolt a brace, they grew a rib. Where we chisel a niche, they tuned a chamber so voices became tools.
 
+Remnants are common but rarely kind. Singing crystals hang on chains of tarnished silver, humming when footfalls approach. Brass sigils plate bulkheads like shields, each line a circuit and a sentence; some warm the air, some cool it, some do nothing but glow when named. Automata—guardian frames of rivet and slate—lurch awake if sung to wrong. You’ll find their hands, their eyes, their sternum-locks, and, sometimes, a whole watcher slumped beside an arch whose purpose vanished with its makers.
 
-## 4) The Ancient Below — The Stratum-Forgers
+Themes for rooms: alcoves tuned to a single note; galleries where floor inlay matches ceiling star; sluiceways that vent heat as song; caged gardens of mineral bloom; and workshops frozen mid-repair. Drops should feel handled, purposeful: a shard that hums in the pocket, a sigil-plate that fits no door we know, a gear with runes along the teeth.
 
-- Name: The Stratum-Forgers [lore.civ.stratum_forgers] — a pressure-wise people who wrote in gradients and served the weight.
-- Hallmarks:
-  - Brass helixes that regulate flow and force (visual and mechanical motif).
-  - Crystal runes etched to “tune” caverns.
-  - Pressure glyphs marking safe thresholds on stone and steel.
-- Concrete Artifacts/Motifs:
-  - Pressure Helix Core [lore.artifact.pressure_helix]: nested brass coils with valve-keys; emits low hiss when aligned.
-  - Crystal Rune Plate (Alpha) [lore.script.crystal_rune.alpha]: triangular quartz wafer with inlaid silver lines.
-  - Threshold Glyph Set [lore.glyph.pressure.setA]: chiseled chevrons paired with dot-counting.
-- Notes:
-  - Their ruins are maintainable but not mystical; dwarves “read” them by craft and caution.
-  - Surfaces remain legible at Level 1; deeper semantics reserved for later seasons.
+Stable tags:
+- lore.civ.orecasters — the lost civilization beneath Brassfen.  
+- lore.artifact.singing_crystal — crystalline resonators; hum to touch and name.  
+- lore.machine.world_engine — hypothesized machinery driving heat and hum.
 
+## 4) Tonal Pillars
+- Grit and Grace — hard work sung beautifully.  
+  Cue: Short, weighty lines; sturdy verbs; avoid florid excess.
 
-## 5) The Dwarven Moment
+- Known Hands, Unknown Depths — craft vs. alien underworld.  
+  Cue: Keep wonder grounded in tools, ledgers, and songs.
 
-- Why Now:
-  - Surface seams have thinned; guild charters demand new lifeblood.
-  - The Guild Moot ratified shared-rights entry under the Hearth Oath.
-  - The Mine’s breaths—slow pulses felt through mugs and rails—now cadence faster, like a door willing to be opened.
-- Intro Tooltip Beats (short):
-  - “Seams gone lean; the Far Mine calls.”
-  - “Charters inked, tempers checked at the hearth.”
-  - “Feel it? The stone is breathing in.”
+- Steam over Sorcery — tech reads mythic yet explainable.  
+  Cue: Offer metaphors, not systems; avoid hard-magic promises.
 
+- Whispers in Stone — hints > exposition.  
+  Cue: Suggestive, tooltip-ready phrasing; let gaps breathe.
 
-## 6) Places & Tokens (stable IDs)
+## 5) Dwarven Guilds (primer hook for factions file)
+Brassfen’s guilds are kin and rivals both. The Hoistwrights hold the lifts and charge by the crate; the Picksmiths argue alloy and edge; the Ledgerkeep counts shifts like a priest counts vows; the Brewmasters soften hard truths with hotter mugs; the Runehands insist every beam needs a blessing. Each seeks The Far Mine for proof: of skill, of right to lead, of the stories they back. Contracts knot around shaft-time, salvage marks, and who owns a song once it saves a crew. See docs/narrative/guild-factions.md for banners, leaders, and dispute playbooks.
 
-- [lore.place.tavern.hearth_and_anvil] — The Hearth & Anvil
-  - Description: Warm hub of mugs, ledgers, and grudges cooled by song. Neutral ground under the Hearth Oath.
-  - Cross-File Notes: Ambience bed [amb.tavern.loopA]. Visuals: oak, soot-bronze, ember orange; signage telegraph may use [mapping.telegraph.arc.amber] sparingly for hazard callouts near the forge.
+## 6) Glossary — 10 Dwarven Terms (stable tokens)
+- lore.term.three_wide — “Three‑Wide Law” — Tunnels safe at thrice a dwarf’s shoulders.
+- lore.term.deepsong — “Deepsong” — The mine’s distant hum; omen to veterans.
+- lore.term.brew — “Shiftbrew” — Bitter, hot draught to end or start a shift.
+- lore.term.pick — “Truepick” — A balanced pick tested on sounding stone.
+- lore.term.seam — “Live Seam” — A vein that rings true and runs clean.
+- lore.term.shift — “Deep Shift” — A scheduled delve block; logged to the tap.
+- lore.term.guildmark — “Guildmark” — Stamped sigil showing dues and right to work.
+- lore.term.hoist — “Hoistcall” — Bell code signaling lift ready or blocked.
+- lore.term.brace — “Stonebrace” — Timbers or frames set to hold a throat.
+- lore.term.ledger — “Cut-Ledger” — Book of shifts, salvages, oaths, and fines.
 
-- [lore.place.mine.entry_l1] — Entry Shaft L1 Staging
-  - Description: Winch-house, musters, and a prayer-board of nicked slate. First breath before the dark.
-  - Cross-File Notes: Sub-bass creak layer; lamp color neutral-warm. Safety marks can reference [lore.glyph.pressure.setA] motifs as paint stencils.
+## 7) Mine Mood Lexicon (7–10 labels) + Guidelines
+- mood.stillshift — Stillshift — quiet seam, lantern hush.
+- mood.gearbless — Gearbless — tools rest; plans brew.
+- mood.lampwatch — Lampwatch — wary eyes, short steps.
+- mood.seamrush — Seamrush — fast hands, clipped words.
+- mood.steamveil — Steamveil — warm mist, muffled clanks.
+- mood.echochase — Echochase — follow rings, doubt maps.
+- mood.brasspride — Brasspride — crew sure, boots loud.
+- mood.rockmourn — Rockmourn — fallen brace, softer songs.
+- mood.fenwind — Fenwind — surface airs drift below.
 
-- [lore.place.biome.crystal_caverns] — The Crystal Caverns (L1 framing)
-  - Description: Veins of clear and milk-glass crystal, singing faint on rail strike. Beautiful, brittle, and bright.
-  - Cross-File Notes: Visual palette: cool blues, prismatic highlights; sparkle SFX on footstep close. Arc hazards should telegraph with [mapping.telegraph.arc.amber] against cool background.
+Daily process note: Epsilon proposes by 09:50 PT; Theta posts at 10:00 PT; default to Stillshift.
 
+Usage guideline: Mood labels are atmospheric only, not mechanical modifiers; may gate flavor text.
 
-## 7) Guilds Overview (forward reference)
+## 8) Content Boundaries & Style Guardrails
+- Boundaries:
+  - No real-world slurs or targeted hate.
+  - Violence implied, not gratuitous; focus on aftermath and craft.
+  - Alcohol referenced tastefully; no binge celebration.
+  - No promises of drops, rates, or mechanical buffs in diegetic lines.
+- Style:
+  - UI-surfaced snippets ≤96 chars; write lean, suggestive.
+  - Avoid color names tied to palette tokens in prose.
+  - Prefer metaphor over mechanic; let tools and songs carry lore.
 
-Guilds circle the same fire with different tempers: one prizes chain and leverage, one flame and glass, one keel and song. Competitions are counted fair by the Hearth Oath within [lore.place.tavern.hearth_and_anvil]. See docs/narrative/guild-factions.md for expanded briefs. Hook IDs: [guild.bronze_chain], [guild.glassflame], [guild.keelsong].
+## 9) Integration Notes & IDs Cross-Check
+- Place ids affirmed: lore.place.town.brassfen, lore.place.tavern.hearth_and_anvil.
+- Mood ids affirmed: mood.stillshift, mood.gearbless, mood.lampwatch, mood.seamrush, mood.steamveil, mood.echochase, mood.brasspride, mood.rockmourn, mood.fenwind.
+- Civ/artifact ids affirmed: lore.civ.orecasters, lore.artifact.singing_crystal, lore.machine.world_engine.
+- Audio/dialogue note: data/dialogue/tavern-npc-keeper.json references ambienceId amb.tavern.loopA and mood.* ids; ensure amb.tavern.loopA is mapped to Hearth & Anvil bed layer and mood routing accepts the above labels.
 
-
-## 8) Glossary — Dwarven Terms
-
-- [lore.term.three_wide_law]: Rule: three can pass abreast.
-- [lore.term.hearthcount]: The tally of shared meals.
-- [lore.term.breath_of_stone]: Felt pulse through rails, timed.
-- [lore.term.chip_spark]: First bright chip that proves seam.
-- [lore.term.deep_mark]: Carved sign claiming safe path.
-- [lore.term.cup_of_steam]: Break-time; small fix and sip.
-- [lore.term.stone_listen]: Quiet minute to hear strain.
-- [lore.term.oathband]: Woven cord marking guild trust.
-- [lore.term.tally_hook]: Ledger notch for work owed.
-- [lore.term.gritshare]: Spare effort given, no coin.
-
-
-## 9) Mine Mood Lexicon
-
-Usage: One daily Mine Mood sets social tone and copy flavor without implying buffs.
-
-- [mood.stillshift] — Stillshift — “quiet seam, steady hands prevailing”
-  - Use when cadence is calm and incidents low; ideal for safety-forward messaging and onboarding.
-
-- [mood.slagwhistle] — Slagwhistle — “steam hisses, tempers run hot”
-  - Use when heat/pressure themes foreground; nudge caution without threat inflation.
-
-- [mood.starveflame] — Starveflame — “thin rations, thrift and grit”
-  - Use on resource-lean beats; celebrate thrift and planning.
-
-- [mood.gearbless] — Gearbless — “gears align, easy going now”
-  - Use for smoother days; suggest flow, not power.
-
-- [mood.deepchord] — Deepchord — “stone hums, echoes carry truths”
-  - Use when lore, memory, and listening scenes rise.
-
-- [mood.pickdance] — Pickdance — “fast swings, bright chip-sparks”
-  - Use to cheer brisk work; crisp, upbeat copy.
-
-- [mood.lampwatch] — Lampwatch — “lamps trimmed, shadows kept small”
-  - Use to highlight vigilance, checklists, and buddying.
-
-- [mood.rivetsong] — Rivetsong — “hammer beats, hearts in time”
-  - Use for communal push moments and guild unity.
-
-- [mood.rainsunder] — Rainsunder — “drips steady, patience in drops”
-  - Use to frame slow progress and method.
-
-Guidelines:
-- Format: “Mine Mood: <Name> — <5-word vibe>”
-- Cadence: One post per real-world day; roll at daily reset UTC.
-- Tone Guardrails: Evoke feeling, never promise bonuses, stats, or drops.
-- Do Not: Imply mechanical effects, timers, or difficulty changes.
-- Tagging: UiCommand may include [ui.command.mood.post] with [mood.*] token; Dialogue loader can read [mood.*] tags for future line selection (non-blocking).
-
-
-## 10) Integration Notes & IDs
-
-Cross-file alignment checklist:
-- Tavern location token: [lore.place.tavern.hearth_and_anvil] (used by data/dialogue/tavern-npc-keeper.json).
-- Ambience bed: [amb.tavern.loopA] (exists in audio manifest per Zeta doc).
-- Telegraph color token: [mapping.telegraph.arc.amber] (exists in data/visual/color-palette.json).
-
-Hooks for UI/Audio:
-- UI: Mine Mood posts via [ui.command.mood.post]; include [mood.<id>] and rendered line.
-- Audio: Mood may soft-select ambience stems (optional, non-binding). Dialogue loader can surface [mood.*] tags for variant lines in future seasons.
-
-
-## 11) Risks & Assumptions
-
-- ID Collisions: All lore.* and mood.* tokens reserved; coordinate additions via namespace registry.
-- Diegetic vs. Mechanics: Language suggests feel, not function. No implied buffs, difficulty, or timers.
-- Season Layering: “Bottomless” delivered by staged biome unlocks; later strata must preserve visible continuity with prior layers.
-- Visual Motifs: Brass/crystal/pressure glyphs must remain readable at L1; deeper semantics deferred without retcon.
-- Guild Scope: Rivalry kept verbal and procedural in L1; no hard PvP narrative beats until factions doc greenlights.
+## 10) Appendix A — Tooltip Snippets (optional)
+- [HOOK] Three‑Wide saves beards and ledgers.
+- [HOOK] Deepsong soft? Feet softer.
+- [HOOK] Brassfen pays in steam and story.
+- [HOOK] Hearth & Anvil keeps mugs honest.
+- [HOOK] Name the seam only after it names you.
