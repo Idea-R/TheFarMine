@@ -1,359 +1,501 @@
-# UI Framework — Brass, Crystal, and Clear Reads (Sprint 1)
+# UI Framework — Brass, Gauges, and the Wayfinder (Sprint 1)
 
-Owner: @eta (Visual Systems — Brightforge Crystalsmith)
+Provenance
+- Owner: @eta (Visual Systems — Brightforge Crystalsmith)
+- Audience: gameplay/render engineers (Phaser 3), UI/FX artists
+- Cross-references:
+  - data/visual/color-palette.json (authoritative tokens; see §4)
+  - docs/visual-systems/style-guide.md (brass-and-crystal look, stroke weights, shadows)
+  - docs/core-systems/ecs-architecture.md (§Renderable.tintToken usage and UI-facing components)
+  - docs/combat-systems/combat-design.md (§8 Telegraphs — ensure telegraphs layer below HUD; UI overlay tokens)
+  - docs/world-generation/cave-gen-algorithm.md (§12 Outputs & minimap — tile buffers, visited masks)
+  - data/audio/sound-manifest.json (ui.* keys referenced in §11)
+  - data/items/tools.json (hotbar/inventory sources)
+  - docs/technology-systems/crafting-design.md (§8 UI bridges — inventory/crafting panel behaviors)
 
-Cross-references:
-- data/visual/color-palette.json
-- docs/visual-systems/style-guide.md
-- docs/combat-systems/combat-design.md (§Stamina baseline, events)
-- docs/technology-systems/crafting-design.md (§HUD tokens, mining cadence)
-- docs/world-generation/cave-gen-algorithm.md (§Minimap raster)
-- Planned: src/ui/theme-loader.js
-- Planned: src/ui/hud/*.js modules
+---
 
+## 2) Goals & Scope (MVP)
 
-## 1) Title & Provenance
-- This document is the authoritative Sprint 1 UI Framework spec for The Far Mine, authored in the Brightforge Crystalsmith workshop of Visual Systems. Implementation-ready; all colors must resolve from token names via the theme loader. No raw hex in code.
+Goals
+- Brass-and-crystal HUD with strong readability and consistent tokenized theme.
+- Health/Stamina gauges (top-left) with ticks, brass bezel, smooth lerp, optional pulse.
+- Minimap (top-right) “Wayfinder” with chunk clamp, soft edge lock, and tokenized legend.
+- Inventory grid pattern (5×4) and bottom hotbar (8 slots) with shared slot visuals.
+- All colors via palette tokens; zero raw hex in code. Ready for palette loader.
+- Fixed base tile size 16×16; display scale 3×–4× (nearest-neighbor); roundPixels true.
+- Accessible text contrast per §12.
 
+Non-goals (Sprint 1)
+- Runtime skin switching (design for it; not shipping).
+- Controller remap UI.
+- Advanced quest journal (stub as reusable panel pattern only).
 
-## 2) Design Pillars & MVP Goals
-Design pillars:
-- Clarity over clutter
-- Brass framing with crystal accents
-- Readable at 3x–4x scale
-- Token-only colors (sourced exclusively from data/visual/color-palette.json)
-- Minimal motion (sub-150 ms micro-animations) for feedback
-- Screen-edge safe placement (no HUD encroachment on action bounds)
-- Keyboard/mouse friendly, clean cursor affordances
+---
 
-MVP goals (Sprint 1):
-- Fixed HUD with health and stamina gauges
-- Hotbar (tools)
-- Minimap
-- Basic inventory grid overlay
-- Tooltip system
-- Dialog panel style
-- All colors via data/visual/color-palette.json tokens
+## 3) Canvas, Scale, and Safe Margins
 
+- Base tile: 16×16 (design grid, icon silhouettes).
+- Display scale: 3×–4× (nearest-neighbor). In Phaser: pixelArt true, roundPixels true.
+- Safe HUD margin: 8 px at 1× from each canvas edge (→ 24–32 px at 3×–4×). Anchor HUD containers to edges within safe zones; never overlap world letterboxing.
+- Z-ordering:
+  - World (terrain, entities)
+  - Telegraphs (from combat system) — must remain below HUD per docs/combat-systems/combat-design.md §8
+  - HUD/UI (this framework)
+  - Overlays/Debug (optional)
+- Camera/UI: HUD in a dedicated UIScene; setScrollFactor(0) for all UI.
 
-## 3) Display & Scaling Contracts
-Base render assumptions:
-- Base logical resolution: 320×180 (16:9). Primary desktop scale factors: 3x–4x (960×540 to 1280×720 logical upscales).
-- Pixel snapping and rounding:
-  - Use integer scale factors only (no fractional scaling) to preserve pixel-crisp edges.
-  - In Phaser 3: set game config render.pixelArt = true, roundPixels = true; set cameras.main.roundPixels = true; when positioning UI, floor() final screen-space coordinates.
-- Tile size (placeholder until confirmation):
-  - If base tile is 16×16 (current assumption), 1 tile = 16 px at base scale; 2 tiles = 32 px.
-  - If tile confirms to 32×32, double tile-derived values; computations below provide both 16- and 32-based notes.
-- Expressing layout:
-  - UI component sizes are given in absolute base pixels (px_base).
-  - At runtime: px_screen = px_base × scale_factor.
-  - For tile-relative placement at base: px_base = tiles × (tile_size_base). For 16→32 conversion, px_base_32 = px_base_16 × 2.
-- Safe areas and margins:
-  - Outer margin: 8 px at base (m_base = 8). Scales proportionally: m_screen = m_base × scale_factor.
-  - After scaling, snap final positions to whole pixels.
-  - Keep all 1 px borders at 1 px in base pixels before scale. Do not pseudo-scale border thickness.
+---
 
+## 4) Theme Tokens Map (Authoritative, no hex)
 
-## 4) Font Stack & Text Styles
-- Primary pixel font: "Pixel Operator" (Regular and Bold).
-- Fallbacks: "VT323", "Press Start 2P" (dense; reserve for headers only), system monospace as last resort.
-- Web loading:
-  - Ship WOFF2 variants; preload key styles for primary text. Use local() sources where available to reduce flash.
-  - Licensing: "Pixel Operator" is free for commercial use; verify and attach license to repo in PR.
-- Sizes at base scale (px_base):
-  - ui.text.primary: 8 px
-  - ui.text.secondary: 7 px
-  - ui.text.muted: 7 px (lower contrast color token)
-  - ui.text.warning: 8 px bold
-- Letterspacing:
-  - Pixel Operator: +0.25 px at base. Apply proportional tracking at scale, rounding to nearest 0.25 px before final whole-pixel snap.
-- Smoothing:
-  - Disable font smoothing where feasible; ensure pixelArt mode and roundPixels are active.
-- Token mappings and contrast targets:
-  - Tokens: ui.text.primary, ui.text.secondary, ui.text.muted, ui.text.warning
-  - Contrast minimums over ui.panel.bg:
-    - Primary ≥ 4.5:1
-    - Secondary ≥ 3:1
-  - If contrast fails at runtime theme, theme-loader should warn (log-once).
+Panels/Frames
+- ui.panel.bg
+- ui.panel.shadow
+- ui.frame.brass
+- ui.frame.copper
+- ui.frame.crystal
 
+Text
+- ui.text.primary
+- ui.text.secondary
+- ui.text.muted
+- ui.text.warning
 
-## 5) Token-Driven Theme Map (Authoritative)
-Tokens consumed from data/visual/color-palette.json and their application:
+Gauges
+- ui.gauge.health.bg
+- ui.gauge.health.fill
+- ui.gauge.stamina.bg
+- ui.gauge.stamina.fill
+- ui.gauge.tick
 
-- Frames and borders:
-  - ui.frame.brass
-  - ui.frame.copper
-  - ui.panel.border
-  - ui.panel.shadow
+Icons/Slots
+- ui.icon.tint
+- ui.slot.bg
+- ui.slot.border
+- ui.hotbar.slot.active
+- ui.hotbar.slot.inactive
 
-- Panels and text:
-  - ui.panel.bg
-  - ui.text.primary
-  - ui.text.secondary
-  - ui.text.muted
-  - ui.text.warning
+Minimap
+- minimap.bg
+- minimap.border
+- minimap.tile.rock
+- minimap.tile.floor
+- minimap.tile.ore.copper
+- minimap.tile.ore.iron
+- minimap.tile.ore.quartz
+- minimap.lamp
+- minimap.player
+- minimap.enemy
 
-- Gauges:
-  - ui.gauge.health.fill
-  - ui.gauge.health.bg
-  - ui.gauge.stamina.fill
-  - ui.gauge.stamina.bg
-  - ui.gauge.border
+Effects/Mapping
+- mapping.telegraph.arc.amber
+- lighting.lampWarm
+- lighting.crystalCool
 
-- Hotbar:
-  - ui.hotbar.slot.bg
-  - ui.hotbar.slot.active
-  - ui.hotbar.slot.highlight
-  - ui.icon.shadow
+Accessibility
+- palette.accessibility.primaryOnPanelMinContrast
 
+All references must resolve via data/visual/color-palette.json.
+
+---
+
+## 5) Typography & Fonts
+
+Primary UI font
+- Pixel-friendly sans with strong x-height at 3×–4×. Prefer a bitmap font for numerals and compact labels; otherwise a crisp pixel grid-aligned dynamic font.
+- Family stack guidance:
+  - Preferred bitmap: project-provided “Mine Sans Bitmap” (export as BMFont/AngelCode or Phaser JSON).
+  - Dynamic fallback: "Noto Sans", "Inter Tight", "Arial", sans-serif (ensure crisp edges; avoid light weights).
+- CSS load notes (if using WebFontLoader in Phaser):
+  - Load before creating text objects.
+  - Ensure game config pixelArt: true; Text/BitmapText at integer positions.
+  - Avoid subpixel transforms; use setOrigin(0, 0) where appropriate; round positions.
+
+Phaser usage
+```js
+// Ensure pixelArt + roundPixels at game config; also in scene:
+this.cameras.main.setRoundPixels(true);
+
+// Text style (dynamic)
+const stylePrimary = {
+  fontFamily: '"Noto Sans","Arial",sans-serif',
+  fontSize: '8px', // @1×; will be scaled by container/scene scale
+  color: theme.getCssColor('ui.text.primary'), // optional helper that returns CSS rgb()
+  align: 'left',
+  stroke: theme.getCssColor('ui.panel.bg'),
+  strokeThickness: 0 // enable only if needed
+};
+
+// BitmapText (preferred for slot numerals)
+const label = this.add.bitmapText(x, y, 'mine-sans-bitmap', '1', 8);
+label.setTint(theme.getHex('ui.text.muted'));
+label.setScale(displayScale); // 3–4
+```
+
+Sizes and spacing
+- Heading: ~10–12 px @1× (30–48 px at 3–4×).
+- Body: ~7–8 px @1×.
+- Panels: maintain ≥4 px line-height padding @1× (12–16 px at 3–4×). Titles gain extra 2 px spacing below.
+
+---
+
+## 6) HUD Layout Spec (Positions, Sizes, Motion)
+
+Top-left: Health/Stamina gauges (stacked)
+- Health bar
+  - Size: 96×6 px @1× (288×18 @3×).
+  - Background: ui.gauge.health.bg; Fill: ui.gauge.health.fill.
+  - Ticks: every 8 px @1×; tick color ui.gauge.tick at 30% alpha; overlay lines.
+- Stamina bar
+  - Size: 96×4 px @1×.
+  - Background: ui.gauge.stamina.bg; Fill: ui.gauge.stamina.fill.
+  - Pulse: when ratio < 0.2, apply subtle alpha sine on fill (amplitude ≤ 20% alpha; frequency ≤ 2 Hz; see §12 motion limits).
+- Brass bezel
+  - Frame: 1–2 px using ui.frame.brass; inner lip (optional) ui.frame.copper, 1 px.
+  - Shadow: ui.panel.shadow at low alpha; offset 1–2 px down-right.
+- Positioning
+  - Anchor to top-left within safe margin (8 px @1×).
+  - Vertical stack: 2 px gap @1× between bars; labels (optional) above in ui.text.secondary.
+- Update cadence (smoothing)
+  - Each frame, approach target with per-second lerp:
+    - Health: 12%/s; Stamina: 18%/s.
+```js
+// dt in seconds
+function lerpPerSecond(current, target, ratePerSec, dt) {
+  const t = Math.min(ratePerSec * dt, 1);
+  return Phaser.Math.Linear(current, target, t);
+}
+```
+
+Top-right: Minimap Panel — see §7.
+
+Bottom-center: Hotbar — see §8.
+
+Bottom-left: Tooltip/Context line
+- Single-line helper. Text: ui.text.secondary on a ui.panel.bg strip with 2 px brass top stroke.
+- Auto-show on interaction hint; hides after timeout.
+
+---
+
+## 7) Minimap Spec (Wayfinder)
+
+Panel
+- Viewport: 64×64 px @1× (192×192 @3×).
+- Background: ui.panel.bg; Border: ui.frame.brass (outer), ui.frame.copper (inner lip).
+- Surround panel shadow: ui.panel.shadow (3 px spread @1×).
+- Outer frame (housing): may include rivet dots using ui.frame.brass at corners per style-guide.
+
+Projection and panning
+- 1 world tile → 1 px @1×.
+- Clamp to current chunk if world exceeds viewport (docs/world-generation/cave-gen-algorithm.md §12).
+- Center on player with soft edge lock:
+  - When player approaches within 25% of viewport edge, begin panning toward center.
+  - Deadzone rect = 50% viewport width/height; center player within when possible.
+
+Legend mapping (strict)
+- rock → minimap.tile.rock
+- floor → minimap.tile.floor
+- ore.copper → minimap.tile.ore.copper
+- ore.iron → minimap.tile.ore.iron
+- ore.quartz → minimap.tile.ore.quartz
+- lamp anchors → minimap.lamp
+- player dot → minimap.player
+- enemies → minimap.enemy
+
+Rendering approach
+- Use Phaser.GameObjects.RenderTexture or Graphics for blitting single-pixel tiles (scaled by container).
+- Update cadence: 4–8 Hz (250–125 ms). Only dirty tiles redraw:
+  - Dirtiness sources: player moved cell, tile state changed, entity icon moved/appeared/disappeared.
+- Performance: batch floor/rock as regions when possible to reduce per-pixel ops.
+
+Fog of discovery (optional MVP hint)
+- Dim non-visited tiles: multiply color by ui.panel.shadow at 30% alpha.
+- Visited mask provided by world renderer (ref §12 in cave-gen doc).
+- Ensure legend colors remain distinguishable under fog (use luminance-preserving multiplication).
+
+---
+
+## 8) Hotbar (Bottom-Center)
+
+Layout
+- Slots: 8 contiguous slots.
+- Each slot: 16×16 px @1× (icon fit: 12×12). Border adds 1 px stroke.
+- Spacing: 2 px between slots @1×.
+- Alignment: center the full strip at bottom-center within safe margin.
+
+Visual states
+- Slot background: ui.slot.bg
+- Border (default): ui.slot.border
+- Inactive: ui.hotbar.slot.inactive subtle overlay
+- Active highlight: ui.hotbar.slot.active (outer ring glow or thicker brass border)
+- Cooldown overlay: radial wipe from top using ui.panel.shadow at 40% alpha; clockwise.
+
+Labels
+- Numerals “1–8” top-left corner of each slot in ui.text.muted (bitmap text preferred).
+- Offset: 1 px inset from slot border @1×.
+
+Selection rules
+- Mirrors Inventory.selectedIndex (see ECS in §14). When selection changes, animate ring:
+  - Duration: 120 ms; easing: cubic-out; slight scale pulse ≤ 5%.
+
+Drag-and-drop (pattern-level)
+- Hover target brightens brass border by +8–12% via shader/brightness mod; do not swap tokens.
+
+---
+
+## 9) Inventory Grid & Crafting Panels (Patterns)
+
+Inventory
+- Grid: 5×4 slots (25 total), same visuals as hotbar slots.
+- Panel housing: ui.panel.bg with 2 px ui.frame.brass outer frame and 1 px ui.frame.copper inner lip.
+- Title bar: brass band using ui.frame.brass with a thin ui.frame.crystal inlay strip (1 px) across the top.
+- Scroll (if content > view): step scroll by slot rows; no kinetic bounce in MVP.
+
+Crafting
+- Left: recipe list column (scrollable if needed).
+- Right: details pane with inputs/outputs and action button.
+- Text color tokens:
+  - Requirements met: ui.text.primary
+  - Unmet: ui.text.warning
+- Disabled recipe row: 60% alpha; show unmet constraints as a single concise line under row (no red walls).
+- Interaction:
+  - Attempt craft when unmet → play ui.error (see §11).
+  - Successful craft → ui.craft.complete.
+
+Bridging
+- Data comes from data/items/tools.json and rules per docs/technology-systems/crafting-design.md (§8 UI bridges).
+
+---
+
+## 10) Panels, Dialogs, Tooltips
+
+Panels/Dialogs
+- Background: ui.panel.bg
+- Frame: 2 px ui.frame.brass outer; 1 px ui.frame.copper inner lip.
+- Drop shadow: 3 px using ui.panel.shadow (y-biased).
+- Header: optional crystal accent line (ui.frame.crystal, 1 px) under title.
+
+Tooltip
+- Auto-size to content; 4 px padding @1×.
+- Title: ui.text.primary (bold or heavier weight/bitmap variant).
+- Body: ui.text.secondary.
+- Optional icon: 12×12 placed to the left of text, tinted via ui.icon.tint.
+- Placement: prefer above and to the right of cursor; clamp to viewport; 8 px safe margin to edges.
+
+---
+
+## 11) Interaction & Audio Hooks
+
+Mapped to data/audio/sound-manifest.json (ui.* keys)
+- Click/select: ui.click
+- Confirm/accept: ui.confirm
+- Invalid/denied/error: ui.error
+- Craft complete: ui.craft.complete
+
+Hover/Focus feedback
+- Brighten brass frame by +8–12% using shader intensity or multiply toward white; do not change token identity.
+
+---
+
+## 12) Accessibility & Contrast Rules
+
+- Contrast ratios on ui.panel.bg:
+  - Primary text: ≥ 4.5:1
+  - Secondary text: ≥ 3:1
+- Do not render primary text below 90% alpha.
+- Colorblind safety:
+  - Gauges: differentiate health vs stamina by both color and geometry (width/height + tick cadence).
+  - Minimap legend uses distinct luminance steps; do not rely on hue alone.
+- Motion limits:
+  - Shimmer/pulse ≤ 12 Hz overall; gauge low-stamina pulse ≤ 2 Hz.
+  - Provide UX flag to disable gauge pulse entirely.
+- Verification token: palette.accessibility.primaryOnPanelMinContrast used in tests to assert minimum contrast.
+
+---
+
+## 13) Phaser 3 Integration & Theme Loader Contract
+
+UI Scene setup
+- Dedicated UIScene with Containers:
+  - hudContainer (top-left gauges)
+  - minimapContainer (top-right)
+  - hotbarContainer (bottom-center)
+  - panelsContainer (dialogs, inventory, tooltips)
+- All UI objects setScrollFactor(0) and integer positions; scene camera roundPixels true.
+
+Theme loader API (src/ui/theme-loader.js)
+- loadPalette(scene): Promise<void>
+  - Preloads and parses data/visual/color-palette.json; resolves when tokens are ready.
+- getHex(token: string): number
+  - Returns Phaser-compatible numeric color for token.
+- getRGB(token: string): { r: number, g: number, b: number }
+- getCssColor(token: string): string
+  - Optional helper that returns "rgb(r,g,b)" for Text color fields.
+- assertToken(token: string): void
+  - Throws if token is unknown; used in dev assertions.
+
+Usage examples
+```js
+import * as theme from '../ui/theme-loader';
+
+// On scene create
+await theme.loadPalette(this);
+
+// Sprites / icons
+iconSprite.setTint(theme.getHex('ui.icon.tint'));
+
+// Graphics fills and strokes
+g.lineStyle(1, theme.getHex('ui.frame.brass'), 1.0);
+g.fillStyle(theme.getHex('ui.panel.bg'), 1.0);
+g.fillRect(x, y, w, h);
+
+// Text (dynamic)
+const txt = this.add.text(x, y, 'Health', {
+  fontFamily: '"Noto Sans","Arial",sans-serif',
+  fontSize: '8px',
+  color: theme.getCssColor('ui.text.primary')
+});
+```
+
+Reactive theme swap (future)
+- All UI elements store token keys, not literal colors.
+- Expose refreshTheme() on UI components to re-pull colors via theme.getHex/getRGB.
+- Avoid caching resolved hex beyond a single render pass when in dev mode.
+
+ECS tint integration
+- Respect docs/core-systems/ecs-architecture.md (§Renderable.tintToken): when UI elements host sprites with Renderable.tintToken, resolve via theme loader instead of hardcoded values.
+
+---
+
+## 14) Data & ECS Contracts
+
+Read-only ECS sources for UI
+- Health component: current, max (floats/ints). Provide normalized ratio for smoothing.
+- Stamina component: current, max; regen state (optional).
+- Inventory.selectedIndex: integer 0–7 for hotbar mirroring.
+- PlayerTag + Transform/Position: tile coordinates for minimap centering.
+- Tile buffer/meta for minimap raster:
+  - Tile types: rock, floor, ore.copper, ore.iron, ore.quartz (match legend).
+  - Lamps (anchors/placed lights), enemies, and player positions as lightweight lists.
+  - Optional visited mask for fog.
+
+Update flow
+- HUD gauges: subscribe to Health/Stamina changes; also poll per frame for smoothing.
+- Minimap: subscribe to tile dirty events from world renderer; throttle to 4–8 Hz.
+- Hotbar: subscribe to Inventory.selectedIndex; animate on change.
+
+Stable token IDs (exact strings)
+- ui.panel.bg
+- ui.panel.shadow
+- ui.frame.brass
+- ui.frame.copper
+- ui.frame.crystal
+- ui.text.primary
+- ui.text.secondary
+- ui.text.muted
+- ui.text.warning
+- ui.gauge.health.bg
+- ui.gauge.health.fill
+- ui.gauge.stamina.bg
+- ui.gauge.stamina.fill
+- ui.gauge.tick
+- ui.icon.tint
+- ui.slot.bg
+- ui.slot.border
+- ui.hotbar.slot.active
+- ui.hotbar.slot.inactive
+- minimap.bg
+- minimap.border
+- minimap.tile.rock
+- minimap.tile.floor
+- minimap.tile.ore.copper
+- minimap.tile.ore.iron
+- minimap.tile.ore.quartz
+- minimap.lamp
+- minimap.player
+- minimap.enemy
+- mapping.telegraph.arc.amber
+- lighting.lampWarm
+- lighting.crystalCool
+- palette.accessibility.primaryOnPanelMinContrast
+
+Any rename requires PR across style-guide, ui-framework, and palette.
+
+---
+
+## 15) Wireframes (ASCII, not to scale)
+
+Safe margin: 8 px @1×
+
+Top-left gauges
+```
+[8px]┌─────────────────────────────────────────────────────────── canvas ───────────────────────────────────────────────────────────┐
+      │ TL safe                                                                                                                    │
+      │  ┌──────────────────────── HEALTH (96×6) ────────────────────────┐                                                         │
+      │  │[brass 1–2px] [bg] [fill→→→→→→→→→→] [ticks every 8px]         │                                                         │
+      │  └───────────────────────────────────────────────────────────────┘                                                         │
+      │  ┌──────────── STAMINA (96×4) ────────────┐                                                                             TR│
+      │  │[brass][bg][fill pulsates <20%]        │                                                                                │
+      │  └───────────────────────────────────────┘                                                                                │
+```
+
+Top-right minimap (64×64 @1× inside frame)
+```
+                                                    ┌────────────────────────────────────────────────────┐ [8px]
+                                                    │ [brass 2px][copper 1px][bg]                        │
+                                                    │  ┌──────────────────────────────────────────────┐   │
+                                                    │  │                64×64 tiles                   │   │
+                                                    │  │   • player • enemies • lamps                 │   │
+                                                    │  └──────────────────────────────────────────────┘   │
+                                                    └────────────────────────────────────────────────────┘
+```
+
+Bottom-center hotbar (8 slots, 16×16 each, 2 px spacing)
+```
+                                   [centered]
+                     [ ... world ... ]
+        ─────────────────────────────────────────────────────────────────────────────
+                             ┌───┬───┬───┬───┬───┬───┬───┬───┐
+                             │1  │2  │3  │4  │5  │6  │7  │8  │  ← numerals in ui.text.muted
+                             │   │   │   │   │   │   │   │   │  icons 12×12; active shows ring
+                             └───┴───┴───┴───┴───┴───┴───┴───┘
+        ─────────────────────────────────────────────────────────────────────────────
+```
+
+---
+
+## 16) Acceptance Checklist
+
+- HUD gauges:
+  - Sizes match spec (Health 96×6, Stamina 96×4 @1×).
+  - Ticks at 8 px; brass bezel and shadow present.
+  - Lerp rates implemented (12%/s health, 18%/s stamina); low-stamina pulse within motion limits.
 - Minimap:
-  - minimap.bg
-  - minimap.room
-  - minimap.corridor
-  - minimap.player
-  - minimap.enemy
-  - minimap.ore
+  - Viewport 64×64 @1×; framed with brass/copper; bg tokenized.
+  - Legend uses strict tokens; 1 tile → 1 px mapping.
+  - Soft edge lock at 25%; chunk clamp; dirty-tile redraw at 4–8 Hz.
+  - Optional fog uses ui.panel.shadow at ~30% alpha.
+- Hotbar:
+  - 8 slots (16×16 @1×, 2 px spacing), centered; icons 12×12.
+  - Active/inactive states with correct tokens; cooldown radial wipe using ui.panel.shadow at 40% alpha.
+  - Labels 1–8 in ui.text.muted; selection pulse 120 ms cubic-out.
+- Inventory/Crafting patterns:
+  - Inventory 5×4 with shared slot visuals; brass frame + crystal inlay title.
+  - Crafting met/unmet text color tokens; disabled row at 60% alpha; audio hook on invalid.
+- Panels/Tooltips:
+  - Panel bg/frame/shadow tokens; tooltip padding and text styles; optional icon support.
+- Accessibility:
+  - Contrast rules enforced; colorblind-friendly cues; motion limits and disable flag for pulses.
+- Phaser integration:
+  - UIScene with containers; roundPixels true; setScrollFactor(0); nearest-neighbor scaling.
+  - Theme loader contract implemented (loadPalette, getHex, getRGB, assertToken, optional getCssColor).
+  - Usage examples compile without raw hex.
+- Data/ECS:
+  - Read-only consumption of Health/Stamina, Inventory.selectedIndex, Player position, Tile buffer/meta.
+  - Stable token IDs enumerated and match data/visual/color-palette.json.
+- Audio hooks mapped to data/audio/sound-manifest.json ui.* keys.
+- No raw hex values appear; all colors use tokens.
+- Ready for engineer/artist implementation in Sprint 1.
 
-- Mapping accents (visual cues, not for HUD fills; overlays reference only):
-  - mapping.lighting.lampWarm
-  - mapping.lighting.crystalCool
-  - mapping.telegraph.arc.amber
-
-Unknown tokens:
-- UI must rely on theme-loader getColor(token). If token missing:
-  - Log once: "theme:unknown-token:<token>"
-  - Return debug.mask.exclude color (defined in palette) as fallback.
-
-
-## 6) HUD Layout Spec (Coordinates, Anchors, Sizes)
-Coordinate system:
-- Origin: top-left (0,0) in base pixels (320×180).
-- Safe margin: m = 8 px at base, scales proportionally.
-
-Health/Stamina Gauges (top-left):
-- Orientation: horizontal bars (stacked).
-- Size per bar: width = 96 px, height = 8 px.
-- Gap between bars: 4 px.
-- Border: 1 px using ui.gauge.border; border inset (stroke centered inside bar rect).
-- Fills: ui.gauge.health.fill and ui.gauge.stamina.fill.
-- Background (underfill): ui.gauge.health.bg and ui.gauge.stamina.bg.
-- Anchors and positions (base):
-  - Health bar: x = m, y = m.
-  - Stamina bar: x = m, y = m + 8 + 4 = m + 12.
-- 16→32 tile note: these bars fit within 6 tiles (width) at 16 px; for a strict tile grid at 32 px, double to width 192 px, height 16 px, gap 8 px.
-
-Hotbar (bottom-center):
-- Slots: MVP supports 3–5; default 5 on wide screens.
-- Slot size: 20×20 px (fits 16×16 icon with 2 px padding on each axis).
-- Inter-slot gap: 2 px.
-- States:
-  - Inactive frame: ui.frame.brass
-  - Active frame: ui.frame.copper
-  - Slot background: ui.hotbar.slot.bg
-  - Highlight overlay: ui.hotbar.slot.highlight (pulse on selection)
-- Position (base):
-  - n = slots_on_screen (default 5; compact 4 if width < 360 px; see Compact Layout).
-  - total_w = n*20 + (n-1)*2.
-  - x_origin = floor((screenW_base - total_w)/2).
-  - y = screenH_base - m - 20.
-  - Slot i rect: x_i = x_origin + i*(20+2), y_i = y.
-- Animation:
-  - Active slot pulse: brightness pulse 100% → 80% over 120 ms then ease back to 100% over 120 ms (one cycle on selection).
-  - Optional highlight sweep: 250 ms left-to-right line using ui.hotbar.slot.highlight at 30% alpha.
-
-Minimap (top-right):
-- Panel size: 72×72 px at base.
-- Border: 1 px using ui.panel.border.
-- Shadow: ui.panel.shadow, 1 px offset, alpha 0.3.
-- Background: minimap.bg.
-- Player blip: 2×2 px, color minimap.player.
-- Anchor:
-  - x = screenW_base - m - 72
-  - y = m
-- Raster content:
-  - Drawn inside with 1 px cells mapping worldgen raster to tokens (see §10).
-
-Tooltip (contextual):
-- Positioning:
-  - Preferred: near cursor with offset (cursor_x + 8, cursor_y + 8), clamped to remain within screen minus safe margins.
-  - Fallback (controller/no cursor): centered above hotbar, anchored to hotbar’s top edge minus 6 px.
-- Panel:
-  - Padding: 4 px all sides.
-  - Background: ui.panel.bg; 1 px border ui.panel.border; shadow ui.panel.shadow.
-- Text:
-  - Primary line: ui.text.primary.
-  - Secondary/muted details: ui.text.muted.
-  - Warn variant: ui.text.warning.
-
-Dialog panel (tavern and narrative):
-- Width: max(70% of screen width, 220 px).
-- Height: auto; max height: 70% of screen height with scroll if overflow (mouse wheel and drag scrollbar planned).
-- Center screen; maintain safe margins.
-- Portrait area: reserved box on left (future Sprint): width 64–96 px base (do not render in Sprint 1; leave padding).
-- Close button: top-right corner of panel interior; use ui.frame.copper accent + icon with ui.icon.shadow at 30% alpha.
-- Text: primary for body, secondary for speaker tags, warning for critical choices.
-
-Compact layout (small screens):
-- Condition: if screen width < 360 px (base-equivalent).
-- Hotbar: reduce to 4 slots; recompute total_w and center as above.
-- Minimap: shrink to 56×56 px; keep border at 1 px; same anchor rule.
-- Gauges: unchanged; if overlap risk, allow hotbar y = screenH - m - 18 (reduce slot height to 18, icon 14, padding 2) as emergency compact variant.
-
-Z-order/depth:
-- Panels and HUD: Z_UI = 9000
-- Tooltips: 9050
-- Dialog: 9100
-- Debug overlays: 9990
-
-
-## 7) Components & Phaser 3 Integration Plan
-Containers and IDs (authoritative):
-- this.uiRoot (Phaser.Scene add.layer or container; depth = Z_UI)
-- this.hud.gauges.healthBar
-- this.hud.gauges.staminaBar
-- this.hud.hotbar.container, children: slot_i (0..N-1)
-- this.hud.minimap.container, this.hud.minimap.raster
-- this.ui.tooltip.container
-- this.ui.dialog.container
-
-Construction order and lifecycle:
-- create():
-  - Initialize theme via theme-loader (await theme readiness if async).
-  - Build uiRoot, set depth and roundPixels.
-  - Draw vector frames with 1 px rects; pre-render repeated frames to RenderTexture or cached Graphics for performance.
-  - Instantiate gauges, hotbar, minimap, tooltip container (hidden), dialog container (hidden).
-  - Register event listeners (see bridges below).
-- update(time, delta):
-  - Apply micro-animations (pulses, sweeps, shakes) respecting ≤ 150 ms guidance.
-  - Process throttled minimap updates (≤ 4 Hz) and camera-move triggers.
-  - Clamp and snap positions after any camera or scale change.
-
-Event bridges (contracts):
-- Health/Stamina updates:
-  - Source: ECS patches or domain events ("Health.value", "Stamina.value") containing current and max.
-  - Behavior: Adjust bar fill width; apply color pulse when ≤ 25% (low).
-- Hotbar selection:
-  - Event: ui.hotbar.select(index)
-  - Behavior: Set selected slot, play 120 ms pulse and optional 250 ms sweep.
-- Inventory overlay toggle:
-  - Event: ui.inventory.toggle()
-  - Behavior: Show/hide inventory grid overlay; pause world input when open (engine-side).
-- Minimap raster:
-  - Event: world.minimap.update with uint8[][] payload.
-  - Behavior: Recolor and blit using token map in §10.
-
-
-## 8) Bars & Animation Micro-Cues
-- Fill behavior:
-  - MVP: immediate value jump accepted.
-  - Optional easing: decreases ease-out 80 ms; increases ease-in 120 ms.
-- Low-health pulse:
-  - Threshold: ≤ 25% of max.
-  - Effect: Bar border shifts toward ui.frame.copper at 2 Hz; overlay 30% alpha copper strip or entire border blink (2 Hz cap).
-- Stamina deny feedback:
-  - Trigger: Attempt action with insufficient stamina.
-  - Effect: Bar container shake ±2 px over 90 ms; play tooltip.warn SFX (hook to audio domain).
-
-
-## 9) Hotbar & Inventory UX
-- Slot states:
-  - empty
-  - filled
-  - selected
-  - on-cooldown (future; dim overlay + radial wedge not in Sprint 1)
-- Visuals:
-  - Selected: ui.hotbar.slot.active frame; selection pulse 120 ms; optional 250 ms highlight sweep.
-  - Empty: ui.hotbar.slot.bg only; show faint placeholder grid (1 px cross) optional.
-- Input mapping hints:
-  - Small key numbers above slots; ui.text.secondary; nudge y by -6 px from slot top.
-- Inventory grid overlay:
-  - Grid: 5×4 slots (MVP); slot size = hotbar slot size; same padding rules.
-  - Scrolling: if more items, vertical scroll pages (Sprint 2).
-  - Drag-and-drop: while dragging, render item icon with ui.icon.shadow at 30% alpha; snap to slots on drop.
-
-
-## 10) Minimap Rendering Rules
-- Raster source:
-  - From worldgen: uint8 grid (0 bg, 1 room, 2 corridor, 3 ore).
-- Token map:
-  - 0 → minimap.bg (panel interior fill also uses ui.panel.bg behind raster for contrast)
-  - 1 → minimap.room
-  - 2 → minimap.corridor
-  - 3 → minimap.ore
-- Overlays:
-  - Player blip: minimap.player, 2×2 px square at player’s tile-aligned position.
-  - Enemy blips: minimap.enemy, 2×2 px squares layered above raster.
-- Frame:
-  - Border: ui.panel.border (1 px)
-  - Shadow: ui.panel.shadow (offset 1 px, alpha 0.3)
-- Update cadence:
-  - On scene load (full draw)
-  - Then throttled to 4 Hz OR immediately when camera movement exceeds 8 px since last draw (whichever first).
-
-
-## 11) Theme Loader API Contract (for src/ui/theme-loader.js)
-API (authoritative):
-- getColor(token: string) → { hex: string, int: number }
-  - Resolves token from data/visual/color-palette.json.
-  - On unknown: log-once and return getColor("debug.mask.exclude").
-- getTextStyle(kind: 'primary' | 'secondary' | 'muted' | 'warning') → Phaser TextStyle
-  - Includes: fontFamily (stack), fontSize (per §4), fontStyle (bold for warning), letterSpacing, color (hex), align: 'left', resolution consistent with scale, metrics tuned for pixelArt.
-- applyPanelStyle(graphics, { bgToken, borderToken, shadowToken })
-  - Draw order: shadow (offset 1 px, alpha 0.3) → bg fill → 1 px border.
-  - Uses tokens (default to ui.panel.bg/ui.panel.border/ui.panel.shadow if args absent).
-- Logging policy:
-  - onUnknownToken(token): log-once (console.warn) with token id and fallback token used.
-
-Implementation notes:
-- No raw hex in callers; theme-loader is single source of color truth.
-- Provide getGaugeStyle(kind: 'health'|'stamina') helper (optional) mapping to fill/bg/border tokens for consistency.
-
-
-## 12) Accessibility & Contrast
-- Contrast targets:
-  - Primary text ≥ 4.5:1 over ui.panel.bg
-  - Secondary text ≥ 3:1 over ui.panel.bg
-- Gauge distinguishability:
-  - Health vs Stamina must differ by hue family and be outlined by ui.gauge.border.
-- Non-color redundancies:
-  - Distinct icon shapes for key states (e.g., pick vs drill), selected slot additional border thickness or corner nibs (1 px triangles).
-- Motion safety:
-  - All pulses ≤ 2 Hz.
-  - Provide global toggle to disable pulses and shakes; respect OS “reduced motion” flag if detected.
-
-
-## 13) Asset & Icon Guidance
-- Icon atlas keys (from tools.json):
-  - ui/icon.tools.pick_t1_24
-  - ui/icon.tools.pick_t2_24
-  - ui/icon.tools.drill_t3_24
-- Sizing:
-  - Icons intended for 16×16 rendering within 20×20 slots (2 px padding). 24 px sources may be downsampled; prefer native 16 px variants to avoid blur.
-- Shadows:
-  - Use ui.icon.shadow at 30% alpha.
-  - Avoid Gaussian blur; use solid offset 1 px for pixel-crisp silhouette.
-
-
-## 14) Implementation Checklist (Acceptance)
-- HUD constructed with token-only colors resolved from data/visual/color-palette.json via theme-loader.
-- Health/Stamina bars, hotbar, and minimap placed exactly per spec; responsive to events listed.
-- Font stack ("Pixel Operator" with fallbacks) loaded; text styles applied; contrast targets met or warnings logged.
-- Phaser containers and IDs match this document namespacing.
-- No raw hex literals in code; all color usage routed through theme-loader.
-- Pixel-crisp rendering verified at 3x and 4x scales; borders remain 1 px at base per-scale.
-- Compact layout engages correctly when width < 360 px (4-slot hotbar, 56×56 minimap).
-
-
-## 15) Open Questions & Versioning
-Open questions (to confirm in Sprint 1):
-- Base tile size: 16×16 vs 32×32 (document currently assumes 16×16; doubles scale for 32×32).
-- Base logical resolution: 320×180 chosen for Sprint 1; confirm against camera and tile visibility goals.
-- Final font pick: validate "Pixel Operator" legibility in-engine at 3x–4x; if not, trial "VT323" or a bitmap font export.
-
-Versioning policy:
-- Minor version bump for token additions/renames that do not alter anchors or container IDs; minor for placement tweaks within same anchors.
-- Major version bump required if anchors, container IDs, event names, or base sizes change (breaking integration for src/ui/hud or theme-loader).
-- Patch version for non-breaking clarifications and copy edits.
-
-— Brightforge Crystalsmith, keeping the brass bright, the crystal clean, and the reads clear.
+---
