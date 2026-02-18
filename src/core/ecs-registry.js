@@ -1,801 +1,624 @@
-'use strict';
-
-/*
-  The Far Mine - Core Systems: MVP ECS Registry
-  Purpose: Minimal, deterministic, engine-agnostic ECS with events and stages for Sprint 1.
-  Mirrors: docs/core-systems/ecs-architecture.md (P4/P6 mapping)
-  Author: alpha (Ironforge)
-  Version: v0.1
-
-  License: This source is part of The Far Mine. See project license.
-*/
-
 /**
- * JSDoc typedefs and interfaces
+ * src/core/ecs-registry.js
+ * A minimal, deterministic, dense-store ECS Registry with scheduler and event bus.
+ * Pure ESM module; no external deps.
+ *
+ * JSDoc example usage:
+ *
+ * import EcsRegistry, { createDefaultRegistry, Stages, Components } from './ecs-registry.js';
+ *
+ * const world = createDefaultRegistry();
+ * const e = world.createEntity();
+ * world.add(e, Components.position, { x: 0, y: 0 });
+ * world.add(e, Components.velocity, { vx: 1, vy: 0 });
+ * world.register(Stages.PrePhysics, (w, dt) => {/* ... */}, 'CustomSystem');
+ * world.tick(1/60);
  */
 
-/**
- * @typedef {number} EntityId
- */
+const dev = (() => {
+  try {
+    // Safe check for common Node env; browsers normally have no process
+    return typeof process !== 'undefined' &&
+      process &&
+      process.env &&
+      process.env.NODE_ENV !== 'production';
+  } catch (_) {
+    return false;
+  }
+})();
 
 /**
- * @typedef {string} ComponentName
+ * Deterministic pipeline stages.
  */
-
-/**
- * Lightweight schema definition for dev-time validation.
- * Two supported forms:
- *  - Flat props map: { x:'number', y:'number', label:'string?', nested:{...} }
- *      - Suffix '?' marks property optional (not required).
- *      - Supported primitive types: 'number', 'string', 'boolean', 'object', 'array'
- *      - For nested objects, you can provide a nested SchemaDef object instead of a string type.
- *  - Explicit form: { props: { ... same as flat form ... } }
- * Notes:
- *  - This is a soft validator; it warns in dev mode only and never throws in prod.
- *  - It is not JSON Schema; it's a tiny helper for catching obvious errors early.
- * @typedef {Object<string, (string|SchemaDef)> & {props?: Object<string, (string|SchemaDef)>>} SchemaDef
- */
-
-/**
- * @callback SystemFn
- * @param {Registry} registry
- * @param {number} dtSec
- * @returns {void}
- */
-
-/**
- * @typedef {Object} View
- * @property {(cb: (eid: EntityId, ...comps: any[]) => void) => void} each
- * @property {() => number} size
- */
-
-/**
- * @typedef {Object} Registry
- * @property {Set<EntityId>} _alive Internal: set of alive entity ids
- * @property {Map<string, any>} _resources Internal: named global resources
- * @property {Map<string, number>} counters Internal: diagnostic counters
- * @property {'dev'|'prod'} _mode Internal: mode
- * @property {EventBus} bus Event bus instance
- * @property {Map<ComponentName, any>} _stores Internal: component stores map
- * @property {Record<string, SchemaDef>} _schemas Internal: dev-time schemas
- * @property {Array<Array<SystemFn>>} _systems Internal: systems per stage
- * @property {number} _nextEid Internal: next eid to allocate
- * @property {Array<EntityId>} _freelist Internal: free entity id stack
- * @property {Map<number, any>} _ephemeral Internal: optional per-entity cache (JS cannot WeakMap<number>)
- * @property {() => EntityId} createEntity Create and return a new entity id
- * @property {(eid: EntityId) => void} destroyEntity Destroy an entity and remove all its components
- * @property {(eid: EntityId) => boolean} isAlive Check if an entity is alive
- * @property {(eid: EntityId, name: ComponentName, data: any) => void} add Add or replace a component on an entity
- * @property {(eid: EntityId, name: ComponentName) => void} remove Remove a component from an entity
- * @property {(eid: EntityId, name: ComponentName) => any|null} get Get component payload or null
- * @property {(eid: EntityId, name: ComponentName) => boolean} has Check component presence
- * @property {(map: Record<string, SchemaDef>) => void} setSchemas Set dev-time schemas
- * @property {(include: ComponentName[], exclude?: ComponentName[]) => View} view Create a view over entities matching components
- * @property {(stage: number, fn: SystemFn) => void} register Register a system function at a given stage
- * @property {(dtSec: number) => void} tick Advance simulation by dt; calls systems in stage order
- * @property {(name: string, obj: any) => void} setResource Set a global resource
- * @property {(name: string) => any|undefined} getResource Get a global resource
- * @property {(name: string) => boolean} hasResource Check global resource presence
- * @property {(name: string) => any|null} getDebugStore Dev-only: get internal store for tests
- * @property {(key: string, by?: number) => void} inc Increment a counter by key
- * @property {() => void} resetCounters Reset/clear diagnostic counters
- */
-
-/**
- * Stages enum-like object
- */
-const Stages = Object.freeze({
-  Input: 0,
-  PrePhysics: 1,
-  Gameplay: 2,
-  Events: 3,
-  RenderPrep: 4,
+export const Stages = Object.freeze({
+  Input: 'Input',
+  PrePhysics: 'PrePhysics',
+  Gameplay: 'Gameplay',
+  Events: 'Events',
+  RenderPrep: 'RenderPrep',
+  Order: ['Input', 'PrePhysics', 'Gameplay', 'Events', 'RenderPrep'],
 });
 
 /**
- * Canonical Event Types used across Sprint 1
+ * Stable event keys for bus.
  */
-const EventTypes = Object.freeze({
+export const Events = Object.freeze({
   MineHitEvent: 'MineHitEvent',
   DamageEvent: 'DamageEvent',
   FootstepEvent: 'FootstepEvent',
   PlaySfxEvent: 'PlaySfxEvent',
   UiCommand: 'UiCommand',
+  TelegraphStartEvent: 'TelegraphStartEvent',
+  PoiseBreakEvent: 'PoiseBreakEvent',
+  HitStopEvent: 'HitStopEvent',
 });
 
 /**
- * Internal Store class: dense storage for a single component type.
- * - Dense arrays: ids[] and data[] kept 1:1
- * - index: eid -> dense index
- * - sortedIds: lazily built ascending snapshot of ids for deterministic iteration
- * - swap-append and swap-remove keep arrays dense
- * - dirty flag invalidates sortedIds
+ * Stable component key strings.
  */
-class Store {
-  /**
-   * @param {ComponentName} name
-   */
-  constructor(name) {
-    /** @type {ComponentName} */
-    this.name = name;
-    /** @type {EntityId[]} */
-    this.ids = [];
-    /** @type {any[]} */
-    this.data = [];
-    /** @type {Map<EntityId, number>} */
-    this.index = new Map();
-    /** @type {EntityId[]|null} */
-    this.sortedIds = null;
-    /** @type {boolean} */
-    this._dirty = false;
-  }
+export const Components = Object.freeze({
+  position: 'position',
+  velocity: 'velocity',
+  collider: 'collider',
+  tile: 'tile',
+  ore_vein: 'ore_vein',
+  health: 'health',
+  stamina: 'stamina',
+  damageable: 'damageable',
+  inventory: 'inventory',
+  tool: 'tool',
+  faction: 'faction',
+  sprite_ref: 'sprite_ref',
+  light: 'light',
+  sound_emitter: 'sound_emitter',
+  ui_state: 'ui_state',
+});
 
-  /**
-   * Add or replace component for eid
-   * @param {EntityId} eid
-   * @param {any} value
-   */
-  add(eid, value) {
-    if (this.index.has(eid)) {
-      const i = this.index.get(eid);
-      this.data[i] = value;
-      return;
-    }
-    const i = this.ids.length;
-    this.ids.push(eid);
-    this.data.push(value);
-    this.index.set(eid, i);
-    this._markDirty();
+/**
+ * Internal: monotonic-ish clock in ms.
+ */
+function nowMs() {
+  if (typeof performance !== 'undefined' && performance && typeof performance.now === 'function') {
+    return performance.now();
   }
-
-  /**
-   * Remove component from eid if present (swap-remove)
-   * @param {EntityId} eid
-   */
-  remove(eid) {
-    const idx = this.index.get(eid);
-    if (idx === undefined) return;
-    const lastIdx = this.ids.length - 1;
-    if (idx !== lastIdx) {
-      const lastEid = this.ids[lastIdx];
-      const lastData = this.data[lastIdx];
-      this.ids[idx] = lastEid;
-      this.data[idx] = lastData;
-      this.index.set(lastEid, idx);
-    }
-    // pop last
-    this.ids.pop();
-    this.data.pop();
-    this.index.delete(eid);
-    this._markDirty();
-  }
-
-  /**
-   * @param {EntityId} eid
-   * @returns {any|null}
-   */
-  get(eid) {
-    const idx = this.index.get(eid);
-    return idx === undefined ? null : this.data[idx];
-  }
-
-  /**
-   * @param {EntityId} eid
-   * @returns {boolean}
-   */
-  has(eid) {
-    return this.index.has(eid);
-  }
-
-  /**
-   * Deterministic ascending-eid iteration with snapshot memoization.
-   * @param {(eid: EntityId) => void} cb
-   */
-  eachSorted(cb) {
-    if (!this.sortedIds || this._dirty) {
-      // snapshot and sort by ascending eid
-      this.sortedIds = this.ids.slice().sort((a, b) => a - b);
-      this._dirty = false;
-    }
-    const snapshot = this.sortedIds;
-    for (let i = 0; i < snapshot.length; i++) {
-      cb(snapshot[i]);
-    }
-  }
-
-  _markDirty() {
-    this._dirty = true;
-    // do not rebuild sortedIds now; leave it lazy
-  }
+  return Date.now();
 }
 
 /**
- * EventBus with per-type FIFO queues and deterministic drain order (insertion order maintained).
- * Never reorders within a tick; queues persist until drained or cleared.
+ * Light, dev-only validator util.
+ * SchemaLike: { fields: { [key: string]: 'number'|'string'|'boolean'|'object' } }
  */
-class EventBus {
-  /**
-   * @param {(type: string) => void} [onEmit]
-   * @param {(type: string, count: number) => void} [onDrain]
-   */
-  constructor(onEmit, onDrain) {
-    /** @type {Map<string, any[]>} */
-    this._queues = new Map();
-    this._onEmit = onEmit || null;
-    this._onDrain = onDrain || null;
-  }
-
-  /**
-   * Emit an event
-   * @param {string} type
-   * @param {any} payload
-   */
-  emit(type, payload) {
-    let q = this._queues.get(type);
-    if (!q) {
-      q = [];
-      this._queues.set(type, q);
+function validateShapeDev(compName, data, schema, warnOnce) {
+  if (!schema || !schema.fields || typeof data !== 'object' || data === null) return true;
+  const fields = schema.fields;
+  let ok = true;
+  for (const k in fields) {
+    const want = fields[k];
+    const have = typeof data[k];
+    const pass = (want === 'array')
+      ? Array.isArray(data[k])
+      : have === want || (want === 'number' && Number.isFinite(data[k]));
+    if (!pass) {
+      ok = false;
+      if (dev) warnOnce(`schema:${compName}:${k}`, `ECS add(): component "${compName}" field "${k}" expected ${want}, got ${have}`);
     }
-    q.push(payload);
-    if (this._onEmit) this._onEmit(type);
   }
-
-  /**
-   * Drain all events of a type in FIFO order
-   * @param {string} type
-   * @param {(payload: any) => void} fn
-   * @returns {number} drained count
-   */
-  drain(type, fn) {
-    const q = this._queues.get(type);
-    if (!q || q.length === 0) {
-      if (this._onDrain) this._onDrain(type, 0);
-      return 0;
-    }
-    const snapshot = q.slice(); // deterministic
-    q.length = 0; // clear
-    for (let i = 0; i < snapshot.length; i++) {
-      fn(snapshot[i]);
-    }
-    const drained = snapshot.length;
-    if (this._onDrain) this._onDrain(type, drained);
-    return drained;
-  }
-
-  /**
-   * Clear events for a type or all
-   * @param {string} [type]
-   */
-  clear(type) {
-    if (typeof type === 'string') {
-      this._queues.delete(type);
-      return;
-    }
-    this._queues.clear();
-  }
+  return ok;
 }
 
 /**
- * Internal helpers
+ * Dense component store factory.
  */
-
-/**
- * Clamp a number into [min, max]
- * @param {number} v
- * @param {number} min
- * @param {number} max
- * @returns {number}
- */
-function clamp(v, min, max) {
-  if (v < min) return min;
-  if (v > max) return max;
-  return v;
-}
-
-/**
- * Is finite number guard
- * @param {any} v
- * @returns {v is number}
- */
-function isFiniteNumber(v) {
-  return typeof v === 'number' && Number.isFinite(v);
-}
-
-/**
- * Choose the driver store (fewest entities). Ties broken by name lex order.
- * @param {Map<ComponentName, Store>} stores
- * @param {ComponentName[]} include
- * @returns {{store: Store|null, missing: ComponentName[]}}
- */
-function chooseDriverStore(stores, include) {
-  let driver = null;
-  let driverName = null;
-  let minLen = Infinity;
-  const missing = [];
-  for (let i = 0; i < include.length; i++) {
-    const name = include[i];
-    const s = stores.get(name);
-    if (!s) {
-      missing.push(name);
-      continue;
-    }
-    const size = s.ids.length;
-    if (size < minLen) {
-      minLen = size;
-      driver = s;
-      driverName = name;
-    } else if (size === minLen && driverName !== null) {
-      // tie-breaker by lexicographic name
-      if (name < driverName) {
-        driver = s;
-        driverName = name;
-      }
-    }
-  }
-  if (driver === null && missing.length === 0) {
-    // This can happen if include is empty; not expected for queries here
-    return { store: null, missing: [] };
-  }
-  return { store: driver, missing };
-}
-
-/**
- * Ensure a store exists for component name
- * @param {Map<ComponentName, Store>} stores
- * @param {ComponentName} name
- * @returns {Store}
- */
-function ensureStore(stores, name) {
-  let s = stores.get(name);
-  if (!s) {
-    s = new Store(name);
-    stores.set(name, s);
-  }
-  return s;
-}
-
-/**
- * Validate data against schema in dev mode.
- * Returns { ok, warnings[] }.
- * - Warns about missing required properties, and type mismatches.
- * - For type strings with '?', property is optional.
- * - For nested schema (object instead of string), recursively validate.
- * @param {string} name
- * @param {any} data
- * @param {SchemaDef} schema
- * @param {'dev'|'prod'} mode
- * @returns {{ok: boolean, warnings: string[]}}
- */
-function validateAgainstSchema(name, data, schema, mode) {
-  /** @type {string[]} */
-  const warnings = [];
-  if (mode !== 'dev') return { ok: true, warnings };
-
-  if (typeof data !== 'object' || data == null || Array.isArray(data)) {
-    warnings.push(`[ECS][${name}] component should be an object, got ${typeof data}`);
-    return { ok: false, warnings };
-  }
-
-  const props = /** @type {Record<string, any>} */ (schema && schema.props ? schema.props : schema);
-  if (!props || typeof props !== 'object') {
-    // No schema content; nothing to validate
-    return { ok: true, warnings };
-  }
-
-  const checkProp = (propName, expected, value, path) => {
-    const stringType = typeof expected === 'string' ? expected : null;
-    const isOptional = stringType ? stringType.endsWith('?') : false;
-    const baseType = stringType ? (isOptional ? stringType.slice(0, -1) : stringType) : null;
-    const fullPath = path.length ? `${path.join('.')}.${propName}` : propName;
-
-    if (value === undefined || value === null) {
-      if (!isOptional) {
-        warnings.push(`[ECS][${name}] missing required field "${fullPath}"`);
-      }
-      return;
-    }
-
-    if (stringType) {
-      // Primitive or special
-      if (baseType === 'array') {
-        if (!Array.isArray(value)) {
-          warnings.push(`[ECS][${name}] field "${fullPath}" expected array, got ${typeof value}`);
-        }
-      } else if (baseType === 'number') {
-        if (!isFiniteNumber(value)) {
-          warnings.push(`[ECS][${name}] field "${fullPath}" expected finite number, got ${String(value)}`);
-        }
-      } else if (baseType === 'object') {
-        if (typeof value !== 'object' || value == null || Array.isArray(value)) {
-          warnings.push(`[ECS][${name}] field "${fullPath}" expected object, got ${Array.isArray(value) ? 'array' : typeof value}`);
-        }
-      } else {
-        if (typeof value !== baseType) {
-          warnings.push(`[ECS][${name}] field "${fullPath}" expected ${baseType}, got ${typeof value}`);
-        }
-      }
-    } else if (expected && typeof expected === 'object') {
-      // Nested schema
-      const nestedProps = expected.props ? expected.props : expected;
-      if (typeof value !== 'object' || value == null || Array.isArray(value)) {
-        warnings.push(`[ECS][${name}] field "${fullPath}" expected object for nested schema`);
-        return;
-      }
-      for (const k of Object.keys(nestedProps)) {
-        checkProp(k, nestedProps[k], value[k], path.concat([propName]));
-      }
-    }
+function makeStore() {
+  return {
+    ids: [],          // dense eid array
+    data: [],         // dense data parallel to ids
+    index: new Map(), // eid -> dense index
+    sortedIds: null,  // cached ascending snapshot, invalidated on mutation
   };
-
-  for (const key of Object.keys(props)) {
-    checkProp(key, props[key], data[key], []);
-  }
-
-  return { ok: warnings.length === 0, warnings };
 }
 
 /**
- * Registry factory
- * @param {{mode?: 'dev'|'prod'}} [opts]
- * @returns {Registry}
+ * ECS Registry: entities, components, scheduler, and event bus.
  */
-function createRegistry(opts) {
-  const mode = (opts && opts.mode) === 'dev' ? 'dev' : 'prod';
+export default class EcsRegistry {
+  constructor() {
+    // entity core
+    this.nextId = 1;
+    this.freelist = [];
+    this._alive = new Set();
+    this._entityToComps = new Map();
 
-  /** @type {Set<EntityId>} */
-  const _alive = new Set();
-  /** @type {Array<EntityId>} */
-  const _freelist = [];
-  let _nextEid = 1;
+    // components
+    this._stores = new Map();
+    this._schemas = Object.create(null);
 
-  /** @type {Map<ComponentName, Store>} */
-  const _stores = new Map();
-  /** @type {Record<string, SchemaDef>} */
-  let _schemas = Object.create(null);
-  /** @type {Array<Array<SystemFn>>} */
-  const _systems = [[], [], [], [], []]; // per Stages
-  /** @type {Map<string, any>} */
-  const _resources = new Map();
-  /** @type {Map<string, number>} */
-  const counters = new Map();
-  // Note: JS WeakMap cannot use numbers as keys; use Map<number, any> instead.
-  /** @type {Map<number, any>} */
-  const _ephemeral = new Map();
+    // scheduler
+    this._systems = {
+      [Stages.Input]: [],
+      [Stages.PrePhysics]: [],
+      [Stages.Gameplay]: [],
+      [Stages.Events]: [],
+      [Stages.RenderPrep]: [],
+    };
 
-  // Event bus with counters integration
-  const bus = new EventBus(
-    (type) => {
-      const key = `events.emitted.${type}`;
-      const v = counters.get(key) || 0;
-      counters.set(key, v + 1);
-    },
-    (type, count) => {
-      const key = `events.drained.${type}`;
-      const v = counters.get(key) || 0;
-      counters.set(key, v + count);
+    // resources and bus
+    this._resources = new Map();
+    this.bus = this._makeBus();
+
+    // counters
+    this.counters = { systems: Object.create(null) };
+
+    // dev warnings once-per-key
+    this._warned = new Set();
+
+    // last dt
+    this._lastDt = 0;
+  }
+
+  // ---------- utils ----------
+  _warnOnce(key, msg) {
+    if (!dev) return;
+    if (this._warned.has(key)) return;
+    this._warned.add(key);
+    // eslint-disable-next-line no-console
+    console.warn(msg);
+  }
+
+  _ensureStore(name) {
+    let s = this._stores.get(name);
+    if (!s) {
+      s = makeStore();
+      this._stores.set(name, s);
     }
-  );
+    return s;
+  }
 
-  /** @type {Registry} */
-  const registry = {
-    _alive,
-    _freelist,
-    _nextEid,
-    _stores,
-    _schemas,
-    _systems,
-    _resources,
-    bus,
-    counters,
-    _mode: mode,
-    _ephemeral,
+  _invalidateSorted(store) {
+    store.sortedIds = null;
+  }
 
-    createEntity() {
-      let eid;
-      if (_freelist.length > 0) {
-        eid = /** @type {number} */ (_freelist.pop());
-      } else {
-        eid = _nextEid++;
+  _getOrCreateEntitySet(eid) {
+    let set = this._entityToComps.get(eid);
+    if (!set) {
+      set = new Set();
+      this._entityToComps.set(eid, set);
+    }
+    return set;
+  }
+
+  // ---------- Entity API ----------
+  createEntity() {
+    const id = this.freelist.length > 0 ? this.freelist.pop() : this.nextId++;
+    this._alive.add(id);
+    // ensure entity map exists for bookkeeping
+    this._getOrCreateEntitySet(id);
+    return id;
+  }
+
+  destroyEntity(eid) {
+    if (!this._alive.has(eid)) return;
+    const comps = this._entityToComps.get(eid);
+    if (comps && comps.size > 0) {
+      const list = Array.from(comps);
+      for (let i = 0; i < list.length; i++) {
+        this.remove(eid, list[i]);
       }
-      _alive.add(eid);
-      return eid;
-    },
+    }
+    this._entityToComps.delete(eid);
+    this._alive.delete(eid);
+    this.freelist.push(eid);
+  }
 
-    destroyEntity(eid) {
-      if (!_alive.has(eid)) return;
-      // remove components from all stores
-      _stores.forEach((store) => {
-        if (store.has(eid)) store.remove(eid);
-      });
-      _alive.delete(eid);
-      _freelist.push(eid);
-      // cleanup ephemeral cache
-      _ephemeral.delete(eid);
-    },
+  isAlive(eid) {
+    return this._alive.has(eid);
+  }
 
-    isAlive(eid) {
-      return _alive.has(eid);
-    },
+  // ---------- Component API ----------
+  add(eid, componentName, data) {
+    if (!this._alive.has(eid)) {
+      if (dev) this._warnOnce(`add:dead:${eid}`, `ECS add(): eid ${eid} is not alive`);
+      return;
+    }
+    if (typeof componentName !== 'string' || componentName.length === 0) {
+      if (dev) this._warnOnce(`add:badname`, `ECS add(): invalid component name "${componentName}"`);
+      return;
+    }
+    if (dev) {
+      const schema = this._schemas[componentName];
+      validateShapeDev(componentName, data, schema, this._warnOnce.bind(this));
+    }
 
-    add(eid, name, data) {
-      if (!_alive.has(eid)) return;
-      if (mode === 'dev') {
-        const schema = _schemas && _schemas[name];
-        if (schema) {
-          const res = validateAgainstSchema(name, data, schema, mode);
-          if (!res.ok && res.warnings.length) {
-            // soft warnings
-            for (let i = 0; i < res.warnings.length; i++) {
-              // eslint-disable-next-line no-console
-              console.warn(res.warnings[i]);
-            }
+    const store = this._ensureStore(componentName);
+    if (store.index.has(eid)) {
+      // overwrite data in place (idempotent, no layout change)
+      const idx = store.index.get(eid);
+      store.data[idx] = data;
+      return;
+    }
+    const idx = store.ids.length;
+    store.ids.push(eid);
+    store.data.push(data);
+    store.index.set(eid, idx);
+    this._invalidateSorted(store);
+
+    // bookkeeping
+    this._getOrCreateEntitySet(eid).add(componentName);
+  }
+
+  remove(eid, componentName) {
+    const store = this._stores.get(componentName);
+    if (!store) return;
+    const idx = store.index.get(eid);
+    if (idx === undefined) return;
+
+    const lastIdx = store.ids.length - 1;
+    const lastEid = store.ids[lastIdx];
+
+    // swap-remove dense
+    if (idx !== lastIdx) {
+      store.ids[idx] = lastEid;
+      store.data[idx] = store.data[lastIdx];
+      store.index.set(lastEid, idx);
+    }
+    store.ids.pop();
+    store.data.pop();
+    store.index.delete(eid);
+    this._invalidateSorted(store);
+
+    // bookkeeping
+    const set = this._entityToComps.get(eid);
+    if (set) set.delete(componentName);
+  }
+
+  get(eid, componentName) {
+    const store = this._stores.get(componentName);
+    if (!store) return undefined;
+    const idx = store.index.get(eid);
+    if (idx === undefined) return undefined;
+    return store.data[idx];
+  }
+
+  has(eid, componentName) {
+    const store = this._stores.get(componentName);
+    return !!store && store.index.has(eid);
+  }
+
+  /**
+   * View iterator over entities that include all components in `include`,
+   * excluding any that have components in `exclude`.
+   * Iteration order is strictly ascending by eid, driven by the smallest include store.
+   * @param {string[]} include required component names
+   * @param {string[]} [exclude] optional excluded component names
+   * @returns {Iterable<{eid:number, comps:object[]}>}
+   */
+  view(include, exclude) {
+    const inc = Array.isArray(include) ? include : [];
+    const exc = Array.isArray(exclude) ? exclude : [];
+    if (inc.length === 0) {
+      // empty include => empty view
+      return (function* () {})();
+    }
+
+    // choose smallest driver store by ids length
+    let driverName = inc[0];
+    let driverStore = this._ensureStore(driverName);
+    let minLen = driverStore.ids.length;
+    for (let i = 1; i < inc.length; i++) {
+      const s = this._ensureStore(inc[i]);
+      if (s.ids.length < minLen) {
+        driverStore = s;
+        driverName = inc[i];
+        minLen = s.ids.length;
+      }
+    }
+
+    // ensure sorted snapshot
+    if (driverStore.sortedIds === null) {
+      // copy + sort ascending
+      const copy = driverStore.ids.slice();
+      copy.sort((a, b) => a - b);
+      driverStore.sortedIds = copy;
+    }
+    const sorted = driverStore.sortedIds;
+    const self = this;
+
+    return (function* () {
+      const includeStores = inc.map((n) => self._ensureStore(n));
+      const excludeStores = exc.map((n) => self._ensureStore(n));
+      for (let i = 0; i < sorted.length; i++) {
+        const eid = sorted[i];
+        if (!self._alive.has(eid)) continue;
+
+        // driver membership is implied by snapshot; verify other includes
+        let ok = true;
+        for (let j = 0; j < includeStores.length; j++) {
+          const s = includeStores[j];
+          if (!s.index.has(eid)) {
+            ok = false;
+            break;
           }
         }
-      }
-      const store = ensureStore(_stores, name);
-      store.add(eid, data);
-    },
+        if (!ok) continue;
 
-    remove(eid, name) {
-      const s = _stores.get(name);
-      if (!s) return;
-      s.remove(eid);
-    },
-
-    get(eid, name) {
-      const s = _stores.get(name);
-      if (!s) return null;
-      return s.get(eid);
-    },
-
-    has(eid, name) {
-      const s = _stores.get(name);
-      return !!(s && s.has(eid));
-    },
-
-    setSchemas(map) {
-      _schemas = map || Object.create(null);
-      this._schemas = _schemas;
-    },
-
-    view(include, exclude) {
-      // Fast path: if any include store missing -> empty view
-      const { store: driver, missing } = chooseDriverStore(_stores, include);
-      if (missing.length > 0 || !driver) {
-        // empty view
-        return {
-          each: () => {},
-          size: () => 0,
-        };
-      }
-      const excludeSet = new Set(exclude || []);
-      const includeStores = include.map((n) => _stores.get(n) || null);
-
-      const reg = this;
-      // Provide a stable size() as driver size (upper-bound)
-      const size = driver.ids.length;
-
-      return {
-        each(cb) {
-          let iter = 0;
-          let matched = 0;
-          driver.eachSorted((eid) => {
-            iter++;
-            // must have all includes
-            for (let i = 0; i < includeStores.length; i++) {
-              const s = includeStores[i];
-              if (!s || !s.has(eid)) {
-                return;
-              }
-            }
-            // must not have excluded
-            for (const ex of excludeSet) {
-              const maybe = _stores.get(ex);
-              if (maybe && maybe.has(eid)) {
-                return;
-              }
-            }
-            // collect components in include-order
-            const comps = new Array(include.length);
-            for (let i = 0; i < include.length; i++) {
-              const s = includeStores[i];
-              comps[i] = s ? s.get(eid) : null;
-            }
-            matched++;
-            cb(eid, ...comps);
-          });
-          reg.inc('queries.iterations', iter);
-          reg.inc('queries.matches', matched);
-        },
-        size: () => size,
-      };
-    },
-
-    register(stage, fn) {
-      if (stage < 0 || stage >= _systems.length) {
-        throw new Error(`ECS.register: invalid stage ${stage}`);
-      }
-      _systems[stage].push(fn);
-    },
-
-    tick(dtSec) {
-      const dt = clamp(+dtSec || 0, 0, 0.1);
-      for (let stage = 0; stage < _systems.length; stage++) {
-        const list = _systems[stage];
-        for (let i = 0; i < list.length; i++) {
-          list[i](this, dt);
+        for (let j = 0; j < excludeStores.length; j++) {
+          const s = excludeStores[j];
+          if (s.index.has(eid)) {
+            ok = false;
+            break;
+          }
         }
-        // After Events stage, we could clear one-shot ephemerals if needed.
-        // Here we keep persistent ephemerals (e.g., footstep timers) by design.
+        if (!ok) continue;
+
+        const comps = new Array(inc.length);
+        for (let j = 0; j < inc.length; j++) {
+          const s = includeStores[j];
+          const idx = s.index.get(eid);
+          comps[j] = s.data[idx];
+        }
+        yield { eid, comps };
       }
-      // Update diagnostic counters
-      this.counters.set('entities.alive', _alive.size);
-      this.counters.set('stores.count', _stores.size);
-    },
+    })();
+  }
 
-    setResource(name, obj) {
-      _resources.set(name, obj);
-    },
+  /**
+   * Set schemas for components for light dev-time validation.
+   * @param {Record<string, {fields?:Record<string,string>}>} map
+   */
+  setSchemas(map) {
+    if (!map || typeof map !== 'object') return;
+    this._schemas = Object.assign(Object.create(null), map);
+  }
 
-    getResource(name) {
-      return _resources.get(name);
-    },
+  /**
+   * Returns internal component store reference for tests/dev.
+   */
+  getDebugStore(name) {
+    return this._stores.get(name);
+  }
 
-    hasResource(name) {
-      return _resources.has(name);
-    },
+  // ---------- Resources ----------
+  setResource(key, value) {
+    this._resources.set(key, value);
+  }
+  getResource(key) {
+    return this._resources.get(key);
+  }
+  hasResource(key) {
+    return this._resources.has(key);
+  }
 
-    getDebugStore(name) {
-      if (mode !== 'dev') return null;
-      return _stores.get(name) || null;
-    },
+  // ---------- Scheduler ----------
+  /**
+   * Register a system in a stage. Systems within a stage run in registration order.
+   * @param {string} stage one of Stages.*
+   * @param {(world:EcsRegistry, dt:number)=>void} systemFn
+   * @param {string} [name] optional display/counter name
+   * @returns {()=>void} unregister function
+   */
+  register(stage, systemFn, name) {
+    if (!Stages.Order.includes(stage)) {
+      if (dev) this._warnOnce(`register:stage:${stage}`, `ECS register(): unknown stage "${stage}"`);
+      // still register into Gameplay as fallback
+      stage = Stages.Gameplay;
+    }
+    const sysName = String(name || systemFn.name || 'system');
+    const entry = { fn: systemFn, name: sysName };
+    const arr = this._systems[stage];
+    arr.push(entry);
+    const self = this;
+    let active = true;
+    return function unregister() {
+      if (!active) return;
+      active = false;
+      const idx = arr.indexOf(entry);
+      if (idx >= 0) arr.splice(idx, 1);
+    };
+  }
 
-    inc(key, by) {
-      const v = counters.get(key) || 0;
-      counters.set(key, v + (by === undefined ? 1 : by));
-    },
+  /**
+   * Advance the world by dt seconds. Clamps dt to [0, 0.1].
+   * Executes stages in fixed order.
+   * @param {number} dtSec
+   */
+  tick(dtSec) {
+    let dt = Number(dtSec);
+    if (!Number.isFinite(dt) || dt < 0) {
+      if (dev) this._warnOnce('tick:dt', `ECS tick(): invalid dt "${dtSec}", coercing to 0`);
+      dt = 0;
+    }
+    if (dt > 0.1) dt = 0.1;
+    this._lastDt = dt;
 
-    resetCounters() {
-      counters.clear();
-    },
-  };
+    // run stages in order
+    for (let si = 0; si < Stages.Order.length; si++) {
+      const stage = Stages.Order[si];
+      const systems = this._systems[stage];
+      for (let i = 0; i < systems.length; i++) {
+        const { fn, name } = systems[i];
+        const t0 = nowMs();
+        fn(this, dt);
+        const t1 = nowMs();
+        let entry = this.counters.systems[name];
+        if (!entry) {
+          entry = this.counters.systems[name] = { calls: 0, totalTimeMs: 0 };
+        }
+        entry.calls++;
+        entry.totalTimeMs += (t1 - t0);
+      }
+    }
 
-  return registry;
+    // clear events across ticks to ensure no cross-tick persistence
+    this.bus.clear();
+  }
+
+  // ---------- Event bus ----------
+  _makeBus() {
+    const queues = new Map();
+    return {
+      emit(type, payload) {
+        const t = String(type);
+        let q = queues.get(t);
+        if (!q) {
+          q = [];
+          queues.set(t, q);
+        }
+        q.push(payload);
+      },
+      drain(type) {
+        const t = String(type);
+        const q = queues.get(t);
+        if (!q || q.length === 0) {
+          queues.set(t, []);
+          return [];
+        }
+        queues.set(t, []);
+        return q;
+      },
+      peekCount(type) {
+        const q = queues.get(String(type));
+        return q ? q.length : 0;
+      },
+      clear(type) {
+        if (typeof type === 'string') {
+          queues.set(type, []);
+          return;
+        }
+        // clear all
+        queues.forEach((_, k) => queues.set(k, []));
+      },
+    };
+  }
 }
 
 /**
- * Reference MovementSystem
- * - Query: include ['position', 'velocity']
- * - Clamps dt to [0, 0.1]
- * - Optional max_speed on velocity: clamps velocity vector by scaling
- * - Integrates position += velocity * dt
- * - NaN/Inf guard: zeros non-finite values and increments 'movement.nan_guard'
- * - Emits FootstepEvent every 320ms while moving if entity has 'sprite_ref' or 'sound_emitter'
- *   Uses registry._ephemeral per-entity cache as { footstepTimer: number }
- * @type {SystemFn}
+ * Reference MovementSystem (production-safe).
+ * - Iterates entities with position+velocity.
+ * - Integrates: pos += vel * dt, clamps velocity by optional max_speed.
+ * - Emits FootstepEvent on a simple per-entity cooldown (240ms).
+ * @param {EcsRegistry} registry
+ * @param {number} dt
  */
-function MovementSystem(registry, dtSec) {
-  const dt = clamp(+dtSec || 0, 0, 0.1);
-  const view = registry.view(['position', 'velocity']);
+function MovementSystem(registry, dt) {
+  const posK = Components.position;
+  const velK = Components.velocity;
 
-  const STEP_INTERVAL = 0.320; // seconds
-  const EPS = 1e-3;
+  // cooldown resource map: eid -> nextStepAtMs
+  const cooldownKey = '__footstepCooldowns';
+  let cooldowns = registry.getResource(cooldownKey);
+  if (!cooldowns) {
+    cooldowns = new Map();
+    registry.setResource(cooldownKey, cooldowns);
+  }
 
-  view.each((eid, pos, vel) => {
-    if (!pos || !vel) return;
+  const now = nowMs();
+  const STEP_MS = 240;
 
-    // Normalize component shapes
-    let vx = isFiniteNumber(vel.x) ? vel.x : 0;
-    let vy = isFiniteNumber(vel.y) ? vel.y : 0;
+  for (const { eid, comps } of registry.view([posK, velK])) {
+    const pos = comps[0];
+    const vel = comps[1];
 
-    // Clamp by max_speed if present
-    let maxSpeed = undefined;
-    if (isFiniteNumber(vel.max_speed)) {
-      maxSpeed = vel.max_speed;
-    } else if (isFiniteNumber(pos.max_speed)) {
-      // fallback if someone put it in position
-      maxSpeed = pos.max_speed;
-    }
-    const speed = Math.hypot(vx, vy);
-    if (isFiniteNumber(maxSpeed) && maxSpeed > 0 && speed > maxSpeed) {
-      const scale = maxSpeed / (speed || 1);
-      vx *= scale;
-      vy *= scale;
-      // write back clamped velocities
-      vel.x = vx;
-      vel.y = vy;
-    }
+    // sanitize numbers
+    let x = Number(pos.x); if (!Number.isFinite(x)) x = 0;
+    let y = Number(pos.y); if (!Number.isFinite(y)) y = 0;
+    let vx = Number(vel.vx); if (!Number.isFinite(vx)) vx = 0;
+    let vy = Number(vel.vy); if (!Number.isFinite(vy)) vy = 0;
 
-    // Integrate
-    const dx = vx * dt;
-    const dy = vy * dt;
-
-    // Guards for non-finite deltas or pos
-    let nanGuarded = false;
-    if (!isFiniteNumber(pos.x)) {
-      pos.x = 0;
-      nanGuarded = true;
-    }
-    if (!isFiniteNumber(pos.y)) {
-      pos.y = 0;
-      nanGuarded = true;
-    }
-
-    if (!isFiniteNumber(dx)) {
-      nanGuarded = true;
-    } else {
-      pos.x += dx;
-    }
-    if (!isFiniteNumber(dy)) {
-      nanGuarded = true;
-    } else {
-      pos.y += dy;
-    }
-    if (nanGuarded) {
-      registry.inc('movement.nan_guard', 1);
-      if (!isFiniteNumber(vel.x)) vel.x = 0;
-      if (!isFiniteNumber(vel.y)) vel.y = 0;
-    }
-
-    // Footstep emission if moving and has audio/sprite ref
-    const canEmitStep = registry.has(eid, 'sprite_ref') || registry.has(eid, 'sound_emitter');
-    if (canEmitStep && speed > EPS) {
-      let cache = registry._ephemeral.get(eid);
-      if (!cache) {
-        cache = { footstepTimer: 0 };
-        registry._ephemeral.set(eid, cache);
-      }
-      cache.footstepTimer = (cache.footstepTimer || 0) + dt;
-      if (cache.footstepTimer >= STEP_INTERVAL) {
-        cache.footstepTimer -= STEP_INTERVAL;
-        registry.bus.emit(EventTypes.FootstepEvent, { entity: eid, material: 'rock' });
+    // clamp speed if max_speed present on velocity or position
+    let maxS = Number.isFinite(vel.max_speed) ? Number(vel.max_speed)
+              : Number.isFinite(pos.max_speed) ? Number(pos.max_speed)
+              : undefined;
+    if (Number.isFinite(maxS) && maxS > 0) {
+      const sp2 = vx * vx + vy * vy;
+      const ms2 = maxS * maxS;
+      if (sp2 > ms2) {
+        const s = Math.sqrt(sp2) || 1;
+        const k = maxS / s;
+        vx *= k; vy *= k;
+        vel.vx = vx; vel.vy = vy; // keep velocity consistent if clamped
       }
     }
-  });
+
+    // integrate
+    x += vx * dt;
+    y += vy * dt;
+
+    // write back
+    pos.x = x; pos.y = y;
+
+    // simple footstep emission when moving
+    const speed = Math.sqrt(vx * vx + vy * vy);
+    if (speed > 0.01) {
+      const nextAt = cooldowns.get(eid) || 0;
+      if (now >= nextAt) {
+        registry.bus.emit(Events.FootstepEvent, { eid });
+        cooldowns.set(eid, now + STEP_MS);
+      }
+    }
+  }
 }
 
 /**
- * Inline usage example
- *
- * // Create registry
- * const reg = createRegistry({ mode: 'dev' });
- *
- * // Optional: set schemas
- * reg.setSchemas({
- *   position: { x: 'number', y: 'number' },
- *   velocity: { x: 'number', y: 'number', max_speed: 'number?' },
- *   sprite_ref: { id: 'string' },
- * });
- *
- * // Create an entity with position and velocity
- * const e = reg.createEntity();
- * reg.add(e, 'position', { x: 0, y: 0 });
- * reg.add(e, 'velocity', { x: 2, y: 0, max_speed: 4 });
- * reg.add(e, 'sprite_ref', { id: 'hero' });
- *
- * // Register systems
- * reg.register(Stages.Gameplay, MovementSystem);
- *
- * // Tick simulation
- * reg.tick(0.016); // ~16ms frame
- *
- * // Drain footstep events (none expected on first few frames)
- * reg.bus.drain(EventTypes.FootstepEvent, (evt) => {
- *   // Handle footstep
- * });
- *
- * // Access debug store in dev mode
- * const posStore = reg.getDebugStore('position');
+ * Create a default registry and register core reference systems.
+ * @returns {EcsRegistry}
  */
+export function createDefaultRegistry() {
+  const world = new EcsRegistry();
+  world.register(Stages.PrePhysics, MovementSystem, 'Movement');
+  return world;
+}
 
 /**
- * Compatibility and testing notes:
- * - No DOM or Node globals required; works in Node and browser bundlers.
- * - Designed to be imported by unit tests under src/core/__tests__/ecs-registry.test.js.
- * - Component names aligned with docs and P4 decision:
- *   'position','velocity','collider','tile','ore_vein','health','stamina',
- *   'damageable','inventory','tool','faction','sprite_ref','light','sound_emitter','ui_state'
+ * Simple benchmark helper.
+ * Spawns entities with position+velocity+health, runs a tight tick loop.
+ * @param {{entities?:number, seconds?:number}} [opts]
+ * @returns {Promise<{avgHz:number,totalTicks:number,systems:Record<string,{calls:number,totalTimeMs:number}>}>}
  */
+export async function benchmarkSimple({ entities = 10000, seconds = 3 } = {}) {
+  const world = createDefaultRegistry();
 
-// Public API exports
-export { createRegistry, Stages, EventTypes, MovementSystem };
+  // trivial systems to simulate load
+  function HealthTouchSystem(w, dt) {
+    for (const { comps } of w.view([Components.health])) {
+      // touch without doing anything meaningful
+      const h = comps[0];
+      // noop field read/write to prevent DCE in some environments
+      h.hp = Number.isFinite(h.hp) ? h.hp : 100;
+    }
+  }
+  function CounterSystem(w, dt) {
+    const key = '__benchCounter';
+    let c = w.getResource(key) || 0;
+    c += 1;
+    w.setResource(key, c);
+  }
+
+  world.register(Stages.Gameplay, HealthTouchSystem, 'HealthTouch');
+  world.register(Stages.RenderPrep, CounterSystem, 'Counter');
+
+  // Spawn entities
+  for (let i = 0; i < entities; i++) {
+    const e = world.createEntity();
+    world.add(e, Components.position, { x: 0, y: 0 });
+    // light variation in velocities
+    const ang = (i % 360) * (Math.PI / 180);
+    world.add(e, Components.velocity, { vx: Math.cos(ang), vy: Math.sin(ang), max_speed: 2 });
+    world.add(e, Components.health, { hp: 100 });
+  }
+
+  const tStart = nowMs();
+  const targetMs = seconds * 1000;
+  let totalTicks = 0;
+  const dt = 1 / 120;
+
+  // tight loop
+  while ((nowMs() - tStart) < targetMs) {
+    world.tick(dt);
+    totalTicks++;
+    // Intentional no await/sleep; tight profiling loop
+  }
+  const elapsed = Math.max(1e-6, (nowMs() - tStart) / 1000);
+  const avgHz = totalTicks / elapsed;
+
+  return { avgHz, totalTicks, systems: world.counters.systems };
+}
