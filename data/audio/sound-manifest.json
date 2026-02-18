@@ -1,405 +1,873 @@
-[
-  {
-    "id": "amb.tavern.loopA",
-    "filename": "amb/tavern_loopA.wav",
-    "category": "ambience",
-    "triggerKey": "SceneLoad:tavern",
-    "volume": 0.85,
-    "loop": true,
-    "priority": 30,
-    "maxPoly": 1,
-    "spatial": false,
-    "duckBus": null,
-    "tags": ["ambience", "tavern", "loop"]
+{
+  "version": 1,
+  "meta": {
+    "author": "zeta",
+    "updated": "2026-02-18T00:00:00Z",
+    "notes": [
+      "MVP v1 manifest for The Far Mine audio assets.",
+      "IDs are stable; any rename is a breaking change for AudioEventBridge and ECS mappings.",
+      "Filenames are placeholders pending asset pipeline export."
+    ]
   },
-  {
-    "id": "amb.biome.crystal_caverns.base.loopA",
-    "filename": "amb/biome_crystal_caverns_base_loopA.wav",
-    "category": "ambience",
-    "triggerKey": "BiomeLoad:crystal_caverns",
-    "volume": 0.9,
-    "loop": true,
-    "priority": 32,
-    "maxPoly": 1,
-    "spatial": false,
-    "duckBus": null,
-    "tags": ["ambience", "biome", "crystal_caverns", "base", "loop"]
-  },
-  {
-    "id": "amb.layer.drip.sparse",
-    "filename": "amb/layer_drip_sparse.wav",
-    "category": "ambience",
-    "triggerKey": "DepthLayer:d>=0.20",
+  "defaults": {
+    "bus": "SFX",
     "volume": 0.8,
-    "loop": true,
-    "priority": 28,
-    "maxPoly": 2,
-    "spatial": false,
-    "duckBus": null,
-    "tags": ["ambience", "layer", "drip", "sparse"]
-  },
-  {
-    "id": "amb.layer.crystal.resonance",
-    "filename": "amb/layer_crystal_resonance.wav",
-    "category": "ambience",
-    "triggerKey": "DepthLayer:d>=0.35",
-    "volume": 0.75,
-    "loop": true,
-    "priority": 29,
-    "maxPoly": 1,
-    "spatial": false,
-    "duckBus": null,
-    "tags": ["ambience", "layer", "crystal", "resonance"]
-  },
-  {
-    "id": "sfx.mine.hit.rock.v1",
-    "filename": "sfx/mining/pick_hit_rock_v1.wav",
-    "category": "sfx",
-    "triggerKey": "MineHitEvent:material=rock",
-    "volume": 1.0,
-    "loop": false,
-    "priority": 65,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["mining", "rock", "impact"]
-  },
-  {
-    "id": "sfx.mine.hit.rock.v2",
-    "filename": "sfx/mining/pick_hit_rock_v2.wav",
-    "category": "sfx",
-    "triggerKey": "MineHitEvent:material=rock",
-    "volume": 1.0,
-    "loop": false,
-    "priority": 65,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["mining", "rock", "impact"]
-  },
-  {
-    "id": "sfx.mine.hit.rock.v3",
-    "filename": "sfx/mining/pick_hit_rock_v3.wav",
-    "category": "sfx",
-    "triggerKey": "MineHitEvent:material=rock",
-    "volume": 1.0,
-    "loop": false,
-    "priority": 65,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["mining", "rock", "impact"]
-  },
-  {
-    "id": "sfx.mine.hit.copper.v1",
-    "filename": "sfx/mining/pick_hit_copper_v1.wav",
-    "category": "sfx",
-    "triggerKey": "MineHitEvent:material=copper",
-    "volume": 1.0,
-    "loop": false,
-    "priority": 65,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["mining", "copper", "impact"]
-  },
-  {
-    "id": "sfx.mine.hit.copper.v2",
-    "filename": "sfx/mining/pick_hit_copper_v2.wav",
-    "category": "sfx",
-    "triggerKey": "MineHitEvent:material=copper",
-    "volume": 1.0,
-    "loop": false,
-    "priority": 65,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["mining", "copper", "impact"]
-  },
-  {
-    "id": "sfx.mine.hit.copper.v3",
-    "filename": "sfx/mining/pick_hit_copper_v3.wav",
-    "category": "sfx",
-    "triggerKey": "MineHitEvent:material=copper",
-    "volume": 1.0,
-    "loop": false,
-    "priority": 65,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["mining", "copper", "impact"]
-  },
-  {
-    "id": "sfx.mine.hit.iron.v1",
-    "filename": "sfx/mining/pick_hit_iron_v1.wav",
-    "category": "sfx",
-    "triggerKey": "MineHitEvent:material=iron",
-    "volume": 1.0,
-    "loop": false,
-    "priority": 65,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["mining", "iron", "impact"]
-  },
-  {
-    "id": "sfx.mine.hit.iron.v2",
-    "filename": "sfx/mining/pick_hit_iron_v2.wav",
-    "category": "sfx",
-    "triggerKey": "MineHitEvent:material=iron",
-    "volume": 1.0,
-    "loop": false,
-    "priority": 65,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["mining", "iron", "impact"]
-  },
-  {
-    "id": "sfx.mine.hit.iron.v3",
-    "filename": "sfx/mining/pick_hit_iron_v3.wav",
-    "category": "sfx",
-    "triggerKey": "MineHitEvent:material=iron",
-    "volume": 1.0,
-    "loop": false,
-    "priority": 65,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["mining", "iron", "impact"]
-  },
-  {
-    "id": "sfx.mine.hit.quartz.v1",
-    "filename": "sfx/mining/pick_hit_quartz_v1.wav",
-    "category": "sfx",
-    "triggerKey": "MineHitEvent:material=quartz",
-    "volume": 0.95,
-    "loop": false,
-    "priority": 65,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["mining", "quartz", "impact"]
-  },
-  {
-    "id": "sfx.mine.hit.quartz.v2",
-    "filename": "sfx/mining/pick_hit_quartz_v2.wav",
-    "category": "sfx",
-    "triggerKey": "MineHitEvent:material=quartz",
-    "volume": 0.95,
-    "loop": false,
-    "priority": 65,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["mining", "quartz", "impact"]
-  },
-  {
-    "id": "sfx.mine.hit.quartz.v3",
-    "filename": "sfx/mining/pick_hit_quartz_v3.wav",
-    "category": "sfx",
-    "triggerKey": "MineHitEvent:material=quartz",
-    "volume": 0.95,
-    "loop": false,
-    "priority": 65,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["mining", "quartz", "impact"]
-  },
-  {
-    "id": "sfx.footstep.stone",
-    "filename": "sfx/footstep/step_stone.wav",
-    "category": "sfx",
-    "triggerKey": "FootstepEvent:material=stone",
-    "volume": 0.8,
-    "loop": false,
-    "priority": 40,
-    "maxPoly": 4,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["footstep", "stone"]
-  },
-  {
-    "id": "sfx.footstep.dirt",
-    "filename": "sfx/footstep/step_dirt.wav",
-    "category": "sfx",
-    "triggerKey": "FootstepEvent:material=dirt",
-    "volume": 0.8,
-    "loop": false,
-    "priority": 40,
-    "maxPoly": 4,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["footstep", "dirt"]
-  },
-  {
-    "id": "sfx.footstep.metal",
-    "filename": "sfx/footstep/step_metal.wav",
-    "category": "sfx",
-    "triggerKey": "FootstepEvent:material=metal",
-    "volume": 0.8,
-    "loop": false,
-    "priority": 40,
-    "maxPoly": 4,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["footstep", "metal"]
-  },
-  {
-    "id": "sfx.combat.telegraph.whoosh",
-    "filename": "sfx/combat/telegraph_whoosh.wav",
-    "category": "sfx",
-    "triggerKey": "combat.TelegraphStart",
-    "volume": 0.85,
-    "loop": false,
-    "priority": 70,
-    "maxPoly": 2,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["combat", "telegraph"]
-  },
-  {
-    "id": "sfx.combat.swing.whoosh.light",
-    "filename": "sfx/combat/swing_whoosh_light.wav",
-    "category": "sfx",
-    "triggerKey": "combat.Swing.light",
-    "volume": 0.9,
-    "loop": false,
-    "priority": 70,
-    "maxPoly": 2,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["combat", "swing", "light"]
-  },
-  {
-    "id": "sfx.combat.hit.light",
-    "filename": "sfx/combat/hit_light.wav",
-    "category": "sfx",
-    "triggerKey": "combat.Hit:weight=light",
-    "volume": 1.0,
-    "loop": false,
-    "priority": 85,
-    "maxPoly": 3,
-    "spatial": true,
-    "duckBus": "Ambience",
-    "tags": ["combat", "hit", "light"]
-  },
-  {
-    "id": "sfx.combat.block.impact",
-    "filename": "sfx/combat/block_impact.wav",
-    "category": "sfx",
-    "triggerKey": "combat.Block",
-    "volume": 1.0,
-    "loop": false,
-    "priority": 80,
-    "maxPoly": 2,
-    "spatial": true,
-    "duckBus": "Ambience",
-    "tags": ["combat", "block"]
-  },
-  {
-    "id": "sfx.combat.parry.success",
-    "filename": "sfx/combat/parry_success_ring.wav",
-    "category": "sfx",
-    "triggerKey": "combat.Parry",
-    "volume": 0.95,
-    "loop": false,
-    "priority": 90,
-    "maxPoly": 1,
-    "spatial": true,
-    "duckBus": null,
-    "tags": ["combat", "parry", "success"]
-  },
-  {
-    "id": "sfx.combat.poise.break",
-    "filename": "sfx/combat/poise_break.wav",
-    "category": "sfx",
-    "triggerKey": "poise.Break",
-    "volume": 0.95,
-    "loop": false,
-    "priority": 90,
-    "maxPoly": 1,
-    "spatial": true,
-    "duckBus": "Ambience",
-    "tags": ["combat", "poise", "break"]
-  },
-  {
-    "id": "ui.navigate",
-    "filename": "ui/ui_nav.wav",
-    "category": "ui",
-    "triggerKey": "UiCommand:navigate",
-    "volume": 0.8,
-    "loop": false,
-    "priority": 60,
+    "priority": 50,
     "maxPoly": 4,
     "spatial": false,
-    "duckBus": null,
-    "tags": ["ui", "navigate"]
-  },
-  {
-    "id": "ui.confirm",
-    "filename": "ui/ui_confirm.wav",
-    "category": "ui",
-    "triggerKey": "UiCommand:confirm",
-    "volume": 0.85,
     "loop": false,
-    "priority": 60,
-    "maxPoly": 4,
-    "spatial": false,
-    "duckBus": null,
-    "tags": ["ui", "confirm"]
+    "rolloff": {
+      "mode": "linear",
+      "max_distance_tiles": 18,
+      "mute_distance_tiles": 28,
+      "pan_law_db": -3
+    },
+    "var": {
+      "pitch_semitones": 0.2,
+      "vol_db": 0.8
+    },
+    "preload": false,
+    "streaming": false,
+    "duckSends": []
   },
-  {
-    "id": "ui.error",
-    "filename": "ui/ui_error.wav",
-    "category": "ui",
-    "triggerKey": "UiCommand:error",
-    "volume": 0.85,
-    "loop": false,
-    "priority": 60,
-    "maxPoly": 4,
-    "spatial": false,
-    "duckBus": null,
-    "tags": ["ui", "error"]
-  },
-  {
-    "id": "ui.craft.complete",
-    "filename": "ui/ui_craft_complete.wav",
-    "category": "ui",
-    "triggerKey": "UiCommand:craft.complete",
-    "volume": 0.95,
-    "loop": false,
-    "priority": 70,
-    "maxPoly": 4,
-    "spatial": false,
-    "duckBus": null,
-    "tags": ["ui", "craft", "complete"]
-  },
-  {
-    "id": "sfx.meta.placeholder",
-    "filename": "sfx/misc/placeholder.wav",
-    "category": "sfx",
-    "triggerKey": "direct",
-    "volume": 0.7,
-    "loop": false,
-    "priority": 10,
-    "maxPoly": 2,
-    "spatial": false,
-    "duckBus": null,
-    "tags": ["meta", "placeholder"]
-  },
-  {
-    "id": "music.track.l1.sketchA",
-    "filename": "music/l1_sketchA_loop.wav",
-    "category": "music",
-    "triggerKey": "SceneLoad:mine_l1",
-    "volume": 0.8,
-    "loop": true,
-    "priority": 30,
-    "maxPoly": 1,
-    "spatial": false,
-    "duckBus": null,
-    "tags": ["music", "level1", "loop"]
-  }
-]
+  "items": [
+    {
+      "id": "amb.tavern.loopA",
+      "filename": "audio/ambience/tavern/loopa_loop.wav",
+      "category": "ambience",
+      "bus": "Ambience",
+      "triggerKey": "scene.load.tavern",
+      "tags": ["ambience", "tavern", "bed", "loop"],
+      "spatial": false,
+      "loop": true,
+      "volume": 0.75,
+      "priority": 30,
+      "maxPoly": 1,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.0,
+        "vol_db": 0.0
+      },
+      "preload": false,
+      "streaming": true,
+      "duckSends": []
+    },
+    {
+      "id": "amb.biome.crystal_caverns.base.loopA",
+      "filename": "audio/ambience/crystal_caverns/base_loopa_loop.wav",
+      "category": "ambience",
+      "bus": "Ambience",
+      "triggerKey": "biome.load.crystal_caverns",
+      "tags": ["ambience", "biome", "crystal_caverns", "bed", "loop"],
+      "spatial": false,
+      "loop": true,
+      "volume": 0.72,
+      "priority": 28,
+      "maxPoly": 1,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.0,
+        "vol_db": 0.0
+      },
+      "preload": true,
+      "streaming": true,
+      "duckSends": []
+    },
+    {
+      "id": "amb.layer.drip.sparse",
+      "filename": "audio/ambience/shared/drip_sparse_loop.wav",
+      "category": "ambience",
+      "bus": "Ambience",
+      "triggerKey": "amb.layer.drip.sparse.on",
+      "tags": ["ambience", "layer", "water", "drip", "sparse"],
+      "spatial": false,
+      "loop": true,
+      "volume": 0.7,
+      "priority": 24,
+      "maxPoly": 1,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.0,
+        "vol_db": 0.0
+      },
+      "preload": false,
+      "streaming": true,
+      "duckSends": []
+    },
+    {
+      "id": "amb.layer.crystal.resonance",
+      "filename": "audio/ambience/shared/crystal_resonance_loop.wav",
+      "category": "ambience",
+      "bus": "Ambience",
+      "triggerKey": "amb.layer.crystal.resonance.on",
+      "tags": ["ambience", "layer", "crystal", "resonance"],
+      "spatial": false,
+      "loop": true,
+      "volume": 0.7,
+      "priority": 26,
+      "maxPoly": 1,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.0,
+        "vol_db": 0.0
+      },
+      "preload": false,
+      "streaming": true,
+      "duckSends": []
+    },
+    {
+      "id": "music.track.l1.sketchA",
+      "filename": "audio/music/l1_sketcha_loop.wav",
+      "category": "music",
+      "bus": "Music",
+      "triggerKey": "scene.load.mine_l1",
+      "tags": ["music", "track", "l1", "sketchA"],
+      "spatial": false,
+      "loop": true,
+      "volume": 0.8,
+      "priority": 30,
+      "maxPoly": 1,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.0,
+        "vol_db": 0.0
+      },
+      "preload": false,
+      "streaming": true,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.mine.hit.rock.v1",
+      "filename": "audio/sfx/mine/hit_rock_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.MineHit.rock",
+      "tags": ["mining", "rock", "impact", "pickaxe"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.85,
+      "priority": 65,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.3,
+        "vol_db": 1.0
+      },
+      "preload": true,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.mine.hit.rock.v2",
+      "filename": "audio/sfx/mine/hit_rock_v2.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.MineHit.rock",
+      "tags": ["mining", "rock", "impact", "pickaxe"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.84,
+      "priority": 65,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.3,
+        "vol_db": 1.0
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.mine.hit.rock.v3",
+      "filename": "audio/sfx/mine/hit_rock_v3.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.MineHit.rock",
+      "tags": ["mining", "rock", "impact", "pickaxe"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.83,
+      "priority": 65,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.3,
+        "vol_db": 1.0
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.mine.hit.copper.v1",
+      "filename": "audio/sfx/mine/hit_copper_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.MineHit.copper",
+      "tags": ["mining", "copper", "impact", "pickaxe"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.86,
+      "priority": 66,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.3,
+        "vol_db": 1.0
+      },
+      "preload": true,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.mine.hit.copper.v2",
+      "filename": "audio/sfx/mine/hit_copper_v2.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.MineHit.copper",
+      "tags": ["mining", "copper", "impact", "pickaxe"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.85,
+      "priority": 66,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.3,
+        "vol_db": 1.0
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.mine.hit.copper.v3",
+      "filename": "audio/sfx/mine/hit_copper_v3.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.MineHit.copper",
+      "tags": ["mining", "copper", "impact", "pickaxe"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.84,
+      "priority": 66,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.3,
+        "vol_db": 1.0
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.mine.hit.iron.v1",
+      "filename": "audio/sfx/mine/hit_iron_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.MineHit.iron",
+      "tags": ["mining", "iron", "impact", "pickaxe"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.87,
+      "priority": 67,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.25,
+        "vol_db": 1.0
+      },
+      "preload": true,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.mine.hit.iron.v2",
+      "filename": "audio/sfx/mine/hit_iron_v2.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.MineHit.iron",
+      "tags": ["mining", "iron", "impact", "pickaxe"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.86,
+      "priority": 67,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.25,
+        "vol_db": 1.0
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.mine.hit.iron.v3",
+      "filename": "audio/sfx/mine/hit_iron_v3.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.MineHit.iron",
+      "tags": ["mining", "iron", "impact", "pickaxe"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.85,
+      "priority": 67,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.25,
+        "vol_db": 1.0
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.mine.hit.quartz.v1",
+      "filename": "audio/sfx/mine/hit_quartz_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.MineHit.quartz",
+      "tags": ["mining", "quartz", "impact", "pickaxe"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.88,
+      "priority": 68,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.35,
+        "vol_db": 1.0
+      },
+      "preload": true,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.mine.hit.quartz.v2",
+      "filename": "audio/sfx/mine/hit_quartz_v2.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.MineHit.quartz",
+      "tags": ["mining", "quartz", "impact", "pickaxe"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.87,
+      "priority": 68,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.35,
+        "vol_db": 1.0
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.mine.hit.quartz.v3",
+      "filename": "audio/sfx/mine/hit_quartz_v3.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.MineHit.quartz",
+      "tags": ["mining", "quartz", "impact", "pickaxe"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.86,
+      "priority": 68,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.35,
+        "vol_db": 1.0
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.footstep.rock",
+      "filename": "audio/sfx/footstep/rock_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.Footstep.rock",
+      "tags": ["footstep", "rock", "movement"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.78,
+      "priority": 58,
+      "maxPoly": 1,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.4,
+        "vol_db": 0.6
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.footstep.dust",
+      "filename": "audio/sfx/footstep/dust_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.Footstep.dust",
+      "tags": ["footstep", "dust", "movement"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.76,
+      "priority": 58,
+      "maxPoly": 1,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.35,
+        "vol_db": 0.6
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.footstep.metal",
+      "filename": "audio/sfx/footstep/metal_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.Footstep.metal",
+      "tags": ["footstep", "metal", "movement"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.79,
+      "priority": 58,
+      "maxPoly": 1,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.3,
+        "vol_db": 0.6
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.combat.telegraph.whoosh",
+      "filename": "audio/sfx/combat/telegraph_whoosh_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.Combat.telegraph.start",
+      "tags": ["combat", "telegraph", "whoosh"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.88,
+      "priority": 82,
+      "maxPoly": 2,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.3,
+        "vol_db": 0.9
+      },
+      "preload": true,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.combat.swing.light",
+      "filename": "audio/sfx/combat/swing_light_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.Combat.swing.light",
+      "tags": ["combat", "swing", "light"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.86,
+      "priority": 78,
+      "maxPoly": 2,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.2,
+        "vol_db": 0.8
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.combat.hit.light",
+      "filename": "audio/sfx/combat/hit_light_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.Combat.hit.light",
+      "tags": ["combat", "hit", "light", "impact"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.9,
+      "priority": 88,
+      "maxPoly": 3,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.2,
+        "vol_db": 1.0
+      },
+      "preload": true,
+      "streaming": false,
+      "duckSends": [
+        {
+          "targetBus": "Ambience",
+          "gain_db": -3,
+          "attack_ms": 10,
+          "hold_ms": 250,
+          "release_ms": 120
+        }
+      ]
+    },
+    {
+      "id": "sfx.combat.block.impact",
+      "filename": "audio/sfx/combat/block_impact_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.Combat.block.impact",
+      "tags": ["combat", "block", "impact"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.88,
+      "priority": 86,
+      "maxPoly": 2,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.15,
+        "vol_db": 0.9
+      },
+      "preload": true,
+      "streaming": false,
+      "duckSends": [
+        {
+          "targetBus": "Ambience",
+          "gain_db": -3,
+          "attack_ms": 10,
+          "hold_ms": 250,
+          "release_ms": 120
+        }
+      ]
+    },
+    {
+      "id": "sfx.combat.parry.success",
+      "filename": "audio/sfx/combat/parry_success_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.Combat.parry.success",
+      "tags": ["combat", "parry", "success"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.9,
+      "priority": 90,
+      "maxPoly": 1,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.15,
+        "vol_db": 0.8
+      },
+      "preload": true,
+      "streaming": false,
+      "duckSends": [
+        {
+          "targetBus": "Ambience",
+          "gain_db": -3,
+          "attack_ms": 10,
+          "hold_ms": 250,
+          "release_ms": 120
+        }
+      ]
+    },
+    {
+      "id": "sfx.combat.poise.break",
+      "filename": "audio/sfx/combat/poise_break_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.Combat.poise.break",
+      "tags": ["combat", "poise", "break"],
+      "spatial": true,
+      "loop": false,
+      "volume": 0.92,
+      "priority": 90,
+      "maxPoly": 1,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.1,
+        "vol_db": 1.2
+      },
+      "preload": true,
+      "streaming": false,
+      "duckSends": [
+        {
+          "targetBus": "Ambience",
+          "gain_db": -3,
+          "attack_ms": 10,
+          "hold_ms": 250,
+          "release_ms": 120
+        }
+      ]
+    },
+    {
+      "id": "ui.navigate",
+      "filename": "audio/ui/navigate.wav",
+      "category": "ui",
+      "bus": "UI",
+      "triggerKey": "event.UI.navigate",
+      "tags": ["ui", "navigate"],
+      "spatial": false,
+      "loop": false,
+      "volume": 0.8,
+      "priority": 60,
+      "maxPoly": 2,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.05,
+        "vol_db": 0.4
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "ui.confirm",
+      "filename": "audio/ui/confirm.wav",
+      "category": "ui",
+      "bus": "UI",
+      "triggerKey": "event.UI.confirm",
+      "tags": ["ui", "confirm"],
+      "spatial": false,
+      "loop": false,
+      "volume": 0.82,
+      "priority": 65,
+      "maxPoly": 2,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.05,
+        "vol_db": 0.4
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "ui.error",
+      "filename": "audio/ui/error.wav",
+      "category": "ui",
+      "bus": "UI",
+      "triggerKey": "event.UI.error",
+      "tags": ["ui", "error"],
+      "spatial": false,
+      "loop": false,
+      "volume": 0.85,
+      "priority": 70,
+      "maxPoly": 2,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.0,
+        "vol_db": 0.5
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "ui.craft.complete",
+      "filename": "audio/ui/craft_complete.wav",
+      "category": "ui",
+      "bus": "UI",
+      "triggerKey": "event.UI.craft.complete",
+      "tags": ["ui", "craft", "complete"],
+      "spatial": false,
+      "loop": false,
+      "volume": 0.86,
+      "priority": 68,
+      "maxPoly": 1,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.05,
+        "vol_db": 0.5
+      },
+      "preload": true,
+      "streaming": false,
+      "duckSends": []
+    },
+    {
+      "id": "sfx.test.ping",
+      "filename": "audio/sfx/test/ping_v1.wav",
+      "category": "sfx",
+      "bus": "SFX",
+      "triggerKey": "event.Test.ping",
+      "tags": ["test", "ping", "utility"],
+      "spatial": false,
+      "loop": false,
+      "volume": 0.7,
+      "priority": 10,
+      "maxPoly": 1,
+      "rolloff": {
+        "mode": "linear",
+        "max_distance_tiles": 18,
+        "mute_distance_tiles": 28,
+        "pan_law_db": -3
+      },
+      "var": {
+        "pitch_semitones": 0.0,
+        "vol_db": 0.0
+      },
+      "preload": false,
+      "streaming": false,
+      "duckSends": []
+    }
+  ]
+}
