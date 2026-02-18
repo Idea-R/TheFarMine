@@ -5,80 +5,71 @@
   "archetype": "Enemy",
   "body": { "w": 12, "h": 12 },
   "attributes": { "attackPower": 7, "defense": 0 },
-  "health": { "max": 58 },
-  "stamina": { "max": 50, "regenPerSec": 10 },
+  "health": { "max": 72 },
+  "stamina": { "max": 45, "regenPerSec": 10 },
   "poise": { "max": 80, "recoverPerSec": 35, "breakDurationMs": 800 },
-  "movement": { "speedPxPerSec": 54, "turnRateDegPerSec": 540 },
+  "movement": { "speedPxPerSec": 50, "turnRateDegPerSec": 360 },
   "ai": {
     "aggroRangePx": 110,
     "leashRangePx": 220,
-    "attackCooldownMs": { "min": 900, "max": 1150 },
+    "attackCooldownMs": { "min": 1000, "max": 1250 },
     "preferOpenLane": false,
-    "feintChance": 0.05,
+    "feintChance": 0.03,
     "keepDistancePx": 4,
-    "attackWeights": { "lunge_pounce": 0.65, "tail_swipe": 0.35 }
+    "attackWeights": { "lunge_bite": 0.45, "burrow_ambush": 0.55 }
   },
   "attacks": [
     {
-      "id": "lunge_pounce",
-      "name": "Lunge Pounce",
+      "id": "lunge_bite",
+      "name": "Lunge Bite",
       "kind": "melee",
       "windupMs": 280,
-      "activeMs": 80,
-      "recoveryMs": 500,
-      "cooldownMs": 320,
-      "rangePx": 24,
+      "activeMs": 90,
+      "recoveryMs": 520,
+      "cooldownMs": 340,
+      "rangePx": 20,
       "arcDeg": 60,
-      "hitbox": { "w": 14, "h": 10, "offsetX": 12, "offsetY": 0 },
-      "damage": { "base": 7, "poiseDamage": 18 },
+      "hitbox": { "w": 14, "h": 10, "offsetX": 11, "offsetY": 0 },
+      "damage": { "base": 7, "poiseDamage": 16 },
       "hitStopMs": { "attacker": 22, "victim": 42 },
-      "knockback": { "px": 14, "direction": "forward" },
-      "telegraph": {
-        "colorToken": "mapping.telegraph.arc.amber",
-        "arcOverlay": true,
-        "flashAtMs": -120
-      },
+      "knockback": { "px": 9, "direction": "forward" },
+      "telegraph": { "colorToken": "mapping.telegraph.arc.amber", "arcOverlay": true, "flashAtMs": -110 },
       "notes": [
-        "Surface burst: quick amber arc with dust VFX cue (handled by VFX table).",
-        "Narrow arc rewards side‑step; tuned to be dodgeable ≥70% after brief exposure."
+        "Tight cone with forward bias; diagonal dodge recommended.",
+        "Occasional feint (≤40% windup) per AI; emits AttackEnd:canceled when faked."
       ]
     },
     {
-      "id": "tail_swipe",
-      "name": "Tail Swipe",
+      "id": "burrow_ambush",
+      "name": "Burrow Ambush",
       "kind": "melee",
-      "windupMs": 340,
-      "activeMs": 90,
-      "recoveryMs": 520,
-      "cooldownMs": 300,
-      "rangePx": 18,
-      "arcDeg": 100,
-      "hitbox": { "w": 14, "h": 12, "offsetX": 8, "offsetY": 0 },
-      "damage": { "base": 5, "poiseDamage": 12 },
+      "windupMs": 420,
+      "activeMs": 100,
+      "recoveryMs": 560,
+      "cooldownMs": 600,
+      "rangePx": 16,
+      "arcDeg": 80,
+      "hitbox": { "w": 16, "h": 12, "offsetX": 8, "offsetY": 0 },
+      "damage": { "base": 8, "poiseDamage": 18 },
       "hitStopMs": { "attacker": 22, "victim": 42 },
       "knockback": { "px": 10, "direction": "forward" },
-      "telegraph": {
-        "colorToken": "mapping.telegraph.arc.amber",
-        "arcOverlay": true,
-        "flashAtMs": -140
-      },
+      "telegraph": { "colorToken": "mapping.telegraph.arc.amber", "arcOverlay": true, "flashAtMs": -140 },
       "notes": [
-        "Bulbous sweep for lane control; communicates via slower windup and broader arc overlay.",
-        "Arc ≤110° to honor lane law; forward‑biased hitbox avoids wall clipping."
+        "Surface cone centered ahead; clear pre-flash and dust VFX on emerge.",
+        "Not parry-special-cased in MVP; normal block/parry semantics apply if timed."
       ]
     }
   ],
   "loot": {
     "table": [
-      { "id": "mat.scrap.copper", "weight": 5, "qty": { "min": 1, "max": 2 } },
-      { "id": "mat.scrap.iron", "weight": 2, "qty": { "min": 1, "max": 1 } }
+      { "id": "mat.scrap.copper", "weight": 4, "qty": { "min": 1, "max": 2 } },
+      { "id": "mat.crystal.quartz", "weight": 2, "qty": { "min": 1, "max": 1 } }
     ],
     "nothingWeight": 15
   },
   "notes": [
-    "Prefers quick pounce from short orbit; respects Three‑Wide door lanes.",
-    "Telegraph overlays use mapping.telegraph.arc.amber; Audio bridge fires sfx.combat.telegraph.swing on TelegraphStart.",
-    "Tuned alongside Goblin to keep Mine L1 encounter variety without TTK spikes; revisit after sandbox metrics.",
-    "Hitboxes sized for 12×12 body; forward offsets keep collisions clean."
+    "Burrows briefly before ambush; AI prefers flanks over center lanes.",
+    "Telegraphs use mapping.telegraph.arc.amber; Audio bridge plays sfx.combat.telegraph.whoosh.",
+    "Tuned with Player AP 8 for ~30–34 s TTK; revisit post-sandbox metrics."
   ]
 }
