@@ -1,21 +1,20 @@
 /**
- * The Far Mine - ECS Registry (MVP, v1 component schemas)
- * ESM-only module; zero external dependencies. Importable by Phaser runtime and Node for tests.
+ * ECS Registry for The Far Mine MVP.
  *
- * JSDoc Examples:
- *   const reg = createRegistry({ dev: true });
- *   const pid = createEntityOf("Player", { Position: { x: 16, y: 16 } }, reg);
- *   reg.forEach(MASKS.Position | MASKS.Velocity, id => {
- *     const p = reg.getComponent(id, "Position");
- *     const v = reg.getComponent(id, "Velocity");
- *     // integrate position by velocity, etc.
- *   });
+ * Strict ESM module implementing an Entity-Component storage with signature masks.
+ *
+ * JSON ESM import assertion note:
+ * - This module assumes a bundler/runtime that supports import assertions. If a production target
+ *   lacks it, a build-step alias or loader shim should inline componentSchemas.
  */
 
 import componentSchemas from "../../data/core/component-schemas.json" assert { type: "json" };
 
-/* ------------------------------ Boot-time Schema Validation ------------------------------ */
+/**
+ * Validate imported schema and build normalized metadata.
+ */
 
+// Expected component ordering and bits (strict 1:1 with docs and v1 schema)
 const EXPECTED_NAMES = [
   "Position",
   "Velocity",
@@ -34,565 +33,635 @@ const EXPECTED_NAMES = [
   "Projectile",
 ];
 
-(function validateSchemasBoot() {
-  if (!componentSchemas || typeof componentSchemas !== "object") {
-    throw new Error("Component schemas JSON missing or invalid.");
+// Boot-time schema validation
+(function validateComponentSchemaBoot(schema) {
+  if (!schema || typeof schema !== "object") {
+    throw new Error("[ecs-registry] Invalid component schema JSON");
   }
-  const { version, components } = componentSchemas;
+  const { version, components } = schema;
   if (version !== 1) {
-    throw new Error(`Component schema version mismatch. Expected 1, got ${String(version)}.`);
+    throw new Error(`[ecs-registry] component-schemas.json version mismatch: expected 1, got ${version}`);
   }
   if (!Array.isArray(components) || components.length !== 15) {
-    throw new Error(`Component schema components count mismatch. Expected 15, got ${Array.isArray(components) ? components.length : "invalid"}.`);
+    throw new Error(`[ecs-registry] expected 15 components, got ${Array.isArray(components) ? components.length : "N/A"}`);
   }
+
   for (let i = 0; i < EXPECTED_NAMES.length; i++) {
-    const c = components[i];
     const expectedName = EXPECTED_NAMES[i];
-    if (!c) {
-      throw new Error(`Component schema missing at index ${i}. Expected ${expectedName}.`);
+    const comp = components[i];
+    if (!comp) {
+      throw new Error(`[ecs-registry] Missing component at index ${i} (${expectedName})`);
     }
-    if (c.name !== expectedName) {
-      throw new Error(`Component schema name mismatch at index ${i}: expected '${expectedName}', got '${c.name}'.`);
+    const { name, bit } = comp;
+    if (name !== expectedName) {
+      throw new Error(`[ecs-registry] Component order/name mismatch at index ${i}: expected "${expectedName}", got "${name}"`);
     }
-    if (c.bit !== i) {
-      throw new Error(`Component schema bit mismatch at index ${i} ('${c.name}'): expected bit ${i}, got ${c.bit}.`);
+    if (bit !== i) {
+      throw new Error(`[ecs-registry] Component bit mismatch for "${name}": expected bit ${i}, got ${bit}`);
     }
   }
-})();
+})(componentSchemas);
 
-/* ------------------------------ Component Catalog & Masks ------------------------------ */
-
-const COMPONENTS = (() => {
-  const arr = componentSchemas.components.slice().sort((a, b) => a.bit - b.bit);
-  // normalize masks and shallow ensure defaults/fields present
-  return arr.map((c) => ({
-    name: c.name,
-    bit: c.bit | 0,
-    mask: (1 << c.bit) & 0xffff,
-    defaults: c.defaults || {},
-    fields: Array.isArray(c.fields) ? c.fields.slice() : [],
-  }));
-})();
-
-const COMPONENT = (() => {
-  const obj = Object.create(null);
-  for (const c of COMPONENTS) {
-    obj[c.name] = { bit: c.bit, mask: c.mask, defaults: c.defaults, fields: c.fields };
-  }
-  return obj;
-})();
-
-const MASKS = (() => {
-  const obj = Object.create(null);
-  for (const c of COMPONENTS) {
-    obj[c.name] = c.mask;
-  }
-  return obj;
-})();
-
-/**
- * Compute bitmask from component name list.
- * @param {string[]} names
- * @returns {number} uint16 mask
- */
-export function maskOf(names) {
-  if (!Array.isArray(names)) throw new Error("maskOf: names must be an array of strings.");
-  let m = 0;
-  for (let i = 0; i < names.length; i++) {
-    const n = names[i];
-    const cm = MASKS[n];
-    if ((cm | 0) !== cm) {
-      throw new Error(`maskOf: unknown component name '${n}' at index ${i}.`);
-    }
-    m = (m | cm) & 0xffff;
-  }
-  return m >>> 0;
+// Utility: clamp
+function clamp(v, min, max) {
+  if (min != null && v < min) v = min;
+  if (max != null && v > max) v = max;
+  return v;
 }
 
-/**
- * Component names present in mask, ordered by ascending bit.
- * @param {number} mask
- * @returns {string[]}
- */
-export function namesOfMask(mask) {
-  const out = [];
-  const m = mask | 0;
-  for (let i = 0; i < COMPONENTS.length; i++) {
-    const c = COMPONENTS[i];
-    if ((m & c.mask) === c.mask) out.push(c.name);
+// Utility: shallow test for plain object
+function isPlainObject(o) {
+  return !!o && typeof o === "object" && (Object.getPrototypeOf(o) === Object.prototype || Object.getPrototypeOf(o) === null);
+}
+
+// Utility: deep merge (plain objects only; arrays and non-objects replaced)
+function deepMerge(target, source) {
+  if (!isPlainObject(target) || !isPlainObject(source)) {
+    return isPlainObject(source) ? { ...source } : source;
+  }
+  const out = { ...target };
+  for (const k of Object.keys(source)) {
+    const sv = source[k];
+    const tv = target[k];
+    if (isPlainObject(sv) && isPlainObject(tv)) {
+      out[k] = deepMerge(tv, sv);
+    } else {
+      out[k] = isPlainObject(sv) ? deepMerge({}, sv) : sv;
+    }
   }
   return out;
 }
 
-/* ------------------------------ Type Coercion & Clamping Utilities ------------------------------ */
+// Precompute normalized metadata and fast-lookup structures
+const COMPONENTS = (() => {
+  const out = [];
+  for (const comp of componentSchemas.components) {
+    const { name, bit, fields } = comp;
+    const defaults = {};
+    const fieldMeta = {};
+    if (Array.isArray(fields)) {
+      for (const f of fields) {
+        // Normalize types commonly used in schemas
+        const fname = f.name;
+        const ftype = f.type;
+        const fmin = f.min != null ? f.min : null;
+        const fmax = f.max != null ? f.max : null;
+        const fdefault = f.default;
 
-/**
- * Truncate toward zero, clamp to [min, max] if provided.
- * @param {any} v
- * @param {number} [min]
- * @param {number} [max]
- * @returns {number}
- */
-function coerceInt(v, min, max) {
-  let n = Number(v);
-  if (!Number.isFinite(n)) n = 0;
-  n = n < 0 ? Math.ceil(n) : Math.floor(n);
-  if (Number.isFinite(min) && n < min) n = min;
-  if (Number.isFinite(max) && n > max) n = max;
-  return n;
-}
+        defaults[fname] = fdefault;
 
-/**
- * Number coercion with optional clamp.
- * @param {any} v
- * @param {number} [min]
- * @param {number} [max]
- * @returns {number}
- */
-function coerceNumber(v, min, max) {
-  let n = Number(v);
-  if (!Number.isFinite(n)) n = 0;
-  if (Number.isFinite(min) && n < min) n = min;
-  if (Number.isFinite(max) && n > max) n = max;
-  return n;
-}
-
-/**
- * Boolean coercion; strings "true"/"false" supported.
- * @param {any} v
- * @returns {boolean}
- */
-function coerceBool(v) {
-  if (typeof v === "boolean") return v;
-  if (typeof v === "number") return v !== 0;
-  if (typeof v === "string") {
-    const s = v.trim().toLowerCase();
-    if (s === "true") return true;
-    if (s === "false") return false;
-    if (s === "1") return true;
-    if (s === "0") return false;
+        fieldMeta[fname] = {
+          name: fname,
+          type: ftype,
+          min: fmin,
+          max: fmax,
+          default: fdefault,
+        };
+      }
+    }
+    out.push(Object.freeze({ name, bit, fields, defaults: Object.freeze({ ...defaults }), fieldMeta: Object.freeze({ ...fieldMeta }) }));
   }
-  return Boolean(v);
-}
+  return Object.freeze(out);
+})();
 
-/**
- * String coercion; null/undefined -> "".
- * @param {any} v
- * @returns {string}
- */
-function coerceString(v) {
-  if (v == null) return "";
-  return String(v);
-}
-
-/**
- * Shallow merge enumerable own props from patch into target. Returns target.
- * Unknown nested keys are not traversed.
- * @template T
- * @param {T} target
- * @param {Partial<T>} patch
- * @returns {T}
- */
-function shallowMergeObject(target, patch) {
-  if (!patch || typeof patch !== "object") return target;
-  for (const k of Object.keys(patch)) {
-    target[k] = patch[k];
+// NAME_TO_BIT, BIT_TO_NAME
+const NAME_TO_BIT = (() => {
+  const m = new Map();
+  for (const c of COMPONENTS) {
+    m.set(c.name, c.bit);
   }
-  return target;
+  return m;
+})();
+
+const BIT_TO_NAME = (() => {
+  const arr = new Array(COMPONENTS.length);
+  for (const c of COMPONENTS) {
+    arr[c.bit] = c.name;
+  }
+  return Object.freeze(arr);
+})();
+
+// MASKS
+const MASKS = (() => {
+  const m = {};
+  for (const c of COMPONENTS) {
+    m[c.name] = (1 << c.bit) & 0xffff;
+  }
+  return Object.freeze(m);
+})();
+
+// Utilities
+function maskOf(names) {
+  let mask = 0;
+  if (Array.isArray(names)) {
+    for (const n of names) {
+      const bit = NAME_TO_BIT.get(n);
+      if (bit == null) {
+        // Unknown name: in dev, the registry layer will warn; here we silently ignore
+        continue;
+      }
+      mask |= (1 << bit) & 0xffff;
+    }
+  }
+  return mask & 0xffff;
 }
 
-/**
- * Coerce and clamp a single field on a target object based on the field schema and provided source value.
- * @param {any} schemaField Field definition { name, type, min?, max? }
- * @param {object} targetObj
- * @param {any} srcVal
- */
-function applyField(schemaField, targetObj, srcVal) {
-  if (!schemaField || !targetObj) return;
-  const name = schemaField.name;
-  const t = (schemaField.type || schemaField.kind || typeof srcVal || "number").toString().toLowerCase();
-  const min = schemaField.min;
-  const max = schemaField.max;
+function namesOfMask(mask) {
+  const names = [];
+  for (let bit = 0; bit < BIT_TO_NAME.length; bit++) {
+    const bitMask = (1 << bit) & 0xffff;
+    if ((mask & bitMask) !== 0) {
+      names.push(BIT_TO_NAME[bit]);
+    }
+  }
+  return names;
+}
 
-  switch (t) {
+// Special dynamic clamp components
+const DYNAMIC_CLAMP_SET = new Set(["Health", "Stamina", "Poise"]);
+function applyDynamicClampIfNeeded(compName, dataObj) {
+  if (!DYNAMIC_CLAMP_SET.has(compName) || !dataObj) return;
+  // Enforce value in [0..max] if both value and max are numeric
+  const val = Number(dataObj.value);
+  const max = Number(dataObj.max);
+  if (Number.isFinite(val) && Number.isFinite(max)) {
+    dataObj.value = clamp(val, 0, max);
+  }
+}
+
+// Per-field coercion helpers based on schema metadata
+function coerceByType(type, value) {
+  switch (type) {
     case "int":
     case "integer":
-      targetObj[name] = coerceInt(srcVal, min, max);
-      break;
-    case "float":
+      return Math.trunc(Number(value) || 0);
     case "number":
-      targetObj[name] = coerceNumber(srcVal, min, max);
-      break;
+    case "float":
+      return Number(value);
     case "bool":
     case "boolean":
-      targetObj[name] = coerceBool(srcVal);
-      break;
+      return !!value;
     case "string":
-      targetObj[name] = coerceString(srcVal);
-      break;
-    case "object": {
-      const current = targetObj[name];
-      const next = (current && typeof current === "object") ? current : {};
-      if (srcVal && typeof srcVal === "object") {
-        shallowMergeObject(next, srcVal);
-      } else {
-        // If a non-object provided, leave as-is; avoid surprising overwrites.
+      return String(value);
+    default:
+      // Unknown or custom types: return as-is
+      return value;
+  }
+}
+
+function applyPatchWithClamps(meta, target, patch, dev, unknownKeyWarnOnceSet) {
+  if (!patch || typeof patch !== "object") return;
+
+  const fm = meta.fieldMeta || {};
+  for (const key of Object.keys(patch)) {
+    const fmeta = fm[key];
+    if (!fmeta) {
+      if (dev) {
+        // Warn once per component name for unknown fields
+        if (!unknownKeyWarnOnceSet.has(meta.name)) {
+          unknownKeyWarnOnceSet.add(meta.name);
+          // Category: ecs.registry.validation
+          console.warn(`[ecs.registry.validation] Ignoring unknown field "${key}" for component "${meta.name}"`);
+        }
       }
-      targetObj[name] = next;
-      break;
+      continue; // ignore unknown keys
     }
-    default: {
-      // Fallback: attempt number, else direct assign
-      if (typeof srcVal === "number") {
-        targetObj[name] = coerceNumber(srcVal, min, max);
-      } else {
-        targetObj[name] = srcVal;
-      }
-      break;
+    const { type, min, max } = fmeta;
+    let v = coerceByType(type, patch[key]);
+    if (typeof v === "number" && Number.isFinite(v)) {
+      v = clamp(v, min, max);
     }
+    target[key] = v;
   }
 }
 
 /**
- * Overlay values of a component into target object using schema field definitions.
- * Only known fields are applied; others are ignored.
- * @param {object} compDef { fields: FieldDef[] }
- * @param {object} target Target component data (mutated)
- * @param {object} values Source values to apply
+ * ENTITY_TYPES archetypes.
+ * Exactly aligned with spec:
+ * - Player
+ * - Enemy
+ * - Item
+ * - Tile
+ * - Projectile
  */
-function applyComponentOverlay(compDef, target, values) {
-  if (!values || typeof values !== "object") return;
-  const fields = compDef.fields || [];
-  for (let i = 0; i < fields.length; i++) {
-    const f = fields[i];
-    if (Object.prototype.hasOwnProperty.call(values, f.name)) {
-      applyField(f, target, values[f.name]);
-    }
-  }
-}
+const ENTITY_TYPES = (() => {
+  // Build overlays as specified; masks are calculated below to stay authoritative.
+  const types = {
+    Player: {
+      overlays: {
+        Attributes: { attackPower: 8, defense: 0 },
+        Renderable: { depth: 300, visible: true },
+        Collider: { w: 12, h: 12, offsetX: 0, offsetY: 0, solid: true, isTrigger: false },
+      },
+      // Components included: Position, Velocity, Attributes, Health, Stamina, Poise, Inventory, Renderable, Collider, AI, Player
+      mask: 0, // computed after
+      include: ["Position", "Velocity", "Attributes", "Health", "Stamina", "Poise", "Inventory", "Renderable", "Collider", "AI", "Player"],
+    },
+    Enemy: {
+      overlays: {
+        Renderable: { depth: 300 },
+        Collider: { w: 12, h: 12, solid: true },
+      },
+      // Components included: Position, Velocity, Attributes, Health, Stamina, Poise, Renderable, Collider, AI, Enemy
+      mask: 0,
+      include: ["Position", "Velocity", "Attributes", "Health", "Stamina", "Poise", "Renderable", "Collider", "AI", "Enemy"],
+    },
+    Item: {
+      overlays: {
+        Collider: { w: 12, h: 12, solid: false, isTrigger: true },
+        Item: { onGround: true },
+      },
+      // Components included: Position, Renderable, Collider, Item
+      mask: 0,
+      include: ["Position", "Renderable", "Collider", "Item"],
+    },
+    Tile: {
+      overlays: {
+        Collider: { w: 16, h: 16, offsetX: 0, offsetY: 0, solid: true, isTrigger: false },
+      },
+      // Components included: Position, Tile, Collider
+      mask: 0,
+      include: ["Position", "Tile", "Collider"],
+    },
+    Projectile: {
+      overlays: {
+        Renderable: { depth: 500 },
+        Collider: { w: 4, h: 4, isTrigger: true, solid: false },
+      },
+      // Components included: Position, Velocity, Projectile, Renderable, Collider
+      mask: 0,
+      include: ["Position", "Velocity", "Projectile", "Renderable", "Collider"],
+    },
+  };
 
-/**
- * Enforce dynamic clamps for Health/Stamina/Poise: value ∈ [0, max], and non-negative max.
- * Called after any write/patch to those components.
- * @param {string} compName
- * @param {object} obj
- */
-function enforceVitalClamps(compName, obj) {
-  if (!obj || typeof obj !== "object") return;
-  if (compName === "Health" || compName === "Stamina" || compName === "Poise") {
-    let max = Number(obj.max);
-    if (!Number.isFinite(max) || max < 0) max = 0;
-    obj.max = max;
-    let v = Number(obj.value);
-    if (!Number.isFinite(v)) v = 0;
-    if (v < 0) v = 0;
-    if (v > max) v = max;
-    obj.value = v;
+  // Compute masks
+  for (const typeId of Object.keys(types)) {
+    const t = types[typeId];
+    t.mask = maskOf(t.include);
+    // Remove helper property from the exported constant
+    delete t.include;
   }
-}
-
-/**
- * Shallow clone component defaults (one level); arrays become shallow-copied.
- * @param {object} src
- * @returns {object}
- */
-function cloneDefaults(src) {
-  const out = {};
-  if (!src || typeof src !== "object") return out;
-  for (const k of Object.keys(src)) {
-    const v = src[k];
-    if (Array.isArray(v)) out[k] = v.slice();
-    else if (v && typeof v === "object") out[k] = { ...v };
-    else out[k] = v;
-  }
-  return out;
-}
-
-/* ------------------------------ Storage Model & Registry ------------------------------ */
+  return Object.freeze(types);
+})();
 
 /**
  * Create a new ECS Registry.
- * @param {object} [options]
- * @param {boolean} [options.dev=false] Enable dev-time assertions and diagnostics.
- * @param {number} [options.initialCapacity=4096] Initial entity capacity (grows power-of-two).
+ *
+ * Public API methods:
+ * - createEntity
+ * - destroyEntity
+ * - addComponent
+ * - removeComponent
+ * - hasComponent
+ * - getComponent
+ * - patchComponent
+ * - getSignature
+ * - query
+ * - queryByNames
+ * - forEach
+ * - stats
+ * - setProfilerHooks
+ * - createEntityOf
+ *
+ * Entities are 1-based; id 0 is reserved and invalid.
+ *
+ * @param {{ dev?: boolean, initialCapacity?: number }} [opts]
+ * @returns {object} Registry
  */
-export function createRegistry(options = {}) {
-  const dev = !!options.dev;
-  let capacity = nextPow2(options.initialCapacity != null ? options.initialCapacity : 4096);
-  if (capacity < 2) capacity = 2; // need id >= 1
+export function createRegistry({ dev = false, initialCapacity = 4096 } = {}) {
+  let capacity = Math.max(2, nextPowerOfTwo(initialCapacity | 0)); // ensure >= 2 (index 0 unused)
   let signatures = new Uint16Array(capacity);
-  let aliveFlags = new Uint8Array(capacity); // 1 if entity id is alive
+  let alive = new Uint8Array(capacity); // 0/1 flags
   let aliveCount = 0;
-  const freeList = [];
-  let nextId = 1;
-  let maxEntityId = 0;
 
-  // DEV diagnostics
-  const devWarnedMissing = dev ? new Set() : null;
+  // ID allocation
+  let nextIdCounter = 0; // highest ever allocated id
+  const freeIds = [];
 
-  // Profiler hooks (no-ops by default)
-  let onAdd = NOOP;
-  let onRemove = NOOP;
-  let onCreate = NOOP;
-  let onDestroy = NOOP;
-  let onPatch = NOOP;
+  // Profiler hooks (optional)
+  let profilerHooks = null;
 
-  // Per-component dense stores
-  const storesByName = Object.create(null);
-  for (const c of COMPONENTS) {
-    storesByName[c.name] = createStoreRecord();
-  }
+  // One-time dev warnings
+  const devWarnGetCompOnce = new Set();
+  const devWarnUnknownPatchKeyOnce = new Set();
 
-  function createStoreRecord() {
-    return {
-      data: [], // array of component data objects
-      denseIds: [], // entity id at index
-      sparseIndex: new Map(), // entity id -> dense index
-    };
+  // Per-component stores by bit index
+  const storesByBit = COMPONENTS.map((meta) => ({
+    name: meta.name,
+    bit: meta.bit,
+    mask: (1 << meta.bit) & 0xffff,
+    count: 0,
+    denseIds: new Uint32Array(capacity),
+    data: [],
+    sparseIndex: (() => {
+      const arr = new Int32Array(capacity);
+      arr.fill(-1);
+      return arr;
+    })(),
+  }));
+
+  function nextPowerOfTwo(n) {
+    let x = n <= 0 ? 1 : n;
+    x--;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x++;
+    return x;
   }
 
   function ensureCapacityForId(id) {
     if (id < capacity) return;
     let newCap = capacity;
-    while (newCap <= id) {
-      newCap = newCap << 1;
-    }
-    const newSigs = new Uint16Array(newCap);
-    newSigs.set(signatures);
-    signatures = newSigs;
+    while (newCap <= id) newCap *= 2;
+
+    // Resize top-level tables
+    const newSignatures = new Uint16Array(newCap);
+    newSignatures.set(signatures);
+    signatures = newSignatures;
+
     const newAlive = new Uint8Array(newCap);
-    newAlive.set(aliveFlags);
-    aliveFlags = newAlive;
+    newAlive.set(alive);
+    alive = newAlive;
+
+    // Resize per-component sparse/dense structures
+    for (const store of storesByBit) {
+      const newSparse = new Int32Array(newCap);
+      newSparse.fill(-1);
+      newSparse.set(store.sparseIndex);
+      store.sparseIndex = newSparse;
+
+      const newDenseIds = new Uint32Array(newCap);
+      newDenseIds.set(store.denseIds.subarray(0, store.count));
+      store.denseIds = newDenseIds;
+      // store.data is a dynamic JS array; no change needed
+    }
+
     capacity = newCap;
   }
 
-  function allocateId() {
-    let id = freeList.length > 0 ? freeList.pop() : nextId++;
-    ensureCapacityForId(id);
-    if (id > maxEntityId) maxEntityId = id;
-    return id;
-  }
-
-  function devAssertId(id, methodName) {
-    if (!dev) return true;
-    if (typeof id !== "number" || !Number.isInteger(id) || id <= 0 || id >= capacity) {
-      throw new Error(`[ecs.registry.validation] ${methodName}: invalid entity id ${String(id)}.`);
+  function assertValidId(id) {
+    if (!dev) return;
+    if ((id | 0) !== id || id <= 0 || id >= capacity) {
+      throw new Error(`[ecs-registry] Invalid entity id: ${id}`);
     }
-    if (!aliveFlags[id]) {
-      throw new Error(`[ecs.registry.validation] ${methodName}: entity ${id} is not alive.`);
+  }
+
+  function isAlive(id) {
+    return alive[id] === 1;
+  }
+
+  function assertAlive(id) {
+    if (!dev) return;
+    if (!isAlive(id)) {
+      throw new Error(`[ecs-registry] Entity ${id} is not alive`);
     }
-    return true;
   }
 
-  function getCompDefByName(compName) {
-    const def = COMPONENT[compName];
-    if (!def) {
-      throw new Error(`Unknown component '${compName}'.`);
+  function getStoreByName(name) {
+    const bit = NAME_TO_BIT.get(name);
+    if (bit == null) return null;
+    return storesByBit[bit];
+  }
+
+  function assertKnownComponent(name) {
+    if (!dev) return;
+    if (!NAME_TO_BIT.has(name)) {
+      throw new Error(`[ecs-registry] Unknown component "${name}"`);
     }
-    return def;
   }
 
-  function hasComponentInternal(id, compName) {
-    const def = COMPONENT[compName];
-    if (!def) return false;
-    const sig = signatures[id] | 0;
-    return (sig & def.mask) === def.mask;
+  function isComponentPresent(id, store) {
+    return store.sparseIndex[id] !== -1;
   }
 
-  function addComponentInternal(id, compName, values) {
-    const def = getCompDefByName(compName);
-    if (hasComponentInternal(id, compName)) {
-      // Already present; dev: prefer patch behavior
+  function fireHook(kind, a, b) {
+    if (!profilerHooks) return;
+    try {
+      const fn = profilerHooks[kind];
+      if (typeof fn === "function") {
+        if (b !== undefined) fn(a, b);
+        else fn(a);
+      }
+    } catch (err) {
+      // Guard hooks to avoid destabilizing loops in dev or prod
       if (dev) {
-        // patch with provided values to be helpful
-        if (values && typeof values === "object") {
-          patchComponentInternal(id, compName, values);
-        }
-        return;
-      } else {
-        if (values && typeof values === "object") {
-          patchComponentInternal(id, compName, values);
-        }
-        return;
+        console.warn(`[ecs-registry] profiler hook "${kind}" threw:`, err);
       }
     }
-    const store = storesByName[compName];
-    const idx = store.data.length;
-    store.denseIds.push(id);
-    const compData = cloneDefaults(def.defaults);
-    // Apply overlay if provided
-    if (values && typeof values === "object") {
-      applyComponentOverlay(def, compData, values);
+  }
+
+  function addComponentInternal(id, store, values) {
+    // Ensure not present
+    if (dev && isComponentPresent(id, store)) {
+      throw new Error(`[ecs-registry] Entity ${id} already has component "${store.name}"`);
     }
-    // Vital clamps
-    enforceVitalClamps(compName, compData);
-    store.data.push(compData);
-    store.sparseIndex.set(id, idx);
+    if (!dev && isComponentPresent(id, store)) {
+      return; // no-op in prod
+    }
+
+    // Build data object from defaults
+    const meta = COMPONENTS[store.bit];
+    const obj = { ...meta.defaults };
+
+    // Apply patch values with clamps
+    applyPatchWithClamps(meta, obj, values, dev, devWarnUnknownPatchKeyOnce);
+    applyDynamicClampIfNeeded(store.name, obj);
+
+    // Insert into dense arrays
+    const denseIndex = store.count;
+    store.count = denseIndex + 1;
+    store.denseIds[denseIndex] = id;
+    store.data[denseIndex] = obj;
+    store.sparseIndex[id] = denseIndex;
+
     // Update signature
-    signatures[id] = (signatures[id] | def.mask) & 0xffff;
-    // Hooks
-    onAdd && onAdd({ id, compName });
+    signatures[id] = (signatures[id] | store.mask) & 0xffff;
+
+    // Profiler hook
+    fireHook("onAdd", id, store.name);
   }
 
-  function removeComponentInternal(id, compName) {
-    const def = getCompDefByName(compName);
-    if (!hasComponentInternal(id, compName)) {
+  function removeComponentInternal(id, store) {
+    const denseIndex = store.sparseIndex[id];
+    if (denseIndex === -1) {
       if (dev) {
-        // silent in production, no-op
+        throw new Error(`[ecs-registry] Entity ${id} does not have component "${store.name}"`);
       }
-      return;
+      return; // no-op in prod
     }
-    const store = storesByName[compName];
-    const idx = store.sparseIndex.get(id);
-    if (idx === undefined) {
-      // Inconsistent; guard
-      if (dev) {
-        console.warn(`[ecs.registry.validation] removeComponent: internal index missing for entity ${id}, component ${compName}.`);
-      }
-      // still clear signature
-      signatures[id] = (signatures[id] & (~def.mask)) & 0xffff;
-      return;
+
+    const lastIndex = store.count - 1;
+    const lastId = store.denseIds[lastIndex];
+
+    if (denseIndex !== lastIndex) {
+      // Move last into removed slot
+      store.denseIds[denseIndex] = lastId;
+      store.data[denseIndex] = store.data[lastIndex];
+      store.sparseIndex[lastId] = denseIndex;
     }
-    const lastIdx = store.data.length - 1;
-    const lastId = store.denseIds[lastIdx];
-    if (idx !== lastIdx) {
-      // dense-swap
-      store.data[idx] = store.data[lastIdx];
-      store.denseIds[idx] = lastId;
-      store.sparseIndex.set(lastId, idx);
-    }
-    // pop last
-    store.data.pop();
-    store.denseIds.pop();
-    store.sparseIndex.delete(id);
+    // Clear last slot
+    store.data[lastIndex] = undefined;
+    store.count = lastIndex;
+    store.sparseIndex[id] = -1;
+
     // Update signature
-    signatures[id] = (signatures[id] & (~def.mask)) & 0xffff;
-    // Hooks
-    onRemove && onRemove({ id, compName });
+    signatures[id] = (signatures[id] & ~store.mask) & 0xffff;
+
+    // Profiler hook
+    fireHook("onRemove", id, store.name);
   }
 
-  function patchComponentInternal(id, compName, patch) {
-    const def = getCompDefByName(compName);
-    if (!hasComponentInternal(id, compName)) {
+  function patchComponentInternal(id, store, patch) {
+    const denseIndex = store.sparseIndex[id];
+    if (denseIndex === -1) {
       if (dev) {
-        const key = `${compName}`;
-        if (!devWarnedMissing.has(key)) {
-          console.warn(`[ecs.registry.validation] patchComponent: entity ${id} lacks component '${compName}'. (logged once)`);
-          devWarnedMissing.add(key);
-        }
+        throw new Error(`[ecs-registry] Entity ${id} does not have component "${store.name}"`);
       }
-      return;
+      return; // no-op in prod
     }
-    const store = storesByName[compName];
-    const idx = store.sparseIndex.get(id);
-    if (idx === undefined) {
-      if (dev) {
-        console.warn(`[ecs.registry.validation] patchComponent: internal index missing for entity ${id}, component ${compName}.`);
-      }
-      return;
-    }
-    const target = store.data[idx];
-    if (patch && typeof patch === "object") {
-      applyComponentOverlay(def, target, patch);
-      enforceVitalClamps(compName, target);
-      onPatch && onPatch({ id, compName, patch });
-    }
+
+    const obj = store.data[denseIndex];
+    const meta = COMPONENTS[store.bit];
+    applyPatchWithClamps(meta, obj, patch, dev, devWarnUnknownPatchKeyOnce);
+    applyDynamicClampIfNeeded(store.name, obj);
+
+    fireHook("onPatch", id, store.name);
   }
 
-  function createEntity(initialMask = 0, initial = undefined) {
-    const id = allocateId();
-    signatures[id] = 0;
-    aliveFlags[id] = 1;
+  function createEntity(initialMask = 0, initialOverrides = {}) {
+    // Allocate id
+    let id;
+    if (freeIds.length > 0) {
+      id = freeIds.pop();
+    } else {
+      id = nextIdCounter + 1;
+      ensureCapacityForId(id);
+      nextIdCounter = id;
+    }
+
+    alive[id] = 1;
+    signatures[id] = 0; // start empty
     aliveCount++;
-    // Add components in bit order
-    const reqMask = initialMask | 0;
-    for (let i = 0; i < COMPONENTS.length; i++) {
-      const c = COMPONENTS[i];
-      if ((reqMask & c.mask) === c.mask) {
-        const initForComp = initial && typeof initial === "object" ? initial[c.name] : undefined;
-        addComponentInternal(id, c.name, initForComp);
-      }
+
+    // Add components based on initialMask
+    if ((initialMask | 0) !== initialMask) initialMask = 0;
+    let mask = initialMask & 0xffff;
+    while (mask !== 0) {
+      const lowest = mask & -mask;
+      const bit = Math.clz32 ? 31 - Math.clz32(lowest) : getBitIndex(lowest);
+      const store = storesByBit[bit];
+      const compName = store.name;
+      const patch = isPlainObject(initialOverrides) && isPlainObject(initialOverrides[compName])
+        ? initialOverrides[compName]
+        : initialOverrides[compName] != null
+          ? initialOverrides[compName]
+          : undefined;
+      addComponentInternal(id, store, patch);
+      mask &= mask - 1; // clear lowest set bit
     }
-    // Hooks
-    onCreate && onCreate({ id });
+
+    fireHook("onCreate", id);
     return id;
   }
 
   function destroyEntity(id) {
-    devAssertId(id, "destroyEntity");
-    // Remove all components this entity currently has (use snapshot of signature)
-    const sig = signatures[id] | 0;
-    if (sig !== 0) {
-      for (let i = 0; i < COMPONENTS.length; i++) {
-        const c = COMPONENTS[i];
-        if ((sig & c.mask) === c.mask) {
-          removeComponentInternal(id, c.name);
-        }
+    assertValidId(id);
+    if (!isAlive(id)) {
+      if (dev) {
+        throw new Error(`[ecs-registry] Cannot destroy: entity ${id} is not alive`);
       }
+      return; // no-op in prod
     }
-    // Mark dead
+
+    // Remove all components present using signature bits
+    let sig = signatures[id] & 0xffff;
+    while (sig !== 0) {
+      const lowest = sig & -sig;
+      const bit = Math.clz32 ? 31 - Math.clz32(lowest) : getBitIndex(lowest);
+      const store = storesByBit[bit];
+      removeComponentInternal(id, store);
+      sig &= sig - 1;
+    }
+
     signatures[id] = 0;
-    aliveFlags[id] = 0;
+    alive[id] = 0;
     aliveCount--;
-    freeList.push(id);
-    onDestroy && onDestroy({ id });
+
+    // Recycle id
+    freeIds.push(id);
+
+    fireHook("onDestroy", id);
   }
 
   function addComponent(id, compName, values) {
-    devAssertId(id, "addComponent");
-    addComponentInternal(id, compName, values);
+    assertValidId(id);
+    assertAlive(id);
+    assertKnownComponent(compName);
+    const store = getStoreByName(compName);
+    if (!store) {
+      // Unknown: prod no-op
+      return;
+    }
+    addComponentInternal(id, store, values);
   }
 
   function removeComponent(id, compName) {
-    devAssertId(id, "removeComponent");
-    removeComponentInternal(id, compName);
+    assertValidId(id);
+    assertAlive(id);
+    assertKnownComponent(compName);
+    const store = getStoreByName(compName);
+    if (!store) {
+      return;
+    }
+    removeComponentInternal(id, store);
   }
 
   function hasComponent(id, compName) {
-    if (dev) {
-      if (typeof id !== "number" || id <= 0 || id >= capacity) return false;
-      if (!aliveFlags[id]) return false;
-    }
-    return hasComponentInternal(id, compName);
+    if ((id | 0) !== id || id <= 0 || id >= capacity) return false;
+    if (!NAME_TO_BIT.has(compName)) return false;
+    const bit = NAME_TO_BIT.get(compName);
+    const mask = (1 << bit) & 0xffff;
+    return isAlive(id) && (signatures[id] & mask) !== 0;
   }
 
   function getComponent(id, compName) {
-    devAssertId(id, "getComponent");
-    const def = getCompDefByName(compName);
-    if (!hasComponentInternal(id, compName)) {
-      if (dev) {
-        const key = `${compName}`;
-        if (!devWarnedMissing.has(key)) {
-          console.warn(`[ecs.registry.validation] getComponent: entity ${id} lacks component '${compName}'. (logged once)`);
-          devWarnedMissing.add(key);
-        }
-      }
-      return null;
+    assertValidId(id);
+    assertAlive(id);
+    assertKnownComponent(compName);
+    const store = getStoreByName(compName);
+    if (!store) return null;
+    const denseIndex = store.sparseIndex[id];
+    if (denseIndex === -1) return null;
+    if (dev && !devWarnGetCompOnce.has(compName)) {
+      devWarnGetCompOnce.add(compName);
+      console.warn(`[ecs.registry.validation] getComponent("${compName}") returns a live reference; prefer patchComponent to preserve clamp invariants.`);
     }
-    const store = storesByName[compName];
-    const idx = store.sparseIndex.get(id);
-    if (idx === undefined) return null;
-    // Note: live reference; prefer patchComponent to ensure clamps are applied.
-    return store.data[idx];
+    return store.data[denseIndex];
   }
 
   function patchComponent(id, compName, patch) {
-    devAssertId(id, "patchComponent");
-    patchComponentInternal(id, compName, patch);
+    assertValidId(id);
+    assertAlive(id);
+    assertKnownComponent(compName);
+    const store = getStoreByName(compName);
+    if (!store) return;
+    patchComponentInternal(id, store, patch);
   }
 
   function getSignature(id) {
-    devAssertId(id, "getSignature");
-    return signatures[id] | 0;
+    assertValidId(id);
+    return signatures[id] & 0xffff;
   }
 
   function* query(requiredMask, excludedMask = 0) {
-    const req = requiredMask | 0;
-    const exc = excludedMask | 0;
-    // Performance: raw for with minimal allocations
-    for (let id = 1; id <= maxEntityId; id++) {
-      if (!aliveFlags[id]) continue;
-      const sig = signatures[id] | 0;
+    const req = requiredMask & 0xffff;
+    const exc = excludedMask & 0xffff;
+    for (let id = 1; id < capacity; id++) {
+      if (alive[id] !== 1) continue;
+      const sig = signatures[id];
       if ((sig & req) === req && (sig & exc) === 0) {
         yield id;
       }
@@ -600,16 +669,16 @@ export function createRegistry(options = {}) {
   }
 
   function queryByNames(required, excluded) {
-    const req = maskOf(required || []);
-    const exc = excluded ? maskOf(excluded) : 0;
+    const req = maskOf(required);
+    const exc = Array.isArray(excluded) ? maskOf(excluded) : 0;
     return query(req, exc);
   }
 
   function forEach(requiredMask, fn) {
-    const req = requiredMask | 0;
-    for (let id = 1; id <= maxEntityId; id++) {
-      if (!aliveFlags[id]) continue;
-      const sig = signatures[id] | 0;
+    const req = requiredMask & 0xffff;
+    for (let id = 1; id < capacity; id++) {
+      if (alive[id] !== 1) continue;
+      const sig = signatures[id];
       if ((sig & req) === req) {
         fn(id);
       }
@@ -617,33 +686,93 @@ export function createRegistry(options = {}) {
   }
 
   function stats() {
-    const perComponent = Object.create(null);
-    for (const c of COMPONENTS) {
-      const store = storesByName[c.name];
-      perComponent[c.name] = store.data.length | 0;
+    const perComponent = {};
+    for (const store of storesByBit) {
+      perComponent[store.name] = store.count | 0;
     }
     return {
-      capacity,
+      capacity: capacity | 0,
       alive: aliveCount | 0,
-      free: freeList.length | 0,
+      free: ((capacity - 1) - aliveCount) | 0,
       perComponent,
     };
   }
 
   function setProfilerHooks(hooks) {
     if (!hooks || typeof hooks !== "object") {
-      onAdd = onRemove = onCreate = onDestroy = onPatch = NOOP;
+      profilerHooks = null;
       return;
     }
-    onAdd = typeof hooks.onAdd === "function" ? hooks.onAdd : NOOP;
-    onRemove = typeof hooks.onRemove === "function" ? hooks.onRemove : NOOP;
-    onCreate = typeof hooks.onCreate === "function" ? hooks.onCreate : NOOP;
-    onDestroy = typeof hooks.onDestroy === "function" ? hooks.onDestroy : NOOP;
-    onPatch = typeof hooks.onPatch === "function" ? hooks.onPatch : NOOP;
+    // Only accept known hooks
+    profilerHooks = {
+      onCreate: typeof hooks.onCreate === "function" ? hooks.onCreate : undefined,
+      onDestroy: typeof hooks.onDestroy === "function" ? hooks.onDestroy : undefined,
+      onAdd: typeof hooks.onAdd === "function" ? hooks.onAdd : undefined,
+      onRemove: typeof hooks.onRemove === "function" ? hooks.onRemove : undefined,
+      onPatch: typeof hooks.onPatch === "function" ? hooks.onPatch : undefined,
+    };
   }
 
-  /** Public Registry object */
-  return {
+  function createEntityOf(typeId, overrides = {}) {
+    const arche = ENTITY_TYPES[typeId];
+    if (!arche) {
+      if (dev) {
+        throw new Error(`[ecs-registry] Unknown entity type "${typeId}"`);
+      }
+      // Fallback: empty entity
+      return createEntity(0, {});
+    }
+
+    // Build per-component merged overrides (archetype overlays + caller overrides per component)
+    const mask = arche.mask & 0xffff;
+
+    // Construct a dictionary of component patches
+    const patches = {};
+    const overlay = arche.overlays || {};
+    // Apply overlay for each component in archetype mask
+    let iterMask = mask;
+    while (iterMask !== 0) {
+      const lowest = iterMask & -iterMask;
+      const bit = Math.clz32 ? 31 - Math.clz32(lowest) : getBitIndex(lowest);
+      const name = BIT_TO_NAME[bit];
+      const overlayPatch = overlay[name];
+      if (overlayPatch != null) {
+        patches[name] = isPlainObject(overlayPatch) ? deepMerge({}, overlayPatch) : overlayPatch;
+      }
+      iterMask &= iterMask - 1;
+    }
+    // Merge in caller overrides (deep)
+    if (isPlainObject(overrides)) {
+      for (const compName of Object.keys(overrides)) {
+        // Only merge for components in the archetype mask; others ignored
+        const bit = NAME_TO_BIT.get(compName);
+        if (bit == null) continue;
+        const compMask = (1 << bit) & 0xffff;
+        if ((mask & compMask) === 0) continue;
+        const ov = overrides[compName];
+        if (ov == null) continue;
+        const base = patches[compName] || {};
+        patches[compName] = isPlainObject(ov) ? deepMerge(base, ov) : ov;
+      }
+    }
+
+    const id = createEntity(mask, patches);
+    return id;
+  }
+
+  // Helper: bit index fallback if Math.clz32 is not available
+  function getBitIndex(singleBitMask) {
+    // singleBitMask has exactly one bit set
+    let idx = 0;
+    let n = singleBitMask >>> 0;
+    while (n > 1) {
+      n >>>= 1;
+      idx++;
+    }
+    return idx;
+  }
+
+  const registry = {
     createEntity,
     destroyEntity,
     addComponent,
@@ -657,181 +786,46 @@ export function createRegistry(options = {}) {
     forEach,
     stats,
     setProfilerHooks,
+    createEntityOf,
   };
+
+  return registry;
 }
-
-function nextPow2(n) {
-  n = Math.max(1, Math.floor(n) | 0);
-  n--;
-  n |= n >> 1;
-  n |= n >> 2;
-  n |= n >> 4;
-  n |= n >> 8;
-  n |= n >> 16;
-  n++;
-  return n >>> 0;
-}
-
-function NOOP() { /* no-op */ }
-
-/* ------------------------------ Archetypes (ENTITY_TYPES) and Factory ------------------------------ */
-
-// Convenience to build archetype masks/defaults using schema awareness
-const ENTITY_TYPES = (() => {
-  // Defaults overlays as specified (only override listed fields; others inherit schema defaults)
-  const playerDefaults = {
-    Position: {},
-    Velocity: {},
-    Attributes: { attackPower: 8, defense: 0 },
-    Health: {},
-    Stamina: {},
-    Poise: {},
-    Inventory: {},
-    Renderable: { depth: 300, visible: true, tintToken: "" },
-    Collider: { w: 12, h: 12, offsetX: 0, offsetY: 0, solid: true, isTrigger: false },
-    AI: {},
-    Player: {},
-  };
-  const enemyDefaults = {
-    Position: {},
-    Velocity: {},
-    Attributes: {},
-    Health: {},
-    Stamina: {},
-    Poise: {},
-    Renderable: { depth: 300 },
-    Collider: { w: 12, h: 12, solid: true, isTrigger: false },
-    AI: {},
-    Enemy: {},
-  };
-  const itemDefaults = {
-    Position: {},
-    Renderable: {},
-    Collider: { w: 12, h: 12, solid: false, isTrigger: true },
-    Item: { onGround: true },
-  };
-  const tileDefaults = {
-    Position: {},
-    Tile: {},
-    Collider: { w: 16, h: 16, offsetX: 0, offsetY: 0, solid: true, isTrigger: false },
-  };
-  const projectileDefaults = {
-    Position: {},
-    Velocity: {},
-    Projectile: {},
-    Renderable: { depth: 500 },
-    Collider: { w: 4, h: 4, solid: false, isTrigger: true, hurtboxPadPx: 0 },
-  };
-
-  function maskFromNames(names) {
-    return maskOf(names);
-  }
-
-  return {
-    Player: {
-      mask: maskFromNames([
-        "Position",
-        "Velocity",
-        "Attributes",
-        "Health",
-        "Stamina",
-        "Poise",
-        "Inventory",
-        "Renderable",
-        "Collider",
-        "AI",
-        "Player",
-      ]),
-      defaults: playerDefaults,
-    },
-    Enemy: {
-      mask: maskFromNames([
-        "Position",
-        "Velocity",
-        "Attributes",
-        "Health",
-        "Stamina",
-        "Poise",
-        "Renderable",
-        "Collider",
-        "AI",
-        "Enemy",
-      ]),
-      defaults: enemyDefaults,
-    },
-    Item: {
-      mask: maskFromNames([
-        "Position",
-        "Renderable",
-        "Collider",
-        "Item",
-      ]),
-      defaults: itemDefaults,
-    },
-    Tile: {
-      mask: maskFromNames([
-        "Position",
-        "Tile",
-        "Collider",
-      ]),
-      defaults: tileDefaults,
-    },
-    Projectile: {
-      mask: maskFromNames([
-        "Position",
-        "Velocity",
-        "Projectile",
-        "Renderable",
-        "Collider",
-      ]),
-      defaults: projectileDefaults,
-    },
-  };
-})();
 
 /**
- * Create an entity of the given archetype.
- * - If a registry is provided, creates the entity immediately and returns its id.
- * - If no registry is provided, returns a curried function expecting a registry.
+ * JSDoc Examples:
  *
- * @param {"Player"|"Enemy"|"Item"|"Tile"|"Projectile"} typeId
- * @param {Object<string, object>} [overrides]
- * @param {ReturnType<typeof createRegistry>} [registry]
- * @returns {number|function} Entity id, or a function (registry) => id if registry not supplied.
+ * Creating a Player with starting position/sprite:
+ *
+ * const ecs = createRegistry({ dev: true });
+ * const playerId = ecs.createEntityOf('Player', {
+ *   Position: { x: 100, y: 220 },
+ *   Renderable: { spriteKey: 'hero_idle' }
+ * });
+ *
+ * Iterating movers:
+ *
+ * ecs.forEach(MASKS.Position | MASKS.Velocity, (id) => {
+ *   const pos = ecs.getComponent(id, 'Position');
+ *   const vel = ecs.getComponent(id, 'Velocity');
+ *   // Update position by velocity, preferably via patchComponent:
+ *   ecs.patchComponent(id, 'Position', { x: pos.x + vel.x, y: pos.y + vel.y });
+ * });
+ *
+ * Safely applying damage:
+ *
+ * function applyDamage(ecs, id, dmg) {
+ *   const health = ecs.getComponent(id, 'Health');
+ *   if (!health) return;
+ *   ecs.patchComponent(id, 'Health', { value: health.value - dmg });
+ *   // Dynamic clamp enforces value in [0..max] automatically.
+ * }
+ *
+ * Phaser/data integration notes:
+ * - Renderable.tintToken resolves via data/visual/color-palette.json; do not apply colors in this module.
+ *   Leave to the RenderSyncSystem to map tintToken to actual tints.
+ * - Component JSON is imported with ESM import assertion; ensure your build supports it or provide a loader shim.
  */
-export function createEntityOf(typeId, overrides, registry) {
-  const arch = ENTITY_TYPES[typeId];
-  if (!arch) {
-    throw new Error(`Unknown entity archetype '${typeId}'.`);
-  }
-  if (!registry) {
-    return (reg) => createEntityOf(typeId, overrides, reg);
-  }
-  // Apply archetype mask, then defaults, then overrides (component-field aware)
-  const id = registry.createEntity(arch.mask, arch.defaults);
-  if (overrides && typeof overrides === "object") {
-    const names = Object.keys(overrides);
-    for (let i = 0; i < names.length; i++) {
-      const compName = names[i];
-      if ((arch.mask & (MASKS[compName] || 0)) === 0) continue; // ignore components not in archetype mask
-      const patch = overrides[compName];
-      if (patch && typeof patch === "object") {
-        registry.patchComponent(id, compName, patch);
-      }
-    }
-  }
-  return id;
-}
 
-/* ------------------------------ Exports ------------------------------ */
-
-export { COMPONENTS, COMPONENT, MASKS, ENTITY_TYPES };
-
-/* Optional default export for convenience */
-export default { createRegistry };
-
-/* ------------------------------ Notes ------------------------------
-- Performance: raw for loops in forEach and query; no allocations in hot paths.
-- Dense stores use arrays without holes; removal uses dense-swap to keep arrays compact.
-- getComponent returns a live object reference; prefer patchComponent for clamping-sensitive components (Health/Stamina/Poise).
---------------------------------------------------------------------- */
+export { COMPONENTS, NAME_TO_BIT, BIT_TO_NAME, MASKS, maskOf, namesOfMask, ENTITY_TYPES };
+export default createRegistry;
