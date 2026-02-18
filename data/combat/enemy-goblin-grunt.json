@@ -3,227 +3,194 @@
   "id": "enemy.goblin.grunt",
   "meta": {
     "author": "gamma",
-    "updated": "2026-02-18T13:00:00Z",
-    "notes": [
-      "Baseline melee fodder that teaches block/parry via frequent jabs.",
-      "Light poise threats; backs off to avoid overlap spam.",
-      "Intended for early zones with ~30s TTK for base gear."
-    ]
+    "date": "2026-02-18",
+    "notes": "Goblin Grunt baseline per combat design §11 and §14. Tuned for ~30s solo TTK vs Pickaxe T0; verify in Cave-Start encounter mix."
   },
   "visuals": {
-    "spriteId": "sprites.goblin.grunt",
-    "tintToken": "characters.goblin.base",
-    "accentToken": "characters.goblin.accent"
+    "sprite_id": "sprite.enemy.goblin.grunt",
+    "scale": 1.0,
+    "telegraph_color_token": "telegraph.arc.amber",
+    "additionalProperties": false
   },
   "audio": {
-    "telegraphSfxId": "sfx.combat.telegraph.whoosh",
-    "swingLightSfxId": "sfx.combat.swing.light",
-    "hitLightSfxId": "sfx.combat.hit.light",
-    "blockImpactSfxId": "sfx.combat.block.impact",
-    "parrySuccessSfxId": "sfx.combat.parry.success",
-    "poiseBreakSfxId": "sfx.combat.poise.break"
+    "telegraph_start_sfx": "event.Combat.telegraph.start",
+    "poise_break_sfx": "event.Combat.poise.break",
+    "swing_light_sfx": "event.Combat.swing.light",
+    "hit_light_sfx": "event.Combat.hit.light",
+    "block_impact_sfx": "event.Combat.block.impact",
+    "additionalProperties": false
   },
   "stats": {
-    "health": 140,
-    "attributes": {
-      "attackPower": 5,
-      "defense": 1
+    "health": {
+      "max": 140,
+      "additionalProperties": false
     },
+    "defense": 1,
+    "damage_multiplier": 1.0,
     "poise": {
       "max": 40,
-      "value": 40,
-      "recoverPerSec": 9,
-      "breakDurationMs": 700
-    }
+      "recover_per_sec": 9,
+      "break_duration_ms": 700,
+      "additionalProperties": false
+    },
+    "additionalProperties": false
   },
   "movement": {
-    "speedPxPerSec": 62,
-    "approachRangePx": 22,
-    "retreatRangePx": 32
+    "approach_range_px": 22,
+    "leash_range_px": 160,
+    "move_speed_pxps": 48,
+    "strafe_chance": 0.25,
+    "retreat_threshold_hp_ratio": 0.15,
+    "additionalProperties": false
   },
   "ai": {
-    "state": "idle",
-    "telegraphDebounceMs": 140,
-    "cooldownMsRange": {
-      "min": 380,
-      "max": 560
+    "behavior": "melee_grunt",
+    "target_acquire_range_px": 200,
+    "attack_weights": {
+      "jab": 0.6,
+      "slash": 0.4,
+      "additionalProperties": false
     },
-    "attackWeights": {
-      "jab": 0.65,
-      "slash": 0.35
-    },
-    "behaviorNotes": [
-      "Favours quick jabs after brief shoulder feints.",
-      "Retreats slightly when crowded, re-approaches at ~20px."
-    ]
+    "min_attack_interval_ms": 800,
+    "feint_chance": 0.08,
+    "parry_bait_bias": 0.0,
+    "windup_jitter_ms": 40,
+    "post_attack_backoff_ms": 180,
+    "additionalProperties": false
   },
   "attacks": [
     {
       "id": "jab",
       "name": "Jab",
       "geometry": {
-        "rangePx": 20,
-        "arcDeg": 75,
-        "multiHit": false
+        "range_px": 34,
+        "arc_deg": 50,
+        "multiHit": false,
+        "additionalProperties": false
       },
       "timings": {
-        "windupMs": 260,
-        "activeMs": 80,
-        "recoveryMs": 280,
-        "cooldownMs": 450
+        "windup_ms": 300,
+        "active_ms": 70,
+        "recovery_ms": 260,
+        "cooldown_ms": 420,
+        "additionalProperties": false
       },
       "staminaCost": 0,
-      "poiseDamage": 8,
-      "damageBase": 12,
+      "poiseDamage": 10,
+      "damageBase": 9,
       "hitStop": {
-        "attackerMs": 12,
-        "victimMs": 24
+        "attackerMs": 10,
+        "victimMs": 22,
+        "additionalProperties": false
       },
       "telegraph": {
         "flashAtMs": -110,
-        "colorToken": "mapping.telegraph.arc.amber",
-        "arcOverlay": true
+        "colorToken": "telegraph.arc.amber",
+        "arcOverlay": true,
+        "additionalProperties": false
       },
       "onHit": {
         "knockbackPx": 8,
-        "applyStagger": "light"
+        "applyStagger": "light",
+        "additionalProperties": false
+      },
+      "sfxOverrides": {
+        "swing": "event.Combat.swing.light",
+        "hit": "event.Combat.hit.light",
+        "additionalProperties": false
       },
       "acceptance": {
         "clamps": true,
         "notes": [
-          "Edge cases: can tag at arc limit if target steps in during last 40ms of windup.",
-          "No multi-hit; first contact only consumes hurtbox and applies hitstop."
-        ]
-      }
+          "Windup and cooldown balanced with ai.min_attack_interval_ms to prevent unavoidable chains.",
+          "Short arc and range adhere to melee_grunt close-quarters role."
+        ],
+        "additionalProperties": false
+      },
+      "additionalProperties": false
     },
     {
       "id": "slash",
-      "name": "Slash",
+      "name": "Wide Slash",
       "geometry": {
-        "rangePx": 22,
-        "arcDeg": 85,
-        "multiHit": false
+        "range_px": 38,
+        "arc_deg": 80,
+        "multiHit": false,
+        "additionalProperties": false
       },
       "timings": {
-        "windupMs": 340,
-        "activeMs": 90,
-        "recoveryMs": 340,
-        "cooldownMs": 520
+        "windup_ms": 360,
+        "active_ms": 90,
+        "recovery_ms": 320,
+        "cooldown_ms": 520,
+        "additionalProperties": false
       },
       "staminaCost": 0,
       "poiseDamage": 12,
-      "damageBase": 15,
+      "damageBase": 12,
       "hitStop": {
-        "attackerMs": 14,
-        "victimMs": 32
+        "attackerMs": 12,
+        "victimMs": 26,
+        "additionalProperties": false
       },
       "telegraph": {
         "flashAtMs": -120,
-        "colorToken": "mapping.telegraph.arc.amber",
-        "arcOverlay": true
+        "colorToken": "telegraph.arc.amber",
+        "arcOverlay": true,
+        "additionalProperties": false
       },
       "onHit": {
         "knockbackPx": 12,
-        "applyStagger": "light"
+        "applyStagger": "light",
+        "additionalProperties": false
+      },
+      "sfxOverrides": {
+        "swing": "event.Combat.swing.light",
+        "hit": "event.Combat.hit.light",
+        "additionalProperties": false
       },
       "acceptance": {
         "clamps": true,
         "notes": [
-          "Wide arc may appear to graze through thin props; collision uses primary arc hull only.",
-          "Recovery can be punished; parry window centered late in windup."
-        ]
-      }
+          "Wider coverage trades longer recovery to maintain counterplay windows.",
+          "Telegraph flash aligns at -120ms relative to active start."
+        ],
+        "additionalProperties": false
+      },
+      "additionalProperties": false
     }
   ],
   "loot": {
-    "rolls": 1,
+    "xp": 6,
     "table": [
       {
-        "id": "loot.none",
-        "weight": 80,
-        "qty": {
-          "min": 0,
-          "max": 0
-        }
-      },
-      {
         "id": "mat.scrap.metal",
-        "weight": 15,
-        "qty": {
-          "min": 1,
-          "max": 1
-        }
+        "qty": [
+          1,
+          2
+        ],
+        "chance": 0.35,
+        "additionalProperties": false
       },
       {
         "id": "mat.ore.copper",
-        "weight": 5,
-        "qty": {
-          "min": 1,
-          "max": 1
-        }
+        "qty": [
+          0,
+          1
+        ],
+        "chance": 0.2,
+        "additionalProperties": false
       }
     ],
-    "notes": [
-      "Majority of rolls yield nothing; small chance for basic crafting parts."
-    ]
+    "additionalProperties": false
   },
   "acceptance": {
-    "clamps": {
-      "timings": {
-        "windup": [
-          200,
-          700
-        ],
-        "active": [
-          60,
-          140
-        ],
-        "recovery": [
-          200,
-          600
-        ],
-        "cooldown": [
-          250,
-          800
-        ],
-        "flashAtMs": [
-          -180,
-          -80
-        ]
-      },
-      "poise": {
-        "max": [
-          20,
-          80
-        ],
-        "rps": [
-          6,
-          14
-        ],
-        "breakMs": [
-          600,
-          900
-        ]
-      }
-    },
-    "crossRefs": {
-      "paletteTokens": [
-        "characters.goblin.base",
-        "characters.goblin.accent",
-        "mapping.telegraph.arc.amber"
-      ],
-      "audioIds": [
-        "sfx.combat.telegraph.whoosh",
-        "sfx.combat.swing.light",
-        "sfx.combat.hit.light",
-        "sfx.combat.block.impact",
-        "sfx.combat.parry.success",
-        "sfx.combat.poise.break"
-      ]
-    },
     "notes": [
-      "Early-game melee opponent; teaches parry/block via frequent jabs and readable telegraphs.",
-      "Target TTK ~30s for unupgraded player gear, longer if poor blocking; punish windows after slash."
-    ]
-  }
+      "TTK ~25–35s vs player with pickaxe_t0 under mixed_chain.",
+      "TelegraphStartEvent fires at windup + flashAtMs; flashAtMs negative.",
+      "PoiseBreakEvent emitted when poise ≤ 0 with duration_ms=700."
+    ],
+    "additionalProperties": false
+  },
+  "additionalProperties": false
 }
