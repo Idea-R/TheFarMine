@@ -1,71 +1,78 @@
 [
   {
-    "id": "recipe.smelting.iron_ingot",
-    "name": "Smelt Iron Ingot",
-    "station": "forge",
+    "id": "recipe.workbench.wood_shaft",
+    "name": "Carve Wood Shaft",
+    "station": "workbench",
     "stationTier": 1,
-    "timeMs": 4000,
+    "timeMs": 1200,
+    "unlockedBy": "known",
     "inputs": [
       {
-        "id": "mat.ore.iron",
-        "qty": 3
+        "id": "mat.wood.log",
+        "qty": 1
       }
     ],
     "output": {
-      "id": "mat.ingot.iron",
+      "id": "mat.wood.shaft",
       "qty": 1
     },
-    "unlockedBy": "known",
     "notes": [
-      "Baseline smelt ratio 3:1 (ore→ingot)",
-      "Feeds Reinforced Pick recipe"
+      "Base handle for early tools"
     ]
   },
   {
-    "id": "recipe.smelting.copper_ingot",
-    "name": "Smelt Copper Ingot",
-    "station": "forge",
+    "id": "recipe.workbench.copper_binding",
+    "name": "Forge Copper Binding",
+    "station": "workbench",
     "stationTier": 1,
-    "timeMs": 3500,
+    "timeMs": 1600,
+    "unlockedBy": "discovery",
     "inputs": [
       {
         "id": "mat.ore.copper",
         "qty": 3
+      },
+      {
+        "id": "mat.scrap.metal",
+        "qty": 1
       }
     ],
     "output": {
-      "id": "mat.ingot.copper",
+      "id": "mat.binding.copper",
       "qty": 1
     },
-    "unlockedBy": "known",
     "notes": [
-      "Pedagogy smelt; supports future bronze branch"
+      "Stand-in for smelt/ingot loop; reduces surface friction in MVP"
     ]
   },
   {
-    "id": "recipe.crafting.pick_reinforced",
+    "id": "recipe.forge.reinforced_pickaxe",
     "name": "Craft Reinforced Pickaxe",
-    "station": "workbench",
+    "station": "forge",
     "stationTier": 1,
-    "timeMs": 5000,
+    "timeMs": 3000,
+    "unlockedBy": "discovery",
     "inputs": [
       {
-        "id": "mat.ingot.iron",
+        "id": "mat.binding.copper",
         "qty": 2
       },
       {
         "id": "mat.wood.shaft",
         "qty": 1
+      },
+      {
+        "id": "mat.ore.copper",
+        "qty": 4
       }
     ],
     "output": {
       "id": "tool.pick.t2.reinforced",
       "qty": 1
     },
-    "unlockedBy": "known",
     "notes": [
-      "Computable path from starter pick: mine → smelt iron → craft pick",
-      "Wood Shaft sourced via vendor or stub recipe later"
+      "Gates iron access via Reinforced Pick",
+      "Subject to rebalance if ingot loop lands early"
     ]
   }
 ]
