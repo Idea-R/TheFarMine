@@ -1,393 +1,471 @@
-# ECS Architecture — Foundations of Stone and Steam (Sprint 1)
+# ECS Architecture — Bedrock and Brass (Sprint 1)
 
 Owner: @alpha (Core Systems — Ironforge Stonebeard)
-Author: Ironforge Stonebeard, Core Systems, The Far Mine
 
 Cross-references:
 - src/core/ecs-registry.js
-- data/core/component-schemas.json
-- docs/combat-systems/combat-design.md
-- docs/technology-systems/crafting-design.md
-- docs/world-generation/cave-gen-algorithm.md
-- data/audio/sound-manifest.json
+- data/core/component-schemas.json (v1)
+- docs/combat-systems/combat-design.md (§Events & Timing)
+- docs/world-generation/cave-gen-algorithm.md (§Tiles/Flags)
+- data/visual/color-palette.json (tint tokens)
+- data/combat/enemy-goblin-grunt.json
 
 
-## 1) Goals, Constraints, Design Pillars
+## 1) Scope & Acceptance
 
-Design pillars (Sprint 1):
-- Data-oriented, cache-friendly iteration over stable snapshots.
-- Stable masks and query snapshots; no iterator invalidation.
-- No GC churn in tight loops; minimal dynamic allocations during view iteration.
-- Strict component catalog: 15 components, contiguous bits 0..14.
-- Archetype-first entity creation with shallow patching.
-- Clamp/validate on every write-path based on authoritative schemas.
-- Minimal dynamic allocations during view iteration (reused cursor objects).
-- Web/Phaser 3 compatible ESM (import/export modules only).
+Scope (Sprint 1):
+- ECS runtime and registry (MVP).
+- Entity archetypes: Player, Enemy, Item, Tile, Projectile.
+- Component catalog: 15 components.
+- System execution order for a 60 Hz main loop.
+- Contracts for clamps and validation.
+- Iteration and query patterns.
+- Dev hooks for profiling and validation.
 
-MVP constraints:
-- Single-threaded; 60 FPS target.
-- Registry is local to a Phaser.Scene instance (no global singleton).
-- id 0 reserved (never allocated).
-- 32-bit mask space (bitwise ops in JS number).
+Acceptance:
+- Component order/bits [0..14] exactly mirror data/core/component-schemas.json (v1). Field defaults come from that schema and are applied as-is.
+- Public API precisely matches src/core/ecs-registry.js (see §7).
+- System order is spelled out and justified (see §9), aligning with combat/worldgen specifications.
+- Examples conceptually compile against the registry and do not contradict the combat/worldgen docs.
+- No drift on event contracts; exact payloads live in combat-design.md, referenced herein (see §10).
 
 
-## 2) ECS Model Overview
+## 2) Design Principles
 
-Definitions:
-- Entity: Integer id ≥ 1. id 0 is reserved/null.
-- Component: Typed, schema-defined bag of fields with defaults and clamping. Stored per component as Map<int,object>.
-- System: Pure-ish function that iterates stable views, mutates component bags through the registry API, and emits domain events.
-- Event Bridge: Thin bus converting domain events to external hooks (Audio/UI).
-
-Bitmask composition:
-- Each component has a fixed bit index (0..14). An entity’s mask is a 32-bit number with these bits set for the components it has.
-- Contracts:
-  - COMPONENTS: Frozen array of all component names at indices 0..14.
-  - COMPONENT_BITS: name → 1 << index.
-  - COMPONENT_INDEX: index → name.
-- Snapshot query semantics:
-  - query(requiredMask, excludeMask=0) returns a new stable array of current entity ids matching (mask & requiredMask) === requiredMask and (mask & excludeMask) === 0 at call time. Mutations after the call do not affect the returned array.
-- Exclude mask usage:
-  - Use excludeMask to omit entire component categories (e.g., exclude [Projectile] when scanning damageables).
-  - Field-level exclusions (e.g., Collider.isTrigger) cannot be masked; filter in the loop.
+- Simplicity first
+  - Dense per-component stores.
+  - 1-based entity IDs; 0 is reserved/sentinel.
+  - uint16 signatures; fixed component ordering.
+- Stability
+  - Schema-driven clamps; numeric fields clamped to schema bounds.
+  - Dynamic clamps for Health, Stamina, Poise: value ∈ [0..max] at all times after any write.
+- Performance
+  - Hot-loop iteration over signatures with bit masks; zero object churn in inner loops.
+  - Precomputed masks; forEach(requiredMask, fn) for critical paths.
+  - Microprofiler hooks are present but no-ops by default.
+- Determinism
+  - Component order fixed by schema (see §4) and validated at registry import time.
+  - No reliance on JS prototype magic; plain records, typed arrays, explicit control flow.
 
 
 ## 3) Component Catalog (Authoritative Summary)
 
-Authoritative bit indices (data/core/component-schemas.json version=1; bits contiguous 0..14). Detailed min/max/type enforcement is by schema; notable runtime clamps are listed below. Health/Stamina/Poise.value dynamically clamp to [0..max] whenever value/max change.
+Canonical definitions (fields, defaults, clamps) live in data/core/component-schemas.json version 1. This section is a purpose/index summary. Do not treat this as a field default source.
 
-- 0 Position
-  - Purpose: World placement.
-  - Fields: x:number, y:number, layer:number (z/plane).
-  - Notes: Integers preferred for tile-aligned entities; layer 0 by default.
-- 1 Velocity
-  - Purpose: Linear motion.
-  - Fields: vx:number, vy:number.
-  - Notes: Integrated into Position by MovementSystem; zeroed when needed.
-- 2 Attributes
-  - Purpose: Core stats influencing combat/movement.
-  - Fields: attackPower:number, defense:number, moveSpeedPxPerSec?:number.
-  - Notes: Consumers must handle absent optional fields via defaults.
-- 3 Health
-  - Purpose: Life total.
-  - Fields: value:number, max:number.
-  - Clamps: value ∈ [0..max].
-- 4 Stamina
-  - Purpose: Action fuel.
-  - Fields: value:number, max:number, regenPerSec:number, regenDelayAfterActionMs:number, lastActionAtMs?:number.
-  - Clamps: value ∈ [0..max].
-- 5 Poise
-  - Purpose: Stagger resistance.
-  - Fields: value:number, max:number, recoverPerSec:number, breakDurationMs:number, lastHitAtMs?:number.
-  - Clamps: value ∈ [0..max].
-- 6 Inventory
-  - Purpose: Carrying items.
-  - Fields: capacity:number, slots:Record<string, { itemId:string, qty:number, meta?:object }>.
-  - Notes: Shallow rules only; unknown keys in per-slot meta ignored by registry. Consumers (crafting/loot) validate specifics.
-- 7 Renderable
-  - Purpose: Visual presence and ordering.
-  - Fields: visible:boolean, depth:number, scale:number, tintToken:string.
-  - Notes: tintToken is a symbolic string passed to the theme/renderer; validation deferred to UI/theme loader.
-- 8 Collider
-  - Purpose: AABB collision/hurtbox.
-  - Fields: w:number, h:number, offsetX:number, offsetY:number, solid:boolean, isTrigger:boolean, hurtboxPadPx:number.
-  - Notes: AABB only; hurtboxPadPx expands victim box for forgiving hits. Collision against tilemap in MovementSystem.
-- 9 AI
-  - Purpose: Behavior state.
-  - Fields: behavior:string, state:string, targetId:number, attackCooldownMs:number, preferOpenLane:boolean.
-  - Notes: Behavior/state tokens are strings; concrete meaning per AISystem.
-- 10 Player
-  - Purpose: Player control marker and input switch.
-  - Fields: inputEnabled:boolean.
-  - Notes: Presence marks entity as player-controlled.
-- 11 Enemy
-  - Purpose: Enemy marker and kind.
-  - Fields: kind:string.
-  - Notes: kind token references enemy catalog in content layer.
-- 12 Item
-  - Purpose: World item stack.
-  - Fields: itemId:string, qty:number, stackable:boolean, onGround:boolean.
-  - Notes: onGround true implies pickup via trigger checks in InventorySystem.
-- 13 Tile
-  - Purpose: World tile metadata when represented as an entity.
-  - Fields: tileType:string, hardness:number, breakable:boolean, oreType:string.
-  - Notes: tileType allowed set validated by world systems; Collider optional (tilemap usually handles solidity).
-- 14 Projectile
-  - Purpose: Moving damaging object.
-  - Fields: speedPxPerSec:number, ttlMs:number, damage:{ base:number, poiseDamage:number }, ownerId?:number.
-  - Notes: damage object shallow-merged only; primitive leaves clamped. Collides via ProjectileSystem and CombatSystem.
+Exact order and bit indices:
+1. Bit 0 — Position: x, y, dirX, dirY (unit/near-unit facing)
+2. Bit 1 — Velocity: vx, vy, maxSpeed (px/s clamp)
+3. Bit 2 — Attributes: attackPower, defense
+4. Bit 3 — Health: value, max (dynamic clamp)
+5. Bit 4 — Stamina: value, max, regenPerSec, regenDelayAfterActionMs
+6. Bit 5 — Poise: value, max, recoverPerSec, breakDurationMs
+7. Bit 6 — Inventory: slots, selectedIndex (contents out-of-scope here)
+8. Bit 7 — Renderable: spriteId, depth, visible, tintToken
+9. Bit 8 — Collider: w, h, offsetX, offsetY, solid, isTrigger, hurtboxPadPx
+10. Bit 9 — AI: state, targetId, aggroRangePx, leashRangePx, thinkCooldownMs
+11. Bit 10 — Player: idTag
+12. Bit 11 — Enemy: kindId
+13. Bit 12 — Item: itemId, qty, onGround
+14. Bit 13 — Tile: tileType, hardness, oreType, flags(uint32)
+15. Bit 14 — Projectile: speedPxPerSec, lifeMs, dirX, dirY, ownerId, damage, poiseDamage
+
+Dynamic clamp rule (authoritative):
+- After any write/patch to Health, Stamina, or Poise, clamp value into [0..max].
+- If max changes, immediately re-clamp value into [0..max].
 
 
-## 4) Entity Archetypes (MVP)
+## 4) Masks, Signatures, and Querying
 
-Canonical archetypes and defaults (aligned with src/core/ecs-registry.js). Collider canonical body sizes: actors 12×12; projectiles 4×4.
+- Each entity has a uint16 signature; bit i indicates presence of component i (see §3).
+- Utility: maskOf(componentNameArray) → uint16; e.g., maskOf(['Position', 'Velocity']).
+- Helper: namesOfMask(mask) → string[]; stable name order per schema.
+- Convenience masks (single-bit), exported by the registry as MASKS:
+  - MASKS.Position = 1 << 0
+  - MASKS.Velocity = 1 << 1
+  - MASKS.Attributes = 1 << 2
+  - MASKS.Health = 1 << 3
+  - MASKS.Stamina = 1 << 4
+  - MASKS.Poise = 1 << 5
+  - MASKS.Inventory = 1 << 6
+  - MASKS.Renderable = 1 << 7
+  - MASKS.Collider = 1 << 8
+  - MASKS.AI = 1 << 9
+  - MASKS.Player = 1 << 10
+  - MASKS.Enemy = 1 << 11
+  - MASKS.Item = 1 << 12
+  - MASKS.Tile = 1 << 13
+  - MASKS.Projectile = 1 << 14
 
-- player
-  - Components: Position{x:0,y:0,layer:0}, Velocity{vx:0,vy:0}, Attributes{attackPower:8, defense:0}, Health{value:100, max:100}, Stamina{value:100, max:100, regenPerSec:14, regenDelayAfterActionMs:600}, Poise{value:100, max:100, recoverPerSec:35, breakDurationMs:800}, Renderable{visible:true, depth:0, scale:1, tintToken:""}, Collider{w:12,h:12,offsetX:0,offsetY:0,solid:false,isTrigger:false,hurtboxPadPx:0}, Player{inputEnabled:true}, Inventory{capacity:20, slots:{}}
-- enemy
-  - Components: Position, Velocity, Attributes, Health, Poise, Renderable, Collider{w:12,h:12,offsetX:0,offsetY:0,solid:false,isTrigger:false,hurtboxPadPx:0}, AI{behavior:"idle", state:"idle", targetId:0, attackCooldownMs:0, preferOpenLane:true}, Enemy{kind:""}
-- item
-  - Components: Position, Renderable, Collider{w:12,h:12,offsetX:0,offsetY:0,solid:false,isTrigger:true,hurtboxPadPx:0}, Item{itemId:"", qty:1, stackable:true, onGround:true}
-- tile
-  - Components: Position{layer:0}, Tile{tileType:"rock", hardness:3, breakable:true, oreType:""}
-  - Notes: Collider optional; solidity handled primarily by tilemap. When instanced as entities for interaction, rock ⇒ solid true in world/tilemap layer, floor ⇒ solid false; not auto-added by archetype.
-- projectile
-  - Components: Position, Velocity, Projectile{speedPxPerSec:120, ttlMs:1500, damage:{base:4, poiseDamage:10}}, Collider{w:4,h:4,offsetX:0,offsetY:0,solid:false,isTrigger:true,hurtboxPadPx:0}
-
-
-## 5) Registry API Contract (src/core/ecs-registry.js)
-
-Exports (ESM):
-- COMPONENTS: Frozen array of component names at indices 0..14.
-- COMPONENT_BITS: Record<string, number> mapping name → bitmask.
-- COMPONENT_INDEX: Record<number, string> mapping bit index → name.
-- fromNames(names: string[]): number
-  - Returns OR’d mask from component names; throws on unknowns (lists valid keys).
-- ENTITY_TYPES: { player, enemy, item, tile, projectile }
-  - Canonical archetypes as above; deep-add semantics at creation (adds listed components).
-- createRegistry(): Registry
-  - Returns a scene-local registry with methods:
-    - createEntity(type?: keyof ENTITY_TYPES, opts?: Record<string,object>): number
-      - Allocates id ≥ 1; applies archetype (if provided); then shallow-merge per-component patches from opts; clamps/coerces all fields; throws on unknown type; returns id.
-    - destroyEntity(id: number): void
-      - Removes all components; clears mask; recycles id via LIFO freelist; safe no-op on invalid/free id.
-    - addComponent(id: number, name: string, data?: object): void
-      - Add or replace named component: start from schema defaults, shallow-merge data, clamp/coerce; unknown keys ignored.
-    - getComponent<T=any>(id: number, name: string): T|undefined
-      - Returns live mutable bag reference or undefined if absent.
-    - hasComponent(id: number, name: string): boolean
-    - removeComponent(id: number, name: string): void
-      - Safe no-op if component is absent or id invalid.
-    - applyPatch(id: number, name: string, patch?: object): void
-      - Shallow-merge into existing component or add if missing; clamp/coerce; null/undefined treated as {}; unknown keys ignored.
-    - maskOf(id: number): number
-      - Returns 32-bit component mask, 0 for free/invalid ids.
-    - query(requiredMask: number, excludeMask: number = 0): number[]
-      - Returns stable snapshot array of ids satisfying masks at call time.
-    - view(includeNames: string[], excludeNames?: string[]): { ids: number[], forEach(fn: (row: { id:number, mask:number, [name:string]:any }) => void): void }
-      - Prefetches named bags into a cursor object with shape { id, mask, <compName>:bag }.
-      - Iteration uses a single reused cursor object to avoid allocations; do not retain the object reference beyond the callback.
-      - ids is the stable snapshot backing the iteration for debugging/secondary passes.
-    - size(): number
-      - Active entity count.
-
-Clamping/coercion:
-- Types: int/number/bool/string/object respected per schema; numbers NaN/±Inf coerced to 0 before clamping.
-- Dynamic clamps: Health/Stamina/Poise.value are clamped to [0..max] whenever value/max are written.
-- Object shallow-merge only (e.g., Projectile.damage); nested objects are not deep-merged; primitive leaves clamped; extra keys ignored.
-
-Error handling:
-- Unknown component/type names throw with a helpful message listing valid keys.
-- Null/undefined patches treated as {}.
-- Out-of-range fields clamped; type mismatches coerced when safe, else dropped to default.
-
-Performance notes:
-- All query() and view() produce stable snapshots to prevent iterator invalidation.
-- Tight loops avoid allocations via reused cursor object in view.forEach.
-- Registry stores a dense mask array (indexed by id) and per-component Map<int,object> for sparse component storage.
+Query semantics:
+- Match rule: (entitySignature & requiredMask) === requiredMask AND (entitySignature & excludedMask) === 0 (if excludedMask provided).
+- Performance guidance:
+  - Use forEach(requiredMask, fn) in tight loops; it prefilters and avoids allocations.
+  - Use queryByNames([...]) for ergonomics in setup/non-hot paths.
+  - Prefer precomputed masks over maskOf calls in hot sections.
 
 
-## 6) Systems and Execution Order (Frame Pipeline)
+## 5) Storage Model
 
-Canonical per-tick order and intent. All systems run on stable snapshots. Event emissions are queued for the same-tick bridges unless otherwise noted.
+- Entities:
+  - IDs are 1-based. ID 0 is reserved and unused.
+  - Free-list for recycling IDs on destroy.
+- Capacity and growth:
+  - Initial capacity is power-of-two; default 4096 unless overridden.
+  - Capacities grow by doubling when needed.
+- Signatures:
+  - Uint16Array of length capacity + 1 (index by entityId).
+- Per-component store (SoA-Dense hybrid):
+  - denseIds: typed array (Uint32Array) of entity IDs in dense order.
+  - data: JS array of component records (live refs), same length as denseIds.
+  - sparseIndex: Map or Uint32Array mapping entityId → denseIndex (or -1/undefined if absent).
+  - Removal via dense-swap: last dense element swapped into the removed slot; sparseIndex updated in O(1).
+- Component data lifecycle:
+  - On first add: registry deep-clones the component’s schema defaults, then applies any provided patch, performing field coercion and clamps. Dynamic clamp rule applies for Health/Stamina/Poise.
+  - On remove: dense-swap in component store and fix sparseIndex; clear the entity’s bit in signature.
+  - On entity destroy: remove all present components (dense-swap for each), zero the signature, return ID to free-list.
+
+
+## 6) Public API (Registry) — Exact Surface
+
+Factory:
+- createRegistry({ dev?, initialCapacity? }) → Registry
+
+Registry methods:
+- Registry.createEntity(initialMask?, initialOverrides?) → id
+  - Allocates an entity ID, optionally applies a mask of components and merges overrides per-component (clamped).
+- Registry.destroyEntity(id)
+  - Removes all components, zeroes signature, recycles ID.
+- Registry.addComponent(id, compName, values?)
+  - Adds component if absent; deep-clones schema defaults, applies values with clamps; sets signature bit.
+- Registry.removeComponent(id, compName)
+  - Removes component if present; clears signature bit.
+- Registry.hasComponent(id, compName) → boolean
+- Registry.getComponent(id, compName) → liveRef | null
+  - Returns a live reference; mutating directly bypasses clamps — prefer patchComponent.
+- Registry.patchComponent(id, compName, patch)
+  - Applies a partial update with field coercion and clamps; unknown keys ignored.
+- Registry.getSignature(id) → uint16
+- Registry.query(requiredMask, excludedMask?) → Iterable<id>
+  - Returns an iterable (generator) of matching IDs.
+- Registry.queryByNames(required[], excluded[]?) → Iterable<id>
+- Registry.forEach(requiredMask, fn(id))
+  - Iterates matching IDs; fn receives id.
+- Registry.stats() → { capacity, alive, free, perComponent: { [name]: count } }
+- Registry.setProfilerHooks(hooks)
+  - Hooks: onCreate(id), onDestroy(id), onAdd(id, compName), onRemove(id, compName), onPatch(id, compName, patch).
+
+Examples:
+
+Creating a Player
+```js
+import { createRegistry, MASKS, maskOf } from '../src/core/ecs-registry.js';
+
+const ecs = createRegistry({ dev: true });
+
+// Option A: Archetype factory (see §8)
+import { createEntityOf } from '../src/core/ecs-registry.js';
+const playerId = createEntityOf('Player', {
+  Position: { x: 16, y: 16 },
+  Renderable: { spriteId: 'player.base' }
+}, ecs);
+
+// Option B: Direct create with mask + overrides
+const baseMask = maskOf(['Position','Velocity','Attributes','Health','Stamina','Poise','Inventory','Renderable','Collider','AI','Player']);
+const p2 = ecs.createEntity(baseMask, {
+  Renderable: { depth: 300, visible: true },
+  Collider: { w: 12, h: 12, solid: true }
+});
+```
+
+Iterating movers (hot loop)
+```js
+const MOVERS = MASKS.Position | MASKS.Velocity;
+ecs.forEach(MOVERS, (id) => {
+  const pos = ecs.getComponent(id, 'Position');   // live ref
+  const vel = ecs.getComponent(id, 'Velocity');   // live ref
+  // read-only fast path; writes should respect clamps (see PhysicsIntegrationSystem)
+  pos.x += vel.vx * dt;
+  pos.y += vel.vy * dt;
+});
+```
+
+Patching Health safely
+```js
+function damageEntity(ecs, id, amount) {
+  ecs.patchComponent(id, 'Health', { value: ecs.getComponent(id, 'Health').value - amount });
+  // value is auto-clamped into [0..max]; if the entity lacked Health, dev mode logs a validation warning once.
+}
+```
+
+
+## 7) Archetypes (ENTITY_TYPES) and Factory
+
+Archetypes are authoritative for Sprint 1. Each archetype specifies the included components (mask) and optional overlay defaults that override schema defaults. Unspecified fields retain schema defaults. All writes are clamped.
+
+- Player
+  - Components: Position, Velocity, Attributes{attackPower:8, defense:0}, Health, Stamina, Poise, Inventory, Renderable{depth:300, visible:true}, Collider{w:12, h:12, solid:true}, AI, Player
+  - Notes: Renderable.spriteId is caller-provided or schema default. Collider offset defaults apply unless overridden.
+
+- Enemy
+  - Components: Position, Velocity, Attributes, Health, Stamina, Poise, Renderable{depth:300}, Collider{w:12, h:12, solid:true}, AI, Enemy
+  - Notes: Enemy.kindId must match data/combat/enemy-*.json. Depth aligns with player layer for overlap sorting.
+
+- Item
+  - Components: Position, Renderable, Collider{w:12, h:12, solid:false, isTrigger:true}, Item{onGround:true}
+  - Notes: Intended for pickups; trigger-only collisions.
+
+- Tile
+  - Components: Position, Tile, Collider{w:16, h:16, solid:true}
+  - Notes: Tile.flags consume worldgen flags (see cave-gen-algorithm.md). Colliders are static solids.
+
+- Projectile
+  - Components: Position, Velocity, Projectile, Renderable{depth:500}, Collider{w:4, h:4, isTrigger:true}
+  - Notes: Projectiles are trigger-only; depth 500 renders above actors.
+
+Factory helper:
+- createEntityOf(typeId, overrides?, registry?)
+  - Applies the archetype’s mask, merges provided overrides atop schema defaults, and clamps fields. If registry omitted, uses a shared default registry export (if provided by build). Returns entity ID.
+
+Data linkages:
+- Enemy.kindId references data/combat/enemy-*.json, including enemy-goblin-grunt.json.
+- Tile.flags reflect worldgen outputs such as ORE_PREF, DOOR_BAND, APPROACH3W, LAMP_ANCHOR, etc. See docs/world-generation/cave-gen-algorithm.md.
+
+
+## 8) System List & Execution Order (Frame Tick 60 Hz)
+
+Authoritative order for the Mine scene in Sprint 1:
 
 1) InputSystem
-- View: include [Player, Stamina, Poise, Velocity].
-- Behavior: Translate input into intents; gate actions on stamina and poise (broken state). Emits: combat.BlockStart/End, combat.DodgeStart/End, mining.Swing (intent).
+- Collect input and build Intents (not persisted as ECS components in Sprint 1). Intents feed MovementIntentSystem and CombatTimingService.
 
-2) AISystem
-- View: include [Enemy, AI, Position, Velocity].
-- Behavior: Choose behavior and attacks; respect AI.preferOpenLane and attackCooldownMs; produce intents similar to InputSystem for CombatSystem.
+2) StaminaGateSystem
+- Deny costly actions when Stamina.value < cost; start/refresh Stamina.regenDelayAfterActionMs timers.
 
-3) CombatSystem
-- Stages:
-  - Telegraph: schedule and emit combat.TelegraphStart at windup.
-  - Activation: transition to AttackActive; produce active windows and shapes.
-  - Collision/hit resolution: View include [Collider] and victims having [Health] and/or [Poise]; apply damage per docs/combat-systems/combat-design.md; emit combat.Hit and combat.PoiseBreak after clamping.
-- Hooks: Hit-Stop via CombatTimingService (to be implemented) to apply local timescale modulation.
+3) CombatTimingService
+- Advance per-attack state machines (windup → active → recovery).
+- Emit events per combat-design.md: combat.TelegraphStart, combat.AttackActivate.
 
-4) MiningSystem
-- Inputs: mining.Swing intents from Input/AISystem.
-- View: include [Tile, Position]; optionally [Collider] if physical tiles are instanced.
-- Behavior: Validate tool.miningPower ≥ Tile.hardness; emit mining.Progress and mining.Break; otherwise mining.Deny. Maintain drill hysteresis consistent with audio feel.
+4) AISystem (lightweight)
+- Update AI.state/targetId; enforce AI.thinkCooldownMs; enqueue intents (chase, leash, attack).
 
-5) CraftingSystem
-- View: crafting station entities/queues (MVP may be event-driven without dedicated components).
-- Behavior: Manage reservations, start/progress/complete/cancel cycles; move items between Inventory.slots.
-- Emits: crafting.Start/Progress/Complete/Canceled.
+5) MovementIntentSystem
+- Translate intents into desired velocities; update Position.dirX/dirY to face movement or aim.
 
-6) ProjectileSystem
-- View: include [Projectile, Position, Velocity, Collider].
-- Behavior: Advance position by speed; decrement ttl; test overlaps against enemy/player hurtboxes; emit combat.Hit; mark for Cleanup when ttl ≤ 0 or on impact (as defined by design).
+6) PhysicsIntegrationSystem
+- Integrate Position by Velocity, respecting Velocity.maxSpeed.
+- Suspend displacement during hit-stop for affected entities only.
 
-7) Physics/MovementSystem
-- View: include [Position, Velocity]; often [Collider] for collision resolution.
-- Behavior: Integrate Velocity → Position; resolve collisions with the tilemap; enforce 3‑wide lane navigation rules; update contact flags if needed.
+7) CollisionSystem
+- Resolve solid vs. solid collisions (AABB).
+- Process trigger overlaps (pickups, melee hitboxes modeled as triggers in MVP).
 
-8) StaminaRegenSystem
-- View: include [Stamina].
-- Behavior: If now - lastActionAtMs ≥ regenDelayAfterActionMs, apply regenPerSec; clamp to max.
+8) CombatResolveSystem
+- Sample melee hitboxes in Active phase.
+- Compute block/health/poise outcomes per combat-design.md.
+- Apply hit-stop, knockback, and emit combat.Hit (and combat.PoiseBreak when applicable).
 
-9) PoiseRecoverySystem
-- View: include [Poise].
-- Behavior: If now - lastHitAtMs ≥ 400 ms and not in break window (breakDurationMs), apply recoverPerSec; clamp to max.
+9) RecoveryAndCooldownSystem
+- Transition attacks to end state; emit combat.AttackEnd.
+- Enforce per-attack cooldowns.
 
-10) InventorySystem
-- View: include [Inventory] and nearby [Item] with Collider.isTrigger true (filter by field).
-- Behavior: Stack merges; auto-pickup checks based on overlap and capacity.
+10) RegenerationSystem
+- Apply Stamina/Poise regen if delays allow.
+- Suppress during hit-stop/stun per spec.
 
-11) AudioEventBridge
-- Behavior: Translate domain events (combat, mining, crafting, UI) to sound ids from data/audio/sound-manifest.json; manage drill hysteresis and cadence alignment.
+11) RenderSyncSystem
+- Update sprite frame/flip, depth ordering, and tintToken application.
 
-12) RenderSyncSystem
-- View: include [Renderable] (and [Health]/[Stamina] for HUD).
-- Behavior: Push depth/tint changes; drive health/stamina UI updates; throttle minimap refresh per UI spec.
+12) AudioEventBridge
+- Consume domain events (mining/combat/UI) and fire audio per audio-design.md.
 
 13) CleanupSystem
-- View: include [Health] and/or [Projectile].
-- Behavior: Destroy entities with Health.value ≤ 0; free expired projectiles; clear ephemeral telegraph/FX entities.
+- Destroy dead entities; recycle IDs; clear transient flags.
+
+Tie-breakers:
+- Dodge i-frames supersede block if overlapping.
+- Block takes precedence over normal hits when both are possible.
+- Exact precedence is per docs/combat-systems/combat-design.md and must not drift.
 
 
-## 7) Events & Ordering Guarantees
+## 9) Event Contracts (Authoritative Pointers)
 
-Domain events (payload sketches; consumers own full typing):
-- Mining
-  - mining.Swing { entityId, tool:{ miningPower:number } }
-  - mining.Progress { tileId, progress01:number }
-  - mining.Break { tileId }
-  - mining.Deny { tileId, reason:string }
-  - Ordering: Swing → (Progress? → Break?) else Deny.
-- Combat
-  - combat.TelegraphStart { attackerId, attackId, windupMs }
-  - combat.AttackActive { attackerId, attackId, window:{ startMs, endMs } }
-  - combat.Hit { attackerId, victimId, damage:{ base, poiseDamage }, crit?:boolean }
-  - combat.PoiseBreak { victimId, breakDurationMs }
-  - Ordering: TelegraphStart at windup begin; AttackActive at active open; one Hit per victim per active window; PoiseBreak after clamp writes.
-- Crafting
-  - crafting.Start { stationId, recipeId }
-  - crafting.Progress { stationId, t01:number }
-  - crafting.Complete { stationId, outputs:{...} }
-  - crafting.Canceled { stationId, reason:string }
+Events and payloads are defined in docs/combat-systems/combat-design.md §10. This ECS document does not redefine payloads.
 
-Bridging guarantees:
-- Events emitted during a tick are delivered to bridges in the same tick (AudioEventBridge, UI bridge) after all state mutations of producer systems complete.
-- Late subscribers (registered after emission) observe events starting next tick.
+- combat.TelegraphStart
+- combat.AttackActivate
+- combat.Hit
+- combat.PoiseBreak
+- combat.AttackEnd
+
+Emission order guarantee during an attack sequence:
+- TelegraphStart → AttackActivate → Hit(s) → AttackEnd
+- PoiseBreak may co-emit with Hit or trail per combat spec timing rules.
 
 
-## 8) Queries, Masks, and Typical Views
+## 10) Validation & Clamps
 
-fromNames usage examples:
-- Actors: fromNames(["Position","Collider"])
-- Damageables: fromNames(["Health","Collider"])
-- Player control: fromNames(["Player","Stamina"])
-- Tiles: fromNames(["Tile","Position"])
+Boot-time assertions:
+- On registry initialization, validate:
+  - Schema version is 1.
+  - Components length is exactly 15.
+  - Component names and order match §3.
+  - Bit assignments [0..14] are consistent and monotonic.
+- On first mismatch, throw a descriptive Error with actionable detail.
 
-Exclude masks:
-- Exclude projectiles when scanning actors: query(fromNames(["Position","Collider"]), fromNames(["Projectile"]))
-- Exclude items when scanning dynamic actors: query(fromNames(["Velocity"]), fromNames(["Item"]))
-- Note: You cannot exclude Collider.isTrigger via masks (field-level). Filter row.Collider.isTrigger in the loop.
+Runtime dev guards (when dev:true):
+- Unknown component names in API calls cause a single-once warning under category ecs.registry.validation.
+- Invalid or dead entity IDs warn once per offending callsite/name.
+- get/patch on absent components warn once per component name; patch calls are no-ops in that case.
 
-
-## 9) Validation & Schema Discipline
-
-Initialization checks (performed by ecs-registry.js on import):
-- data/core/component-schemas.json has version === 1.
-- Exactly 15 component schemas present.
-- Bit indices contiguous 0..14 and match COMPONENTS order.
-- Throws if any check fails to keep the forge true and square.
-
-Write-path discipline:
-- All add/patch operations clamp/coerce to schema types/ranges.
-- Dynamic clamp value ≤ max for Health/Stamina/Poise.
-- Unknown keys ignored; strings are accepted as tokens; domain-specific token validation deferred to consumers (UI/theme-loader, content catalogs).
+Field coercion rules:
+- Integers: truncate toward zero after numeric conversion, then clamp to bounds.
+- Numbers: clamp to schema [min..max] if provided; NaN ignored (field unchanged).
+- Strings/bools: conservative coercion only if obvious (e.g., '' not coerced; true/false preserved).
+- Unknown patch keys: ignored.
+- Dynamic clamp rule: Health/Stamina/Poise.value always clamped into [0..max]; if max changes, re-clamp value immediately.
 
 
-## 10) Performance, Memory, and Debugging
+## 11) Performance Notes & Benchmarks
 
-Structures:
-- Dense mask array: masks[id] → 32-bit mask; 0 for free.
-- Per-component stores: Map<int,object> for sparse storage; keys are entity ids.
-- Id freelist: LIFO for locality and cache warmth on reuse.
+Target MVP scale:
+- A few hundred active entities in the Mine scene. Dense stores suffice.
 
-Iteration:
-- query() builds a fresh array of ids once per call; content is immutable for the caller’s scope.
-- view().forEach uses a single cursor object reused per row to avoid allocations; consumers must not retain references to the row object. If retention is needed, copy fields.
-- Typical MVP counts (≤1k entities): queries + iteration under 0.5 ms on mid-tier hardware; worldgen runs outside frame loop.
+Hot loops:
+- Use Registry.forEach(requiredMask, fn) and precompute requiredMask.
+- Avoid dynamic allocations in inner loops; keep locals scoped to loop.
+- Mask checks are branch-predictable; keep condition order consistent.
 
-Debugging and profiling:
-- Optional microprofiler hooks (registry._debug):
-  - Counters: clampsApplied, viewsBuilt, queriesRun.
-  - Console toggles to trace allocations and hot views.
-- Mask inspection utilities and fromNames() for readability in logs.
+Expected micro-budgets per frame (mid-tier laptop, MVP build):
+- PhysicsIntegrationSystem: 0.2–0.6 ms
+- CollisionSystem: 0.4–1.0 ms (AABB grid broad-phase TBD)
+- CombatResolveSystem: 0.2–0.5 ms
+- Regeneration/AISystem: negligible
 
-ESM/Web:
-- Pure ESM module; no Node-only APIs.
-- Phaser 3 compatible; registry lives inside a Scene and tears down cleanly on scene stop.
+Profiling hooks:
+- setProfilerHooks({ onCreate, onDestroy, onAdd, onRemove, onPatch }) registers optional callbacks.
+- Defaults are no-ops. Intended for a dev overlay and frame markers; do not allocate in hooks.
 
 
-## 11) Integration Touchpoints
+## 12) Entity Lifecycles & Examples
 
-World generation:
-- Tile entities (when used) mirror docs/world-generation/cave-gen-algorithm.md outputs; Tile.hardness and oreType drive MiningSystem eligibility and drops.
+Player spawn
+```js
+const playerId = createEntityOf('Player', {
+  Position: { x: 16, y: 16 },
+  Renderable: { spriteId: 'player.base' }
+}, ecs);
+```
 
-Combat:
-- Actor Collider size 12×12; projectile 4×4, consistent with lane rules in combat-design.md.
-- Hit-stop and telegraphs coordinate through the future CombatTimingService; systems emit timing events accordingly.
+Enemy spawn (Goblin)
+```js
+const gobId = createEntityOf('Enemy', {
+  Enemy: { kindId: 'enemy.goblin.grunt' },
+  Attributes: { attackPower: 6 },
+  Health: { value: 64, max: 64 }
+}, ecs);
 
-Crafting:
-- Inventory.slots are the conduit for station consumption/production; events reflect reservation/return flows; shallow validation at registry, deep validation in crafting system.
+// Then register attacks and timings via CombatTimingService using data/combat/enemy-goblin-grunt.json.
+```
 
-UI:
-- Renderable.tintToken and depth consumed by renderer/theme; health/stamina bars updated via RenderSyncSystem based on component values and events.
+Tile grid stamp
+```js
+const tileId = createEntityOf('Tile', {
+  Position: { x: tx * 16, y: ty * 16 },
+  Tile: { tileType: 'rock', hardness: 3, flags: worldFlags }
+}, ecs);
+```
 
-Audio:
-- AudioEventBridge maps domain events to data/audio/sound-manifest.json ids; mining drill hysteresis maintained to avoid chatter; tempo/bar alignment for rhythmic cues handled in the bridge.
+Projectile
+```js
+const projId = createEntityOf('Projectile', {
+  Position: { x, y, dirX, dirY },
+  Velocity: {}, // schema defaults for vx/vy; direction may be used by Projectile component to set velocity in a system
+  Projectile: { damage: 4, poiseDamage: 8 }
+}, ecs);
+```
 
 
-## 12) Testing Plan (MVP)
+## 13) Integration Notes (Phaser & Data)
 
-Unit tests (outline):
-- Registry basics:
-  - create/destroy/add/remove/has/get correctness; maskOf accuracy.
-  - Id reuse via LIFO freelist; destroying a free id is a no-op.
+- ESM import with JSON assertion:
+  - Import data/core/component-schemas.json using import assertions where supported:
+    import schemas from '../../data/core/component-schemas.json' assert { type: 'json' };
+  - For bundlers/environments lacking assertions, provide a build-time loader or adapter that yields the same structured object.
+
+- Renderable.tintToken:
+  - Resolved via data/visual/color-palette.json. Example: mapping.telegraph.arc.amber for telegraph arcs.
+
+- Enemy data:
+  - enemy-goblin-grunt.json is consumed by an EnemyFactory layer that maps into ECS components and registers attack timelines via CombatTimingService.
+
+- Worldgen outputs:
+  - Tile.flags carry enumerated flags from docs/world-generation/cave-gen-algorithm.md. ECS treats flags as a uint32 bitfield; semantics live in worldgen and scene logic.
+
+
+## 14) Testing Plan (MVP)
+
+Unit tests (Node):
+- Registry core:
+  - Create/destroy entity; ID reuse; signature correctness.
+  - add/remove component; dense-swap integrity; sparseIndex consistency.
+  - query/queryByNames/forEach correctness; excludedMask behavior.
+  - maskOf/namesOfMask round-trip and stability vs. schema order.
 - Clamps:
-  - Health/Stamina/Poise dynamic value ≤ max on add/patch (including lowering max below value).
-  - Number/string/bool coercions per schema ranges.
-- Query/view stability:
-  - query() snapshot remains stable while adding/removing entities during iteration of the result.
-  - view().forEach iterates a stable id list; adding/removing components during iteration doesn’t affect current pass.
-  - Cursor reuse: ensure object identity of row is reused between iterations (no per-row allocations).
-- Archetypes:
-  - createEntity("player", { Health:{ max:50 } }) sets Health{ max:50, value:50 }.
-  - Shallow patches only (Projectile.damage shallow-merged).
-- Errors:
-  - fromNames() throws on unknown component with valid keys listed.
-  - addComponent/applyPatch ignore unknown fields; null/undefined treated as {}.
+  - Health/Stamina/Poise dynamic clamp on value updates and on max changes.
+  - Numeric min/max clamps from schema; int truncation behavior.
+- Dev guards:
+  - Unknown components, invalid IDs, absent components (get/patch) emit once-only warnings when dev:true.
+
+Sandbox Encounter Scene:
+- Spawn Player vs. Goblin (enemy-goblin-grunt.json).
+- Exercise CombatTimingService: verify TelegraphStart → AttackActivate → Hit(s) → AttackEnd ordering.
+- Hit-stop observable only on impacted entities.
+- Quick counters for TTK bands: ensure target window 28–32 s under baseline parameters (document deviations).
 
 
-## 13) Acceptance Checklist
+## 15) Risks & Future Dials
 
-- All MVP entity types (player, enemy, item, tile, projectile) defined with canonical components.
-- Component catalog fixed at 15 entries (bits 0..14 contiguous) with authoritative summaries and clamps.
-- System order defined with views and event emissions; Audio/UI bridges placed after producers.
-- Collider/body sizes specified (actors 12×12, projectiles 4×4).
-- Registry API precisely documented and aligned with src/core/ecs-registry.js.
-- Schema validation, clamping, and token handling documented and aligned with data/core/component-schemas.json (version=1).
-- Queries/masks examples included; exclude-mask behavior clarified.
-- ESM/Phaser 3 compatibility and scene-local registry usage documented.
+- JSON import assertions vary across bundlers:
+  - Verify in dev and production builds; supply a fallback adapter if assertions are unavailable.
+- Dense-store scaling:
+  - Acceptable for MVP target bands. If entities exceed plan, revisit SoA layout per archetype and introduce archetype iteration lists.
+- Inventory:
+  - Shape is intentionally minimal to avoid premature coupling with UI/economy; expect iterative refinement.
+- Collision broad-phase:
+  - Current plan TBD; refine grid/spatial hash if CollisionSystem exceeds budget.
 
 
-## 14) Open Questions (for Sprint 2 planning)
+## 16) Acceptance Checklist
 
-- Validation strictness vs. speed for object fields:
-  - Are shallow rules for Inventory.slots sufficient for MVP, or do we need a stricter slot schema (e.g., whitelist keys, qty bounds per item)?
-- CombatTimingService:
-  - Concrete API for scheduling hit-stop and per-entity timescale; hook sites across CombatSystem and RenderSyncSystem to avoid visual/audio desync.
-- Physics scope:
-  - Do we add a minimal continuous collision step (swept AABB) in MVP, or keep tilemap-only discrete resolution and defer swept handling to Sprint 2?
-- Projectile ownership:
-  - Should Projectile.ownerId be mandatory to prevent friendly fire and for score attribution?
-- AI target selection:
-  - Formalize target acquisition events and lifetime to avoid stale targetId references after CleanupSystem runs.
+- Component order/bits and defaults mirror data/core/component-schemas.json (v1) exactly; this doc’s order matches [0..14].
+- Registry API surface documented and matches src/core/ecs-registry.js.
+- System execution order explicit and aligned with combat/worldgen docs.
+- Examples conceptually compile; event contracts link out, not redefined.
+- Performance notes, clamps, and validation behaviors are present and actionable.
 
-By my beard and the steady beat of the piston, this foundation is square and true. Align your code to it, and it will bear the weight of deeper mines to come.
+
+## Appendix A — Query Patterns and Masks (Quick Reference)
+
+- Required-only match:
+  - (sig & required) === required
+- Required + excluded:
+  - (sig & required) === required && (sig & excluded) === 0
+- Common masks (build-time constants recommended):
+  - MOVERS = MASKS.Position | MASKS.Velocity
+  - ACTORS = MASKS.Position | MASKS.Renderable | (MASKS.Player | MASKS.Enemy)
+  - SOLIDS = MASKS.Collider
+- namesOfMask(mask) returns canonical component names for debugging/telemetry.
+
+## Appendix B — Physics Integration Clamp Notes
+
+- Velocity.maxSpeed is authoritative; if magnitude of (vx, vy) exceeds maxSpeed, scale down to maxSpeed before integration.
+- Position.dirX/dirY should be updated to reflect intent-facing in MovementIntentSystem; Projectiles may override with Projectile.dirX/dirY where applicable.
+
+## Appendix C — Dev Hooks Categories
+
+- ecs.registry.lifecycle: create/destroy entity
+- ecs.registry.components: add/remove component
+- ecs.registry.patch: patch operations
+- ecs.registry.validation: once-only warnings for invalid usage
+
+By my beard and the bedrock beneath us, these contracts are stable for Sprint 1. Keep your tools sharp and your loops hot, and this ECS will carry the mine.
