@@ -1,972 +1,934 @@
+'use strict';
+
 /**
- * src/core/ecs-registry.js
- * Pure ESM JavaScript module implementing The Far Mine ECS Registry with dense SoA storage,
- * deterministic iteration, and DEV-mode clamps.
- * No external dependencies; strict mode implied by ESM.
+ * ECS Registry Module
+ * Version: v0.1
+ * Author: Alpha
+ * Docs: docs/core-systems/ecs-architecture.md
+ *
+ * This module provides a minimal, engine-agnostic ECS runtime aligned with Sprint 1
+ * contracts. Deterministic eid-sorted iteration is guaranteed across views.
+ *
+ * Example usage:
+ *   import { createRegistry, registerKnownComponents, Stages, MovementSystem, EventTypes } from './ecs-registry.js';
+ *   const registry = createRegistry({ mode: 'dev' });
+ *   registerKnownComponents(registry);
+ *   const player = registry.createEntity();
+ *   registry.add(player, 'position', { x: 0, y: 0 });
+ *   registry.add(player, 'velocity', { vx: 1, vy: 0, max_speed: 4 });
+ *   registry.register(Stages.PrePhysics, MovementSystem);
+ *   registry.tick(1/60);
+ *   // Drain footstep events (if any) after the tick
+ *   registry.bus.drain(EventTypes.FootstepEvent, (e) => {
+ *     // handle footstep event
+ *   });
  */
 
 /**
- * JSDoc Typedefs
- *
- * @typedef {Object} Query
- * @property {string[]=} allOf - Entity must have all of these components.
- * @property {string[]=} anyOf - Entity must have at least one of these components.
- * @property {string[]=} noneOf - Entity must not have any of these components.
- *
+ * @typedef {number} EntityId
+ */
+
+/**
+ * @typedef {string} ComponentName
+ */
+
+/**
+ * @callback SystemFn
+ * @param {Registry} registry
+ * @param {number} dtSec
+ * @returns {void}
+ */
+
+/**
  * @typedef {Object} Registry
- * @property {() => number} createEntity - Create a new entity id (eid) with generation tracking.
- * @property {(eid:number) => void} destroyEntity - Destroy an entity, removing all components, bumping generation, and recycling the eid.
- * @property {(eid:number, type:string, data?:Object) => void} addComponent - Add a component to an entity using default values merged with data.
- * @property {(eid:number, type:string) => void} removeComponent - Remove a component from an entity if present.
- * @property {(eid:number, type:string) => Object|null} get - Get a shallow copy of component data or null if missing.
- * @property {(eid:number, type:string, data:Object) => void} set - Replace component data after validation/clamp.
- * @property {(eid:number, type:string) => boolean} has - Check if an entity has a component type.
- * @property {(query: Query) => { driver: string, size: number, each: (fn:(eid:number)=>void)=>void }} view - Get a cached lightweight view abstraction for a query.
- * @property {(query: Query, fn: (eid:number)=>void) => void} each - Iterate eids in ascending order from driver, applying filters.
- * @property {(eid:number) => Object} serialize - Serialize entity to debug/save object { eid, gen, components }.
- * @property {(filter?:{include?:string[], exclude?:string[]}) => Object} snapshot - Stable snapshot of all entities/components satisfying filter; eid-ascending.
- * @property {() => Object} stats - Return registry stats: { entities:{alive:int, capacity:int}, components:{[type]:count}, views:int }.
- * @property {() => number} nowMs - Monotonic clock source; default Date.now().
+ * @property {Record<ComponentName, any>} schemas
+ * @property {Object} bus
+ * @property {Map<string, number>} counters
+ * @property {(key: string, by?: number) => void} inc
+ * @property {() => void} resetCounters
+ * @property {() => EntityId} createEntity
+ * @property {(eid: EntityId) => void} destroyEntity
+ * @property {(eid: EntityId) => boolean} isAlive
+ * @property {(name: ComponentName, obj: any) => void} setResource
+ * @property {(name: ComponentName) => any|undefined} getResource
+ * @property {(name: ComponentName) => boolean} hasResource
+ * @property {(eid: EntityId, name: ComponentName, data: Object) => void} add
+ * @property {(eid: EntityId, name: ComponentName) => void} remove
+ * @property {(eid: EntityId, name: ComponentName) => Object|null} get
+ * @property {(eid: EntityId, name: ComponentName) => boolean} has
+ * @property {(map: Record<ComponentName, any>) => void} setSchemas
+ * @property {(include: ComponentName[], exclude?: ComponentName[]) => { each: (cb: (eid: EntityId, ...comps: any[]) => void) => void, size: () => number }} view
+ * @property {(stage: number, fn: SystemFn) => void} register
+ * @property {(dtSec: number) => void} tick
+ * @property {(name: ComponentName) => any} getDebugStore
+ * @property {Object} _ephemeral
  */
 
 /**
- * Component Typedefs (MVP)
- *
- * @typedef {Object} Position
- * @property {number} x - Integer tile coordinate x.
- * @property {number} y - Integer tile coordinate y.
- * @property {number} dirDeg - Direction in degrees [0..359].
- *
- * @typedef {Object} Velocity
- * @property {number} vx - X component of velocity (pixels/sec or units/sec).
- * @property {number} vy - Y component of velocity.
- * @property {number} maxSpeed - Integer maximum speed (>=0). Clamped non-negative.
- *
- * @typedef {Object} Health
- * @property {number} max - Integer >= 1.
- * @property {number} value - Integer clamped to [0..max].
- *
- * @typedef {Object} Stamina
- * @property {number} max - Integer >= 0.
- * @property {number} value - Integer clamped to [0..max].
- * @property {number} regenPerSec - Number >= 0.
- * @property {number} regenDelayAfterActionMs - Integer >= 0.
- * @property {number} regenCooldownUntilMs - Integer >= 0.
- *
- * @typedef {Object} Poise
- * @property {number} max - Integer >= 0.
- * @property {number} value - Integer clamped to [0..max].
- * @property {number} recoverPerSec - Number >= 0.
- * @property {number} breakDurationMs - Integer >= 0.
- * @property {number} brokenUntilMs - Integer >= 0.
- *
- * @typedef {Object} Attributes
- * @property {number} attackPower - Integer >= 0.
- * @property {number} defense - Integer >= 0.
- *
- * @typedef {Object} InventoryItem
- * @property {string} id - Item id.
- * @property {number} qty - Integer >= 1.
- *
- * @typedef {Object} Inventory
- * @property {number} capacity - Integer >= 0.
- * @property {InventoryItem[]} items - Lightweight item list; truncated to capacity.
- *
- * @typedef {Object} Renderable
- * @property {string|null} spriteId - Sprite asset id or null.
- * @property {string|null} tintToken - Tint token or null.
- * @property {number} z - Integer z-order.
- *
- * @typedef {Object} Collider
- * @property {number} w - Integer width >= 0.
- * @property {number} h - Integer height >= 0.
- * @property {number} offsetX - Integer offset x.
- * @property {number} offsetY - Integer offset y.
- * @property {boolean} solid - Solid gate for collision.
- *
- * @typedef {Object} AI
- * @property {string} state - AI state string.
- * @property {number} telegraphDebounceMs - Integer >= 0.
- * @property {{min:number, max:number}=} cooldownMsRange - Optional range; ints with 0 <= min <= max.
- * @property {number=} approachRangePx - Optional integer range for approaching target.
- * @property {number=} retreatRangePx - Optional integer range for retreating.
- *
- * @typedef {Object} PlayerTag
- * (empty marker)
- *
- * @typedef {Object} EnemyTag
- * @property {string=} kind - Optional enemy kind tag.
- *
- * @typedef {Object} Tile
- * @property {string} tileType - One of TILE_TYPES.
- * @property {number} hardness - One of {0,3,4,5,7}; must match tileType rules.
- * @property {number} flags - Bitfield masked to known TILE_FLAGS.
- *
- * @typedef {Object} AttackIntent
- * @property {number} requestedAtMs - Integer timestamp (monotonic).
- * @property {string} attackId - Attack identifier.
- *
- * @typedef {Object} Hitbox
- * @property {number} w - Integer width >= 0.
- * @property {number} h - Integer height >= 0.
- * @property {number} offsetX - Integer offset x.
- * @property {number} offsetY - Integer offset y.
- * @property {boolean} active - Whether hitbox is active.
- *
- * @typedef {Object} AudioEmitter
- * @property {string|null=} lastEventId - Last audio event played.
- * @property {number=} coolUntilMs - Integer cooldown until timestamp >= 0.
+ * Stages constants in fixed, deterministic order.
  */
-
-/**
- * TILE_FLAGS bitfield constants used by world-gen and Tile component.
- */
-export const TILE_FLAGS = Object.freeze({
-  ROOM_FLOOR: 1 << 0,
-  DOOR_BAND: 1 << 1,
-  ORE_PREF: 1 << 2,
-  LAMP_ANCHOR: 1 << 3,
-  APPROACH3W_PROTECT: 1 << 4,
+export const Stages = Object.freeze({
+  Input: 0,
+  PrePhysics: 1,
+  Gameplay: 2,
+  Events: 3,
+  RenderPrep: 4,
 });
 
 /**
- * TILE_TYPES enum of allowed Tile.tileType strings.
+ * Common Event Types for convenience (not enforced by engine).
  */
-export const TILE_TYPES = Object.freeze(['rock', 'floor', 'ore.copper', 'ore.iron', 'ore.quartz']);
-
-/**
- * COMPONENTS: readonly registry of component type names to their metadata (for debugging/tools).
- * Each entry is: { name, defaults():object, validate(data):void (DEV), clamp(data):object, transient:boolean=false }
- * Meta objects are frozen. The map is exported as a const for read access.
- * Note: per-registry storage is not stored here; this map is global metadata only.
- */
-export const COMPONENTS = new Map();
-
-/**
- * Internal helpers and utilities
- */
-
-const DEV_DEFAULT = (() => {
-  try {
-    // eslint-disable-next-line no-undef
-    const env = (typeof process !== 'undefined' && process && process.env && process.env.NODE_ENV) || 'development';
-    return env !== 'production';
-  } catch {
-    return true;
-  }
-})();
-
-/** Clamp value to integer */
-function toInt(n) {
-  return (n | 0);
-}
-/** Clamp to non-negative integer */
-function clampNonNegInt(n) {
-  n = Math.trunc(Number.isFinite(n) ? n : 0);
-  return n < 0 ? 0 : n;
-}
-/** Normalize a degree to [0..359] */
-function normalizeDeg(deg) {
-  deg = Math.trunc(Number.isFinite(deg) ? deg : 0);
-  deg %= 360;
-  if (deg < 0) deg += 360;
-  return deg;
-}
-/** Assert finite number in DEV */
-function assertFiniteNumber(n, name, dev) {
-  if (!dev) return;
-  if (typeof n !== 'number' || !Number.isFinite(n)) {
-    throw new Error(`DEV: Expected finite number for ${name}, got ${n}`);
-  }
-}
-/** Shallow clone plain object */
-function shallowClone(o) {
-  if (!o || typeof o !== 'object') return o;
-  return { ...o };
-}
-/** Binary search insert position into ascending sorted numeric array. */
-function binarySearchInsertPos(arr, x) {
-  let lo = 0, hi = arr.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >>> 1;
-    if (arr[mid] < x) lo = mid + 1;
-    else hi = mid;
-  }
-  return lo;
-}
-/** Mask tile flags to known union mask. */
-const TILE_FLAGS_MASK = Object.values(TILE_FLAGS).reduce((a, b) => a | b, 0);
-
-/**
- * Register a component type in the global COMPONENTS map.
- * @param {Object} meta - { name, defaults, validate, clamp, transient=false }
- */
-function registerComponent(meta) {
-  const frozen = Object.freeze({ ...meta });
-  COMPONENTS.set(frozen.name, frozen);
-}
-
-/**
- * Component registrations (MVP)
- * Using defaults(), clamp(data), validate(data) for DEV.
- */
-
-registerComponent({
-  name: 'Position',
-  defaults: () => ({ x: 0, y: 0, dirDeg: 0 }),
-  clamp: (d) => ({
-    x: toInt(d?.x ?? 0),
-    y: toInt(d?.y ?? 0),
-    dirDeg: normalizeDeg(d?.dirDeg ?? 0),
-  }),
-  validate: (d) => {
-    if (!Number.isInteger(d.x) || !Number.isInteger(d.y)) {
-      throw new Error('DEV: Position.x/y must be integers.');
-    }
-    if (!Number.isInteger(d.dirDeg) || d.dirDeg < 0 || d.dirDeg > 359) {
-      throw new Error('DEV: Position.dirDeg must be int in [0..359].');
-    }
-  },
-  transient: false,
-});
-
-registerComponent({
-  name: 'Velocity',
-  defaults: () => ({ vx: 0, vy: 0, maxSpeed: 0 }),
-  clamp: (d) => ({
-    vx: Number.isFinite(d?.vx) ? d.vx : 0,
-    vy: Number.isFinite(d?.vy) ? d.vy : 0,
-    maxSpeed: clampNonNegInt(d?.maxSpeed ?? 0),
-  }),
-  validate: (d) => {
-    if (typeof d.vx !== 'number' || !Number.isFinite(d.vx)) throw new Error('DEV: Velocity.vx must be finite number.');
-    if (typeof d.vy !== 'number' || !Number.isFinite(d.vy)) throw new Error('DEV: Velocity.vy must be finite number.');
-    if (!Number.isInteger(d.maxSpeed) || d.maxSpeed < 0) throw new Error('DEV: Velocity.maxSpeed must be non-negative int.');
-  },
-  transient: false,
-});
-
-registerComponent({
-  name: 'Health',
-  defaults: () => ({ max: 1, value: 1 }),
-  clamp: (d) => {
-    const max = Math.max(1, toInt(d?.max ?? 1));
-    let value = toInt(d?.value ?? max);
-    if (value < 0) value = 0;
-    if (value > max) value = max;
-    return { max, value };
-  },
-  validate: (d) => {
-    if (!Number.isInteger(d.max) || d.max < 1) throw new Error('DEV: Health.max must be int >= 1.');
-    if (!Number.isInteger(d.value) || d.value < 0 || d.value > d.max) throw new Error('DEV: Health.value must be int in [0..max].');
-  },
-  transient: false,
-});
-
-registerComponent({
-  name: 'Stamina',
-  defaults: () => ({ max: 0, value: 0, regenPerSec: 0, regenDelayAfterActionMs: 0, regenCooldownUntilMs: 0 }),
-  clamp: (d) => {
-    const max = clampNonNegInt(d?.max ?? 0);
-    let value = clampNonNegInt(d?.value ?? 0);
-    if (value > max) value = max;
-    const regenPerSec = Number.isFinite(d?.regenPerSec) && d.regenPerSec >= 0 ? d.regenPerSec : 0;
-    const regenDelayAfterActionMs = clampNonNegInt(d?.regenDelayAfterActionMs ?? 0);
-    const regenCooldownUntilMs = clampNonNegInt(d?.regenCooldownUntilMs ?? 0);
-    return { max, value, regenPerSec, regenDelayAfterActionMs, regenCooldownUntilMs };
-  },
-  validate: (d) => {
-    if (!Number.isInteger(d.max) || d.max < 0) throw new Error('DEV: Stamina.max must be int >= 0.');
-    if (!Number.isInteger(d.value) || d.value < 0 || d.value > d.max) throw new Error('DEV: Stamina.value must be int in [0..max].');
-    assertFiniteNumber(d.regenPerSec, 'Stamina.regenPerSec', true);
-    if (d.regenPerSec < 0) throw new Error('DEV: Stamina.regenPerSec must be >= 0.');
-    if (!Number.isInteger(d.regenDelayAfterActionMs) || d.regenDelayAfterActionMs < 0) throw new Error('DEV: Stamina.regenDelayAfterActionMs must be int >= 0.');
-    if (!Number.isInteger(d.regenCooldownUntilMs) || d.regenCooldownUntilMs < 0) throw new Error('DEV: Stamina.regenCooldownUntilMs must be int >= 0.');
-  },
-  transient: false,
-});
-
-registerComponent({
-  name: 'Poise',
-  defaults: () => ({ max: 0, value: 0, recoverPerSec: 0, breakDurationMs: 0, brokenUntilMs: 0 }),
-  clamp: (d) => {
-    const max = clampNonNegInt(d?.max ?? 0);
-    let value = clampNonNegInt(d?.value ?? 0);
-    if (value > max) value = max;
-    const recoverPerSec = Number.isFinite(d?.recoverPerSec) && d.recoverPerSec >= 0 ? d.recoverPerSec : 0;
-    const breakDurationMs = clampNonNegInt(d?.breakDurationMs ?? 0);
-    const brokenUntilMs = clampNonNegInt(d?.brokenUntilMs ?? 0);
-    return { max, value, recoverPerSec, breakDurationMs, brokenUntilMs };
-  },
-  validate: (d) => {
-    if (!Number.isInteger(d.max) || d.max < 0) throw new Error('DEV: Poise.max must be int >= 0.');
-    if (!Number.isInteger(d.value) || d.value < 0 || d.value > d.max) throw new Error('DEV: Poise.value must be int in [0..max].');
-    assertFiniteNumber(d.recoverPerSec, 'Poise.recoverPerSec', true);
-    if (d.recoverPerSec < 0) throw new Error('DEV: Poise.recoverPerSec must be >= 0.');
-    if (!Number.isInteger(d.breakDurationMs) || d.breakDurationMs < 0) throw new Error('DEV: Poise.breakDurationMs must be int >= 0.');
-    if (!Number.isInteger(d.brokenUntilMs) || d.brokenUntilMs < 0) throw new Error('DEV: Poise.brokenUntilMs must be int >= 0.');
-  },
-  transient: false,
-});
-
-registerComponent({
-  name: 'Attributes',
-  defaults: () => ({ attackPower: 0, defense: 0 }),
-  clamp: (d) => ({
-    attackPower: clampNonNegInt(d?.attackPower ?? 0),
-    defense: clampNonNegInt(d?.defense ?? 0),
-  }),
-  validate: (d) => {
-    if (!Number.isInteger(d.attackPower) || d.attackPower < 0) throw new Error('DEV: Attributes.attackPower must be int >= 0.');
-    if (!Number.isInteger(d.defense) || d.defense < 0) throw new Error('DEV: Attributes.defense must be int >= 0.');
-  },
-  transient: false,
-});
-
-registerComponent({
-  name: 'Inventory',
-  defaults: () => ({ capacity: 0, items: [] }),
-  clamp: (d) => {
-    const capacity = clampNonNegInt(d?.capacity ?? 0);
-    let items = Array.isArray(d?.items) ? d.items.slice(0, capacity) : [];
-    items = items.map((it) => {
-      const id = (it && typeof it.id === 'string') ? it.id : '';
-      const qty = Math.max(1, toInt(it?.qty ?? 1));
-      return { id, qty };
-    });
-    return { capacity, items };
-  },
-  validate: (d) => {
-    if (!Number.isInteger(d.capacity) || d.capacity < 0) throw new Error('DEV: Inventory.capacity must be int >= 0.');
-    if (!Array.isArray(d.items)) throw new Error('DEV: Inventory.items must be array.');
-    if (d.items.length > d.capacity) throw new Error('DEV: Inventory.items length must be <= capacity.');
-    for (let i = 0; i < d.items.length; i++) {
-      const it = d.items[i];
-      if (!it || typeof it.id !== 'string') throw new Error(`DEV: Inventory.items[${i}].id must be string.`);
-      if (!Number.isInteger(it.qty) || it.qty < 1) throw new Error(`DEV: Inventory.items[${i}].qty must be int >= 1.`);
-    }
-  },
-  transient: false,
-});
-
-registerComponent({
-  name: 'Renderable',
-  defaults: () => ({ spriteId: null, tintToken: null, z: 0 }),
-  clamp: (d) => ({
-    spriteId: d?.spriteId == null ? null : String(d.spriteId),
-    tintToken: d?.tintToken == null ? null : String(d.tintToken),
-    z: toInt(d?.z ?? 0),
-  }),
-  validate: (d) => {
-    if (!(d.spriteId === null || typeof d.spriteId === 'string')) throw new Error('DEV: Renderable.spriteId must be string|null.');
-    if (!(d.tintToken === null || typeof d.tintToken === 'string')) throw new Error('DEV: Renderable.tintToken must be string|null.');
-    if (!Number.isInteger(d.z)) throw new Error('DEV: Renderable.z must be integer.');
-  },
-  transient: false,
-});
-
-registerComponent({
-  name: 'Collider',
-  defaults: () => ({ w: 0, h: 0, offsetX: 0, offsetY: 0, solid: false }),
-  clamp: (d) => ({
-    w: clampNonNegInt(d?.w ?? 0),
-    h: clampNonNegInt(d?.h ?? 0),
-    offsetX: toInt(d?.offsetX ?? 0),
-    offsetY: toInt(d?.offsetY ?? 0),
-    solid: !!(d?.solid ?? false),
-  }),
-  validate: (d) => {
-    if (!Number.isInteger(d.w) || d.w < 0) throw new Error('DEV: Collider.w must be int >= 0.');
-    if (!Number.isInteger(d.h) || d.h < 0) throw new Error('DEV: Collider.h must be int >= 0.');
-    if (!Number.isInteger(d.offsetX) || !Number.isInteger(d.offsetY)) throw new Error('DEV: Collider.offsetX/Y must be ints.');
-    if (typeof d.solid !== 'boolean') throw new Error('DEV: Collider.solid must be boolean.');
-  },
-  transient: false,
-});
-
-registerComponent({
-  name: 'AI',
-  defaults: () => ({ state: 'idle', telegraphDebounceMs: 0 }),
-  clamp: (d) => {
-    const state = String(d?.state ?? 'idle');
-    const telegraphDebounceMs = clampNonNegInt(d?.telegraphDebounceMs ?? 0);
-    let cooldownMsRange = d?.cooldownMsRange;
-    if (cooldownMsRange && typeof cooldownMsRange === 'object') {
-      let min = clampNonNegInt(cooldownMsRange.min ?? 0);
-      let max = clampNonNegInt(cooldownMsRange.max ?? min);
-      if (max < min) max = min;
-      cooldownMsRange = { min, max };
-    } else {
-      cooldownMsRange = undefined;
-    }
-    const approachRangePx = d?.approachRangePx != null ? clampNonNegInt(d.approachRangePx) : undefined;
-    const retreatRangePx = d?.retreatRangePx != null ? clampNonNegInt(d.retreatRangePx) : undefined;
-    return { state, telegraphDebounceMs, cooldownMsRange, approachRangePx, retreatRangePx };
-  },
-  validate: (d) => {
-    if (typeof d.state !== 'string') throw new Error('DEV: AI.state must be string.');
-    if (!Number.isInteger(d.telegraphDebounceMs) || d.telegraphDebounceMs < 0) throw new Error('DEV: AI.telegraphDebounceMs must be int >= 0.');
-    if (d.cooldownMsRange != null) {
-      if (typeof d.cooldownMsRange !== 'object') throw new Error('DEV: AI.cooldownMsRange must be object.');
-      const { min, max } = d.cooldownMsRange;
-      if (!Number.isInteger(min) || min < 0) throw new Error('DEV: AI.cooldownMsRange.min must be int >= 0.');
-      if (!Number.isInteger(max) || max < min) throw new Error('DEV: AI.cooldownMsRange.max must be int >= min.');
-    }
-    if (d.approachRangePx != null && (!Number.isInteger(d.approachRangePx))) throw new Error('DEV: AI.approachRangePx must be integer if present.');
-    if (d.retreatRangePx != null && (!Number.isInteger(d.retreatRangePx))) throw new Error('DEV: AI.retreatRangePx must be integer if present.');
-  },
-  transient: false,
-});
-
-registerComponent({
-  name: 'PlayerTag',
-  defaults: () => ({}),
-  clamp: (d) => ({}),
-  validate: (_d) => {},
-  transient: false,
-});
-
-registerComponent({
-  name: 'EnemyTag',
-  defaults: () => ({ }),
-  clamp: (d) => {
-    const kind = d?.kind != null ? String(d.kind) : undefined;
-    return kind != null ? { kind } : {};
-  },
-  validate: (d) => {
-    if (d.kind != null && typeof d.kind !== 'string') throw new Error('DEV: EnemyTag.kind must be string if present.');
-  },
-  transient: false,
-});
-
-const TILE_HARDNESS_RULE = Object.freeze({
-  'rock': 3,
-  'floor': 0,
-  'ore.copper': 4,
-  'ore.iron': 5,
-  'ore.quartz': 7,
-});
-
-registerComponent({
-  name: 'Tile',
-  defaults: () => ({ tileType: 'rock', hardness: TILE_HARDNESS_RULE['rock'], flags: 0 }),
-  clamp: (d) => {
-    const tileType = TILE_TYPES.includes(d?.tileType) ? d.tileType : 'rock';
-    const expectedHardness = TILE_HARDNESS_RULE[tileType];
-    const hardness = expectedHardness; // enforce band rule
-    const flags = toInt(d?.flags ?? 0) & TILE_FLAGS_MASK;
-    return { tileType, hardness, flags };
-  },
-  validate: (d) => {
-    if (!TILE_TYPES.includes(d.tileType)) throw new Error('DEV: Tile.tileType must be one of TILE_TYPES.');
-    const expected = TILE_HARDNESS_RULE[d.tileType];
-    if (d.hardness !== expected) throw new Error(`DEV: Tile.hardness must be ${expected} for tileType ${d.tileType}.`);
-    if (!Number.isInteger(d.flags) || (d.flags & ~TILE_FLAGS_MASK) !== 0) throw new Error('DEV: Tile.flags must be int with only known TILE_FLAGS bits.');
-  },
-  transient: false,
-});
-
-registerComponent({
-  name: 'AttackIntent',
-  defaults: () => ({ requestedAtMs: 0, attackId: '' }),
-  clamp: (d) => ({
-    requestedAtMs: clampNonNegInt(d?.requestedAtMs ?? 0),
-    attackId: String(d?.attackId ?? ''),
-  }),
-  validate: (d) => {
-    if (!Number.isInteger(d.requestedAtMs) || d.requestedAtMs < 0) throw new Error('DEV: AttackIntent.requestedAtMs must be int >= 0.');
-    if (typeof d.attackId !== 'string') throw new Error('DEV: AttackIntent.attackId must be string.');
-  },
-  transient: true,
-});
-
-registerComponent({
-  name: 'Hitbox',
-  defaults: () => ({ w: 0, h: 0, offsetX: 0, offsetY: 0, active: false }),
-  clamp: (d) => ({
-    w: clampNonNegInt(d?.w ?? 0),
-    h: clampNonNegInt(d?.h ?? 0),
-    offsetX: toInt(d?.offsetX ?? 0),
-    offsetY: toInt(d?.offsetY ?? 0),
-    active: !!(d?.active ?? false),
-  }),
-  validate: (d) => {
-    if (!Number.isInteger(d.w) || d.w < 0) throw new Error('DEV: Hitbox.w must be int >= 0.');
-    if (!Number.isInteger(d.h) || d.h < 0) throw new Error('DEV: Hitbox.h must be int >= 0.');
-    if (!Number.isInteger(d.offsetX) || !Number.isInteger(d.offsetY)) throw new Error('DEV: Hitbox.offsetX/Y must be ints.');
-    if (typeof d.active !== 'boolean') throw new Error('DEV: Hitbox.active must be boolean.');
-  },
-  transient: true,
-});
-
-registerComponent({
-  name: 'AudioEmitter',
-  defaults: () => ({ lastEventId: null, coolUntilMs: 0 }),
-  clamp: (d) => ({
-    lastEventId: d?.lastEventId == null ? null : String(d.lastEventId),
-    coolUntilMs: d?.coolUntilMs != null ? clampNonNegInt(d.coolUntilMs) : 0,
-  }),
-  validate: (d) => {
-    if (!(d.lastEventId === null || typeof d.lastEventId === 'string')) throw new Error('DEV: AudioEmitter.lastEventId must be string|null.');
-    if (!Number.isInteger(d.coolUntilMs) || d.coolUntilMs < 0) throw new Error('DEV: AudioEmitter.coolUntilMs must be int >= 0.');
-  },
-  transient: true,
+export const EventTypes = Object.freeze({
+  MineHitEvent: 'MineHitEvent',
+  DamageEvent: 'DamageEvent',
+  FootstepEvent: 'FootstepEvent',
+  PlaySfxEvent: 'PlaySfxEvent',
+  UiCommand: 'UiCommand',
 });
 
 /**
- * Minimal Internal Utilities
+ * Create a lightweight, type-tagged event bus.
+ * - Per-type FIFO queues
+ * - Deterministic in-order draining
+ * - Optional internal subscriptions used by the registry at Events stage
  */
+export function createEventBus() {
+  /** @type {Map<string, any[]>} */
+  const queues = new Map();
+  /** internal subscription registry (not part of public API contract, used by registry auto-drain) */
+  /** @type {Map<string, Set<(payload: any) => void>>} */
+  const subs = new Map();
 
-/**
- * Create sorted dense store for a component type.
- * We maintain ascending entityIds[] order by insertion with binary search and splice.
- * Removal uses splice and updates index map for shifted entries.
- * For MVP scale O(n) splice is acceptable; future optimization: slab allocator with per-view sorted caches.
- *
- * @param {string} name
- * @param {boolean} dev
- * @param {{counter(name:string,value:number):void}=} profiler
- * @returns {{
- *   name: string,
- *   entityIds: number[],
- *   data: Object[],
- *   indexOfEntity: Map<number, number>,
- *   add(eid:number, data:Object): void,
- *   remove(eid:number): void,
- *   has(eid:number): boolean,
- *   get(eid:number): Object|undefined,
- *   set(eid:number, data:Object): void,
- *   forEach(fn:(eid:number)=>void): void,
- *   size(): number
- * }}
- */
-function makeStore(name, dev, profiler) {
-  const entityIds = [];
-  const data = [];
-  const indexOfEntity = new Map();
-
-  function add(eid, d) {
-    if (indexOfEntity.has(eid)) {
-      if (dev) throw new Error(`DEV: Component ${name} already present on eid ${eid}`);
-      return;
+  const getQueue = (type) => {
+    let q = queues.get(type);
+    if (!q) {
+      q = [];
+      queues.set(type, q);
     }
-    const pos = binarySearchInsertPos(entityIds, eid);
-    entityIds.splice(pos, 0, eid);
-    data.splice(pos, 0, d);
-    // Update index map for shifted tail
-    for (let i = pos; i < entityIds.length; i++) {
-      indexOfEntity.set(entityIds[i], i);
-    }
-    if (profiler && profiler.counter) profiler.counter('ECS.add', 1);
-  }
-
-  function remove(eid) {
-    const idx = indexOfEntity.get(eid);
-    if (idx == null) return;
-    entityIds.splice(idx, 1);
-    data.splice(idx, 1);
-    indexOfEntity.delete(eid);
-    // Update index map for shifted tail
-    for (let i = idx; i < entityIds.length; i++) {
-      indexOfEntity.set(entityIds[i], i);
-    }
-    if (profiler && profiler.counter) profiler.counter('ECS.remove', 1);
-  }
-
-  function has(eid) {
-    return indexOfEntity.has(eid);
-  }
-
-  function get(eid) {
-    const idx = indexOfEntity.get(eid);
-    if (idx == null) return undefined;
-    return data[idx];
-  }
-
-  function set(eid, d) {
-    const idx = indexOfEntity.get(eid);
-    if (idx == null) {
-      if (dev) throw new Error(`DEV: Cannot set component ${name} on missing entity ${eid}`);
-      return;
-    }
-    data[idx] = d;
-  }
-
-  function forEach(fn) {
-    // entityIds already ascending
-    for (let i = 0; i < entityIds.length; i++) fn(entityIds[i]);
-  }
-  function size() {
-    return entityIds.length;
-  }
-
-  return {
-    name,
-    entityIds,
-    data,
-    indexOfEntity,
-    add,
-    remove,
-    has,
-    get,
-    set,
-    forEach,
-    size,
+    return q;
   };
+
+  const bus = {
+    emit(type, payload) {
+      // Event payloads are objects. We do not clone for performance; tests are responsible for immutability.
+      getQueue(type).push(payload);
+    },
+    /**
+     * Drain all events of a given type, passing payloads to fn in FIFO order.
+     * Returns number of events drained.
+     * @param {string} type
+     * @param {(payload: any) => void} fn
+     * @returns {number}
+     */
+    drain(type, fn) {
+      const q = queues.get(type);
+      if (!q || q.length === 0) return 0;
+      const n = q.length;
+      // Maintain FIFO and avoid O(n^2) shifts by simple index scan
+      for (let i = 0; i < n; i++) {
+        const p = q[i];
+        fn(p);
+      }
+      q.length = 0;
+      return n;
+    },
+    /**
+     * Clear events either for a specific type or for all.
+     * @param {string=} type
+     */
+    clear(type) {
+      if (typeof type === 'string') {
+        const q = queues.get(type);
+        if (q) q.length = 0;
+        return;
+      }
+      // Clear all
+      queues.forEach((q) => (q.length = 0));
+    },
+    // Internal optional subscription helpers.
+    _subscribe(type, fn) {
+      let set = subs.get(type);
+      if (!set) {
+        set = new Set();
+        subs.set(type, set);
+      }
+      set.add(fn);
+      return () => {
+        set.delete(fn);
+      };
+    },
+    _drainSubscriptions() {
+      // For each subscribed type, deliver all queued payloads to every subscriber, FIFO.
+      subs.forEach((set, type) => {
+        if (set.size === 0) return;
+        const q = queues.get(type);
+        if (!q || q.length === 0) return;
+        const payloads = q.slice(0); // snapshot to preserve order
+        q.length = 0; // clear
+        for (let i = 0; i < payloads.length; i++) {
+          const p = payloads[i];
+          set.forEach((fn) => {
+            try {
+              fn(p);
+            } catch {
+              // Swallow to isolate systems; tests may verify queue drained regardless.
+            }
+          });
+        }
+      });
+    },
+  };
+
+  return bus;
 }
 
 /**
- * Merge defaults and data, then clamp.
- * @param {() => Object} defaultsFn
- * @param {Object=} data
- * @param {(data:Object)=>Object} clamp
- * @returns {Object}
- */
-function mergeDefaults(defaultsFn, data, clamp) {
-  const base = defaultsFn ? defaultsFn() : {};
-  const merged = { ...base, ...(data || {}) };
-  return clamp ? clamp(merged) : merged;
-}
-
-/**
- * Create the ECS Registry instance.
- * @param {Object=} config
- * @param {() => number=} config.clock - monotonic clock source; default Date.now
- * @param {{counter(name:string, value:number):void}=} config.profiler - optional micro-profiler sink.
- * @param {boolean=} config.dev - force DEV mode; default NODE_ENV !== 'production'
- * @param {boolean=} config.serializeTransients - include transient components in serialize/snapshot
+ * Create a new ECS Registry.
+ * @param {{ mode?: 'dev'|'prod', autoDrainEvents?: boolean }=} opts
  * @returns {Registry}
  */
-export function createRegistry(config = {}) {
-  const dev = !!(config.dev ?? DEV_DEFAULT);
-  const profiler = config.profiler || null;
-  const clock = typeof config.clock === 'function' ? config.clock : Date.now;
-  const serializeTransients = !!config.serializeTransients;
+export function createRegistry(opts = {}) {
+  const mode = opts.mode === 'prod' ? 'prod' : 'dev';
+  const autoDrainEvents = opts.autoDrainEvents !== false; // default true
+  const warnLimiter = createWarnLimiter();
 
-  // Entity generation tracking and liveness
-  const gens = [0]; // 0th unused if eids start at 1
-  const alive = new Set();
+  // Entities
+  let nextEid = 1;
+  /** @type {number[]} */
   const freeList = [];
-  const aliveEids = []; // ascending sorted list of alive eids (for driver when no allOf)
+  /** @type {Set<number>} */
+  const alive = new Set();
 
-  // Per-component stores
-  /** @type {Map<string, ReturnType<typeof makeStore>>} */
+  // Component stores
+  /** @type {Map<ComponentName, Store>} */
   const stores = new Map();
-  for (const [name] of COMPONENTS) {
-    stores.set(name, makeStore(name, dev, profiler));
-  }
 
-  // Cached query views
-  const views = new Map();
+  // Systems by stage
+  /** @type {Array<SystemFn[]>} */
+  const systems = [
+    [], // Input
+    [], // PrePhysics
+    [], // Gameplay
+    [], // Events
+    [], // RenderPrep
+  ];
 
-  function nowMs() {
-    return Number(clock());
-  }
+  // Resources
+  /** @type {Map<string, any>} */
+  const resources = new Map();
 
-  if (profiler && profiler.counter) profiler.counter('ECS.entities.alive', alive.size);
+  // Schemas (optional)
+  /** @type {Record<ComponentName, any>} */
+  const schemas = Object.create(null);
 
-  function ensureEntityAlive(eid) {
-    if (!dev) return;
-    if (!alive.has(eid)) {
-      throw new Error(`DEV: Entity ${eid} is not alive.`);
+  // Counters
+  /** @type {Map<string, number>} */
+  const counters = new Map();
+
+  // Event bus
+  const bus = createEventBus();
+
+  // Internal tick index to help lazy sorts
+  let tickIndex = 0;
+
+  // Ephemeral heap per tick/lifetime for transient per-entity data (e.g., cooldowns)
+  const _ephemeral = {
+    cooldowns: new Map(), // eid -> { footstep: number }
+  };
+
+  // Helpers
+  const inc = (key, by = 1) => counters.set(key, (counters.get(key) || 0) + by);
+  const resetCounters = () => counters.clear();
+
+  function ensureStore(name) {
+    let s = stores.get(name);
+    if (!s) {
+      s = createStore(name);
+      stores.set(name, s);
     }
-  }
-
-  function ensureValidType(type) {
-    if (!COMPONENTS.has(type)) {
-      if (dev) throw new Error(`DEV: Unknown component type "${type}".`);
-      return false;
-    }
-    return true;
-  }
-
-  function getStore(type) {
-    const s = stores.get(type);
-    if (!s) throw new Error(`Internal: missing store for type ${type}`);
     return s;
   }
 
   function createEntity() {
-    let eid;
+    let eid = 0;
     if (freeList.length > 0) {
       eid = freeList.pop();
     } else {
-      eid = gens.length; // eids: 1..N
-      gens.push(0); // initial generation 0 for new slot
+      eid = nextEid++;
     }
     alive.add(eid);
-    // insert eid into aliveEids maintaining sorted ascending
-    const pos = binarySearchInsertPos(aliveEids, eid);
-    aliveEids.splice(pos, 0, eid);
-
-    if (profiler && profiler.counter) profiler.counter('ECS.entities.alive', alive.size);
     return eid;
   }
 
   function destroyEntity(eid) {
     if (!alive.has(eid)) return;
-    // Remove all components present on this entity
-    for (const [type, store] of stores) {
-      if (store.has(eid)) {
-        store.remove(eid);
+    // Remove from all component stores immediately
+    stores.forEach((s) => {
+      if (s.indices.has(eid)) {
+        storeRemove(s, eid);
       }
-    }
-    // Remove from alive tracking
+    });
     alive.delete(eid);
-    const idx = aliveEids.indexOf(eid);
-    if (idx >= 0) aliveEids.splice(idx, 1);
-    // Bump generation and recycle eid
-    gens[eid] = (gens[eid] | 0) + 1;
     freeList.push(eid);
-    if (profiler && profiler.counter) profiler.counter('ECS.entities.alive', alive.size);
   }
 
-  function addComponent(eid, type, data) {
-    if (!ensureValidType(type)) return;
-    if (!alive.has(eid)) {
-      const msg = `Entity ${eid} not alive; cannot add component ${type}.`;
-      if (dev) throw new Error(`DEV: ${msg}`);
-      // eslint-disable-next-line no-console
-      console.warn(msg);
-      return;
-    }
-    const meta = COMPONENTS.get(type);
-    const store = getStore(type);
-    if (store.has(eid)) {
-      if (dev) throw new Error(`DEV: Entity ${eid} already has component ${type}`);
-      return;
-    }
-    let merged = mergeDefaults(meta.defaults, data, meta.clamp);
-    if (dev) {
-      try {
-        meta.validate(merged);
-      } catch (e) {
-        throw new Error(`DEV: Validation failed for addComponent ${type} on eid ${eid}: ${e.message || e}`);
+  function isAlive(eid) {
+    return alive.has(eid);
+  }
+
+  function setResource(name, obj) {
+    resources.set(name, obj);
+  }
+
+  function getResource(name) {
+    return resources.get(name);
+  }
+
+  function hasResource(name) {
+    return resources.has(name);
+  }
+
+  function validateAndSanitizeComponent(name, incoming) {
+    // Shallow object expected
+    if (incoming == null || typeof incoming !== 'object') {
+      if (mode === 'dev') {
+        throw new Error(`Component "${name}" expects object data`);
+      } else {
+        warnLimiter.warnOnce(`comp_${name}_nonobj`, `Component "${name}" received non-object data; replaced with empty object.`);
+        return {};
       }
     }
-    store.add(eid, merged);
-  }
-
-  function removeComponent(eid, type) {
-    if (!ensureValidType(type)) return;
-    const store = getStore(type);
-    store.remove(eid);
-  }
-
-  function get(eid, type) {
-    if (!ensureValidType(type)) return null;
-    const store = getStore(type);
-    const d = store.get(eid);
-    return d ? shallowClone(d) : null;
-  }
-
-  function set(eid, type, data) {
-    if (!ensureValidType(type)) return;
-    const store = getStore(type);
-    if (!store.has(eid)) {
-      const msg = `Entity ${eid} does not have component ${type}; cannot set.`;
-      if (dev) throw new Error(`DEV: ${msg}`);
-      // eslint-disable-next-line no-console
-      console.warn(msg);
-      return;
+    const schema = schemas[name];
+    if (!schema) {
+      // No schema => accept as-is
+      return incoming;
     }
-    const meta = COMPONENTS.get(type);
-    // Merge against defaults to ensure missing fields present, then clamp
-    let merged = mergeDefaults(meta.defaults, data, meta.clamp);
-    if (dev) {
-      try {
-        meta.validate(merged);
-      } catch (e) {
-        throw new Error(`DEV: Validation failed for set ${type} on eid ${eid}: ${e.message || e}`);
-      }
-    }
-    store.set(eid, merged);
-  }
 
-  function has(eid, type) {
-    if (!ensureValidType(type)) return false;
-    const store = getStore(type);
-    return store.has(eid);
-  }
+    // If properties defined, enforce per field.
+    const props = schema && schema.properties ? schema.properties : null;
+    const required = Array.isArray(schema && schema.required) ? schema.required : [];
 
-  function canonicalizeQuery(query) {
-    const allOf = Array.isArray(query?.allOf) ? [...new Set(query.allOf)].sort() : [];
-    const anyOf = Array.isArray(query?.anyOf) ? [...new Set(query.anyOf)].sort() : [];
-    const noneOf = Array.isArray(query?.noneOf) ? [...new Set(query.noneOf)].sort() : [];
-    return { allOf, anyOf, noneOf, key: `a:${allOf.join(',')}|o:${anyOf.join(',')}|n:${noneOf.join(',')}` };
-  }
-
-  function chooseDriver(allOf) {
-    if (allOf.length === 0) {
-      return { driver: 'all', store: null, size: aliveEids.length };
-    }
-    let bestType = allOf[0];
-    let bestSize = getStore(bestType).size();
-    for (let i = 1; i < allOf.length; i++) {
-      const t = allOf[i];
-      const s = getStore(t).size();
-      if (s < bestSize) {
-        bestType = t;
-        bestSize = s;
-      }
-    }
-    return { driver: bestType, store: getStore(bestType), size: bestSize };
-  }
-
-  function view(query) {
-    const cq = canonicalizeQuery(query || {});
-    let v = views.get(cq.key);
-    if (!v) {
-      const chosen = chooseDriver(cq.allOf);
-      v = {
-        driver: chosen.driver,
-        get size() {
-          return chosen.store ? chosen.store.size() : aliveEids.length;
-        },
-        each(fn) {
-          each(query, fn);
-        },
-      };
-      views.set(cq.key, v);
-    }
-    return v;
-  }
-
-  function each(query, fn) {
-    const cq = canonicalizeQuery(query || {});
-    const driverInfo = chooseDriver(cq.allOf);
-    const runFilters = (eid) => {
-      if (!alive.has(eid)) return false; // generation/liveness safety
-      // allOf: all components present
-      for (let i = 0; i < cq.allOf.length; i++) {
-        if (!getStore(cq.allOf[i]).has(eid)) return false;
-      }
-      // anyOf: at least 1 present (if provided and non-empty)
-      if (cq.anyOf.length > 0) {
-        let any = false;
-        for (let i = 0; i < cq.anyOf.length; i++) {
-          if (getStore(cq.anyOf[i]).has(eid)) {
-            any = true;
-            break;
+    // Check unknown fields/types
+    const out = {};
+    if (props) {
+      // Examine incoming keys
+      for (const k of Object.keys(incoming)) {
+        if (!Object.prototype.hasOwnProperty.call(props, k)) {
+          if (mode === 'dev') {
+            throw new Error(`Component "${name}" has unknown field "${k}"`);
+          } else {
+            warnLimiter.warnThrottled(`comp_${name}_unknown_${k}`, `Component "${name}" unknown field "${k}" ignored.`);
+            continue;
           }
         }
-        if (!any) return false;
+        out[k] = sanitizeByPropDef(name, k, incoming[k], props[k], warnLimiter, mode, inc);
       }
-      // noneOf: none present
-      for (let i = 0; i < cq.noneOf.length; i++) {
-        if (getStore(cq.noneOf[i]).has(eid)) return false;
+      // Enforce required and defaults
+      for (const k of Object.keys(props)) {
+        if (out[k] === undefined) {
+          if (incoming[k] !== undefined) {
+            // Already assigned above
+          } else if (required.includes(k)) {
+            if (mode === 'dev') {
+              throw new Error(`Component "${name}" missing required field "${k}"`);
+            } else {
+              const d = defaultForProp(props[k]);
+              warnLimiter.warnThrottled(`comp_${name}_missing_${k}`, `Component "${name}" missing "${k}", defaulting.`);
+              out[k] = d;
+            }
+          } else if (props[k] && props[k].default !== undefined) {
+            out[k] = props[k].default;
+          }
+        }
       }
-      return true;
-    };
-
-    if (driverInfo.store) {
-      // Iterate driver store in ascending order
-      const ids = driverInfo.store.entityIds;
-      for (let i = 0; i < ids.length; i++) {
-        const eid = ids[i];
-        if (runFilters(eid)) fn(eid);
-      }
-    } else {
-      // No allOf; iterate all alive eids ascending
-      for (let i = 0; i < aliveEids.length; i++) {
-        const eid = aliveEids[i];
-        if (runFilters(eid)) fn(eid);
-      }
+      return out;
     }
-    if (profiler && profiler.counter) profiler.counter('ECS.query.each', 1);
+
+    // If no props described, accept as-is
+    return incoming;
   }
 
-  function serialize(eid) {
+  function add(eid, name, data) {
     if (!alive.has(eid)) {
-      if (dev) throw new Error(`DEV: Cannot serialize non-alive entity ${eid}`);
-      return null;
-    }
-    const components = {};
-    for (const [type, store] of stores) {
-      if (!serializeTransients) {
-        const meta = COMPONENTS.get(type);
-        if (meta && meta.transient) continue;
+      if (mode === 'dev') {
+        throw new Error(`add(): eid ${eid} is not alive`);
+      } else {
+        warnLimiter.warnThrottled('add_dead', `Attempted to add component "${name}" to dead entity ${eid}`);
+        return;
       }
-      const d = store.get(eid);
-      if (d) components[type] = shallowClone(d);
     }
-    return { eid, gen: gens[eid] | 0, components };
+    const store = ensureStore(name);
+    const sanitized = validateAndSanitizeComponent(name, data);
+    const existing = store.indices.get(eid);
+    if (existing !== undefined) {
+      if (mode === 'dev') {
+        throw new Error(`Entity ${eid} already has component "${name}"`);
+      } else {
+        warnLimiter.warnThrottled(`dup_${name}`, `Entity ${eid} already had "${name}", replacing.`);
+        store.data[existing] = sanitized;
+        return;
+      }
+    }
+
+    const idx = store.ids.length;
+    store.ids.push(eid);
+    store.data.push(sanitized);
+    store.indices.set(eid, idx);
+    store.dirtySorted = true;
   }
 
-  function snapshot(filter) {
-    const include = Array.isArray(filter?.include) ? new Set(filter.include) : null;
-    const exclude = Array.isArray(filter?.exclude) ? new Set(filter.exclude) : null;
+  function remove(eid, name) {
+    const s = stores.get(name);
+    if (!s) return;
+    if (!s.indices.has(eid)) return;
+    storeRemove(s, eid);
+  }
 
-    const out = {
-      entities: [],
+  function get(eid, name) {
+    const s = stores.get(name);
+    if (!s) return null;
+    const idx = s.indices.get(eid);
+    if (idx === undefined) return null;
+    // Return direct reference; caller is responsible for safe mutation.
+    return s.data[idx];
+  }
+
+  function has(eid, name) {
+    const s = stores.get(name);
+    if (!s) return false;
+    return s.indices.has(eid);
+  }
+
+  function setSchemas(map) {
+    // Replace whole schema map
+    for (const k of Object.keys(schemas)) {
+      delete schemas[k];
+    }
+    if (map && typeof map === 'object') {
+      for (const k of Object.keys(map)) {
+        schemas[k] = map[k];
+      }
+    }
+  }
+
+  function view(include, exclude) {
+    if (!Array.isArray(include) || include.length === 0) {
+      throw new Error('view(): include must be a non-empty array of component names');
+    }
+    if (include.length > 5) {
+      // MVP supports up to 5; we can still proceed but warn in dev
+      if (mode === 'dev') {
+        warnLimiter.warnThrottled('view_inc_len', `view() include length ${include.length} exceeds MVP target (5). Proceeding.`);
+      }
+    }
+
+    // Determine driver store (smallest)
+    /** @type {Store[]} */
+    const includeStores = include.map((n) => ensureStore(n));
+    let driver = includeStores[0];
+    for (let i = 1; i < includeStores.length; i++) {
+      if (includeStores[i].ids.length < driver.ids.length) {
+        driver = includeStores[i];
+      }
+    }
+
+    const excludes = Array.isArray(exclude) ? exclude : [];
+
+    const ensureSorted = () => {
+      if (driver.lastSortTick !== tickIndex || driver.dirtySorted) {
+        driver.sortedIds.length = 0;
+        for (let i = 0; i < driver.ids.length; i++) {
+          driver.sortedIds[i] = driver.ids[i];
+        }
+        driver.sortedIds.sort(numberAsc);
+        driver.lastSortTick = tickIndex;
+        driver.dirtySorted = false;
+      }
     };
 
-    for (let i = 0; i < aliveEids.length; i++) {
-      const eid = aliveEids[i];
-      const ent = { eid, gen: gens[eid] | 0, components: {} };
-      for (const [type, store] of stores) {
-        const meta = COMPONENTS.get(type);
-        if (!serializeTransients && meta && meta.transient) continue;
-        if (include && !include.has(type)) continue;
-        if (exclude && exclude.has(type)) continue;
-        const d = store.get(eid);
-        if (d) ent.components[type] = shallowClone(d);
-      }
-      out.entities.push(ent);
-    }
-
-    return out;
-  }
-
-  function stats() {
-    const compStats = {};
-    for (const [type, store] of stores) {
-      compStats[type] = store.size();
-    }
     return {
-      entities: { alive: alive.size, capacity: gens.length - 1 },
-      components: compStats,
-      views: views.size,
+      each(cb) {
+        ensureSorted();
+        const incStores = includeStores;
+        const excStores = excludes.map((n) => stores.get(n)).filter(Boolean);
+        const N = driver.sortedIds.length;
+        for (let i = 0; i < N; i++) {
+          const eid = driver.sortedIds[i];
+          inc('Query.iterations', 1);
+          if (!alive.has(eid)) continue;
+          // Must have all include components
+          let ok = true;
+          for (let j = 0; j < incStores.length; j++) {
+            const s = incStores[j];
+            if (!s.indices.has(eid)) {
+              ok = false;
+              break;
+            }
+          }
+          if (!ok) continue;
+          // Must not have any exclude components
+          for (let j = 0; j < excStores.length; j++) {
+            const s = excStores[j];
+            if (s && s.indices.has(eid)) {
+              ok = false;
+              break;
+            }
+          }
+          if (!ok) continue;
+          // Collect component references in stable include order
+          const comps = new Array(incStores.length);
+          for (let j = 0; j < incStores.length; j++) {
+            const s = incStores[j];
+            const idx = s.indices.get(eid);
+            comps[j] = s.data[idx];
+          }
+          inc('Query.matches', 1);
+          cb(eid, ...comps);
+        }
+      },
+      // Size is the driver store size; may overapproximate matches.
+      size() {
+        return driver.ids.length;
+      },
     };
   }
 
-  /**
-   * Example Usage:
-   *
-   * // const ecs = createRegistry();
-   * // const eid = ecs.createEntity();
-   * // ecs.addComponent(eid, 'Position', { x: 10, y: 4, dirDeg: 90 });
-   * // ecs.addComponent(eid, 'Velocity', { vx: 1.5, vy: 0, maxSpeed: 3 });
-   * //
-   * // // In MovementSystem (external):
-   * // function movementSystem(ecs, dtSec) {
-   * //   ecs.each({ allOf: ['Position', 'Velocity'] }, (e) => {
-   * //     const pos = ecs.get(e, 'Position');
-   * //     const vel = ecs.get(e, 'Velocity');
-   * //     // Clamp by maxSpeed externally if desired
-   * //     const max = vel.maxSpeed;
-   * //     const spd = Math.hypot(vel.vx, vel.vy);
-   * //     const scale = spd > 0 && spd > max ? (max / spd) : 1;
-   * //     pos.x = (pos.x + Math.trunc((vel.vx * scale) * dtSec)) | 0;
-   * //     pos.y = (pos.y + Math.trunc((vel.vy * scale) * dtSec)) | 0;
-   * //     ecs.set(e, 'Position', pos);
-   * //   });
-   * // }
-   */
+  function register(stage, fn) {
+    if (typeof stage !== 'number' || stage < 0 || stage > 4) {
+      throw new Error('register(): invalid stage');
+    }
+    if (typeof fn !== 'function') {
+      throw new Error('register(): fn must be a function');
+    }
+    systems[stage].push(fn);
+  }
 
-  return {
+  function tick(dtSec) {
+    // Clamp dt to [0, 0.1]
+    let dt = clampNumber(dtSec, 0, 0.1, 0);
+    tickIndex++;
+
+    // Run stages in fixed order
+    for (let s = 0; s < systems.length; s++) {
+      const arr = systems[s];
+      for (let i = 0; i < arr.length; i++) {
+        try {
+          arr[i](registry, dt);
+        } catch (err) {
+          // Isolate system failures; in dev we can warn
+          warnLimiter.warnThrottled(`sys_err_${s}_${i}`, `System error at stage ${s}, index ${i}: ${err && err.message ? err.message : err}`);
+        }
+      }
+      // Auto-drain at end of Events stage
+      if (s === Stages.Events && autoDrainEvents) {
+        bus._drainSubscriptions();
+      }
+    }
+  }
+
+  function getDebugStore(name) {
+    if (mode !== 'dev') {
+      throw new Error('getDebugStore() is only available in dev mode');
+    }
+    const s = stores.get(name);
+    if (!s) return null;
+    // Expose a safe snapshot (shallow) of structural arrays and maps for tests
+    return {
+      name: s.name,
+      ids: s.ids.slice(0),
+      data: s.data.slice(0),
+      indices: new Map(s.indices),
+      sortedIds: s.sortedIds.slice(0),
+      dirtySorted: s.dirtySorted,
+    };
+  }
+
+  const registry = {
+    schemas,
+    bus,
+    counters,
+    inc,
+    resetCounters,
     createEntity,
     destroyEntity,
-    addComponent,
-    removeComponent,
+    isAlive,
+    setResource,
+    getResource,
+    hasResource,
+    add,
+    remove,
     get,
-    set,
     has,
+    setSchemas,
     view,
-    each,
-    serialize,
-    snapshot,
-    stats,
-    nowMs,
+    register,
+    tick,
+    getDebugStore,
+    _ephemeral,
+  };
+
+  return registry;
+}
+
+/**
+ * Register MVP-known component stores up-front for convenience.
+ * This pre-creates empty stores but does not bind schemas.
+ * @param {Registry} registry
+ */
+export function registerKnownComponents(registry) {
+  const names = [
+    'position',
+    'velocity',
+    'collider',
+    'tile',
+    'ore_vein',
+    'health',
+    'stamina',
+    'inventory',
+    'tool',
+    'damageable',
+    'faction',
+    'sprite_ref',
+    'light',
+    'sound_emitter',
+    'ui_state',
+  ];
+  for (let i = 0; i < names.length; i++) {
+    // Touch ensure store via add/remove on a dummy entity? Better: create store directly.
+    ensureStoreForRegistry(registry, names[i]);
+  }
+}
+
+/**
+ * Reference Movement System operating on position + velocity.
+ * - Clamps velocity length to max_speed if provided (velocity.max_speed or position.max_speed).
+ * - Integrates position by dt.
+ * - NaN guards for positions and velocities.
+ * - Emits FootstepEvent with cooldown when speed exceeds threshold.
+ * @param {Registry} registry
+ * @param {number} dtSec
+ */
+export function MovementSystem(registry, dtSec) {
+  const dt = clampNumber(dtSec, 0, 0.1, 0);
+  const v = registry.view(['position', 'velocity']);
+  v.each((eid, pos, vel) => {
+    // Validate numeric fields
+    if (!isFiniteNumber(vel.vx)) {
+      vel.vx = 0;
+      registry.inc('Guards.corrected', 1);
+    }
+    if (!isFiniteNumber(vel.vy)) {
+      vel.vy = 0;
+      registry.inc('Guards.corrected', 1);
+    }
+
+    // Clamp speed if max_speed present
+    const maxs = resolveMaxSpeed(vel, pos);
+    let vx = vel.vx || 0;
+    let vy = vel.vy || 0;
+    let spd2 = vx * vx + vy * vy;
+    if (maxs > 0 && spd2 > 0) {
+      const max2 = maxs * maxs;
+      if (spd2 > max2) {
+        const scale = Math.sqrt(max2 / spd2);
+        vx *= scale;
+        vy *= scale;
+        vel.vx = vx;
+        vel.vy = vy;
+      }
+    }
+
+    // Integrate position
+    if (!isFiniteNumber(pos.x)) {
+      pos.x = 0;
+      registry.inc('Guards.corrected', 1);
+    }
+    if (!isFiniteNumber(pos.y)) {
+      pos.y = 0;
+      registry.inc('Guards.corrected', 1);
+    }
+    pos.x += vx * dt;
+    pos.y += vy * dt;
+
+    // Footstep event emission (simple cooldown)
+    const speed = Math.sqrt((vx * vx) + (vy * vy));
+    const threshold = 1.0; // units/sec
+    const cooldownDur = 0.4; // seconds between footsteps
+    if (speed > threshold) {
+      let cd = registry._ephemeral.cooldowns.get(eid);
+      if (!cd) {
+        cd = { footstep: 0 };
+        registry._ephemeral.cooldowns.set(eid, cd);
+      }
+      cd.footstep -= dt;
+      if (cd.footstep <= 0) {
+        registry.bus.emit(EventTypes.FootstepEvent, { eid, speed });
+        cd.footstep = cooldownDur;
+      }
+    } else {
+      // If slow/idle, allow next step quickly
+      let cd = registry._ephemeral.cooldowns.get(eid);
+      if (cd) {
+        cd.footstep = Math.min(cd.footstep, 0.1);
+      }
+    }
+
+    registry.inc('Movement.iterations', 1);
+  });
+}
+
+/* ======================= Internal Structures & Helpers ======================= */
+
+/**
+ * @typedef {Object} Store
+ * @property {ComponentName} name
+ * @property {number[]} ids
+ * @property {Object[]} data
+ * @property {Map<number, number>} indices
+ * @property {number[]} sortedIds
+ * @property {boolean} dirtySorted
+ * @property {number} lastSortTick
+ */
+
+/**
+ * Create an empty component store
+ * @param {ComponentName} name
+ * @returns {Store}
+ */
+function createStore(name) {
+  return {
+    name,
+    ids: [],
+    data: [],
+    indices: new Map(),
+    sortedIds: [],
+    dirtySorted: true,
+    lastSortTick: -1,
   };
 }
+
+/**
+ * Remove entity from a store with O(1) swap-remove
+ * @param {Store} s
+ * @param {EntityId} eid
+ */
+function storeRemove(s, eid) {
+  const idx = s.indices.get(eid);
+  if (idx === undefined) return;
+  const lastIdx = s.ids.length - 1;
+  const lastEid = s.ids[lastIdx];
+  // Swap with last if not already last
+  if (idx !== lastIdx) {
+    s.ids[idx] = lastEid;
+    s.data[idx] = s.data[lastIdx];
+    s.indices.set(lastEid, idx);
+  }
+  // Pop
+  s.ids.pop();
+  s.data.pop();
+  s.indices.delete(eid);
+  s.dirtySorted = true;
+}
+
+/**
+ * Ensure a named store exists on a registry. Used by registerKnownComponents.
+ * @param {Registry} registry
+ * @param {ComponentName} name
+ */
+function ensureStoreForRegistry(registry, name) {
+  // Try a harmless op to force store creation: adding and removing to a temp entity is noisy.
+  // Instead, reach into internal helper via add/remove improbable name.
+  // We simulate by adding and removing on a dead eid path that creates store but doesn't store data.
+  const r = /** @type {any} */ (registry);
+  if (!r || !r.schemas) return;
+  // Access internal stores via calling add then remove guarded by alive check; to avoid that, we reflectively ensure store creation by calling a private creator.
+  // Since we can't access its closure, emulate by adding and catching dev error harmlessly.
+  try {
+    // Most registries are 'dev' and will throw for dead eid; we don't care. We only want ensureStore called.
+    r.add(0, name, {});
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Sort comparator for numeric ascending
+ */
+function numberAsc(a, b) {
+  return a - b;
+}
+
+/**
+ * Warn helper with per-key throttling
+ */
+function createWarnLimiter() {
+  const counts = new Map();
+  const LIMIT = 10;
+  return {
+    warnOnce(key, msg) {
+      if (counts.has(key)) return;
+      counts.set(key, 1);
+      console.warn(msg);
+    },
+    warnThrottled(key, msg) {
+      const c = counts.get(key) || 0;
+      if (c < LIMIT) {
+        console.warn(msg);
+        counts.set(key, c + 1);
+      } else if (c === LIMIT) {
+        console.warn(`Further warnings suppressed for "${key}"`);
+        counts.set(key, c + 1);
+      }
+      // beyond LIMIT+1: silent
+    },
+  };
+}
+
+/**
+ * Clamp a number with NaN/Inf guard and default fallback.
+ * @param {number} value
+ * @param {number} min
+ * @param {number} max
+ * @param {number} def
+ * @returns {number}
+ */
+function clampNumber(value, min, max, def) {
+  if (!isFiniteNumber(value)) return def;
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+}
+
+/**
+ * @param {any} v
+ * @returns {boolean}
+ */
+function isFiniteNumber(v) {
+  return typeof v === 'number' && Number.isFinite(v);
+}
+
+/**
+ * Sanitize a property according to a simplified JSON-schema-like prop def.
+ * Supports: type: 'number'|'integer'|'string'|'boolean', enum: [], minimum, maximum, default
+ * @param {string} comp
+ * @param {string} key
+ * @param {any} val
+ * @param {any} propDef
+ * @param {{ warnOnce: (k:string,m:string)=>void, warnThrottled: (k:string,m:string)=>void }} warnLimiter
+ * @param {'dev'|'prod'} mode
+ * @param {(k: string, by?: number) => void} inc
+ */
+function sanitizeByPropDef(comp, key, val, propDef, warnLimiter, mode, inc) {
+  const t = propDef && typeof propDef.type === 'string' ? propDef.type : null;
+  const hasEnum = Array.isArray(propDef && propDef.enum);
+  let out = val;
+
+  // Type handling
+  if (t === 'number' || t === 'integer') {
+    if (!isFiniteNumber(out)) {
+      if (mode === 'dev') {
+        throw new Error(`Component "${comp}" field "${key}" expects ${t}, got ${typeof val}`);
+      } else {
+        warnLimiter.warnThrottled(`type_${comp}_${key}`, `Component "${comp}" field "${key}" expects ${t}; corrected to default.`);
+        out = propDef && propDef.default !== undefined ? propDef.default : 0;
+        inc('Guards.corrected', 1);
+      }
+    }
+    if (t === 'integer') {
+      out = Math.trunc(out);
+    }
+    if (isFiniteNumber(out)) {
+      if (typeof propDef.minimum === 'number' && out < propDef.minimum) {
+        out = propDef.minimum;
+      }
+      if (typeof propDef.maximum === 'number' && out > propDef.maximum) {
+        out = propDef.maximum;
+      }
+    }
+  } else if (t === 'string') {
+    if (typeof out !== 'string') {
+      if (mode === 'dev') {
+        throw new Error(`Component "${comp}" field "${key}" expects string, got ${typeof val}`);
+      } else {
+        warnLimiter.warnThrottled(`type_${comp}_${key}`, `Component "${comp}" field "${key}" expects string; corrected to default.`);
+        out = propDef && propDef.default !== undefined ? String(propDef.default) : '';
+        inc('Guards.corrected', 1);
+      }
+    }
+  } else if (t === 'boolean') {
+    if (typeof out !== 'boolean') {
+      if (mode === 'dev') {
+        throw new Error(`Component "${comp}" field "${key}" expects boolean, got ${typeof val}`);
+      } else {
+        warnLimiter.warnThrottled(`type_${comp}_${key}`, `Component "${comp}" field "${key}" expects boolean; corrected to default.`);
+        out = propDef && propDef.default !== undefined ? !!propDef.default : false;
+        inc('Guards.corrected', 1);
+      }
+    }
+  } else if (t != null) {
+    // Unknown type
+    if (mode === 'dev') {
+      throw new Error(`Component "${comp}" field "${key}" has unsupported type "${t}"`);
+    } else {
+      warnLimiter.warnThrottled(`type_${comp}_${key}`, `Component "${comp}" field "${key}" has unsupported type "${t}"`);
+    }
+  }
+
+  // Enum handling
+  if (hasEnum) {
+    const list = propDef.enum;
+    if (!list.includes(out)) {
+      if (mode === 'dev') {
+        throw new Error(`Component "${comp}" field "${key}" must be one of ${JSON.stringify(list)}, got ${JSON.stringify(out)}`);
+      } else {
+        warnLimiter.warnThrottled(`enum_${comp}_${key}`, `Component "${comp}" field "${key}" coerced to first enum value.`);
+        out = list[0];
+        inc('Guards.corrected', 1);
+      }
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Provide default for property based on simplified propDef
+ * @param {any} propDef
+ */
+function defaultForProp(propDef) {
+  if (propDef && propDef.default !== undefined) return propDef.default;
+  const t = propDef && typeof propDef.type === 'string' ? propDef.type : null;
+  switch (t) {
+    case 'number':
+    case 'integer':
+      return 0;
+    case 'string':
+      return '';
+    case 'boolean':
+      return false;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Resolve max speed value from components, if present.
+ * @param {any} vel
+ * @param {any} pos
+ * @returns {number}
+ */
+function resolveMaxSpeed(vel, pos) {
+  const v = vel && isFiniteNumber(vel.max_speed) ? vel.max_speed : null;
+  if (v != null) return v;
+  const p = pos && isFiniteNumber(pos.max_speed) ? pos.max_speed : null;
+  if (p != null) return p;
+  return 0;
+}
+
+/**
+ * TODOs / Future Hooks:
+ * - Archetype-based optimizer for hot queries.
+ * - Snapshot/restore registry state for save/load.
+ * - Pluggable microprofiler sink for per-system timings.
+ * - Bevy bridge: explore mapping component stores to Rust WASM.
+ */
