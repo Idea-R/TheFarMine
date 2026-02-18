@@ -1,158 +1,109 @@
-# The Far Mine — Founding Lore and Deep Law (Sprint 1)
+# Founding Lore of The Far Mine — The Bottomless Oath (Sprint 1)
 
-Provenance
-- Owner: @epsilon (Narrative Systems — Lorekeeper Runebeard)
-- Authorial voice: Lorekeeper Runebeard, Keeper of Tall Tales and Tight Specs
-- Cross-references
-  - docs/world-generation/cave-gen-algorithm.md (§Three‑Wide law, tiles/flags)
-  - docs/technology-systems/crafting-design.md (§Hardness bands)
-  - docs/combat-systems/combat-design.md (§Telegraphs tone)
-  - data/world/biome-crystal-caverns.json (tileType, hardness)
-  - data/combat/enemy-goblin-grunt.json (enemy ids)
+Provenance: owner @epsilon (Narrative Systems — Lorekeeper Runebeard)
 
-
-
-## Canon Boundaries (Short)
-
-- The Mine is “bottomless” in legend; in practice, strata repeat, drift, and recurse to imply depth. No claim of literal infinite runtime is made.
-- Hardness gates 3/4/5/7 are diegetic as crystal temper bands within the strata; mapping to material and tool progression remains purely mechanical.
-- The Three‑Wide approach before any sealed door is an old Guild law; it binds to generation rules for approachDepth and corridor widths.
-- Automata remnants and guardian constructs exist in the deep law; their active presence may be staged post‑MVP.
-- Lore never contradicts gameplay specs; if conflict arises, specs are primary and lore is revised.
+Cross-References:
+- docs/narrative/guild-factions.md (§The Dwarven Guild Compact)
+- docs/world-generation/cave-gen-algorithm.md (§Three‑Wide law and biome ids)
+- docs/technology-systems/crafting-design.md (§Stations/Tools ids)
+- data/items/tools.json
+- data/audio/sound-manifest.json (amb.tavern.loopA)
+- docs/combat-systems/combat-design.md (enemy ids)
 
 
 
-## The Origin of the Abyssal Vein (Mythic Core)
+## Canonical Tokens Index (for engineers/UI)
 
-The old engineers tell that the world once wore a crown of iron teeth. A World‑Gear, vast as a mountain and round as a prayer, bit into the bedrock to drink its heat. When its teeth met the stubborn heart of the continent, the shaft itself learned to fold upon its layers, turning paths back into themselves like braided rope. Thus the Vein unspools forever to the eye, yet coils close enough for a dwarf to return by smell and chalk.
+Stable tokens referenced throughout the lore:
+- lore.mine.the_far_mine — The Far Mine (proper noun)
+- lore.law.three_wide — The Three‑Wide Law
+- lore.place.tavern.hearth_and_anvil — "The Hearth & Anvil" tavern
+- lore.guild.steamwrights | lore.guild.stonebinders | lore.guild.emberwatch — faction tokens
+- lore.biome.crystal_caverns — Level 1 biome reference
+- lore.civilization.underkings — the ancient makers below (placeholder token)
+- lore.sound.ambient.tavern.loopA — tavern ambience cue (aligns with amb.tavern.loopA)
 
-In the brass age below, a single shining artery of alloy rode the crystals like a rail. The Underwrights of Orrin‑Runes set their forges along it until the day of the Sundering. Their Great Brass Vein shattered from crown to heel, scattering shards that still sing when struck. Since that breaking, every seam of quartz remembers a note of that first fracture; some seams temper the pick, others turn it aside.
-
-The Breath Below is no mere draft. The Mine exhales through bellies of steam, the old boilers and rock‑lungs of the deep waking and sleeping with the grind of the world. Passages open where the heat swells them and close where the chill clamps them, so that last shift’s map is tomorrow’s joke. Lamps gutter or glow by the whim of these sighs, and every wick trimmed is a pact renewed with the dark.
-
-Some claim the World‑Gear stalled and still hums faintly underfoot. Some swear the Brass Vein bled into the stone and now moves like a river of memory. All agree the Vein is a way of ways, not a single line, and it listens to footsteps like a drum hears a march.
-
-Engineer’s Reading
-- The Mine appears endless because strata, motifs, and pathing patterns repeat, drift, and phase‑fold via procedural rules. This is a diegetic wrapper for level continuity and variety; no promise of literal infinity is made in code or content.
-
-
-
-## The Dwarven Guild Compact (Founding Framework)
-
-When the mouth of The Far Mine yawed open in a thaw year, claims were shouted, staked, and broken as quick as a pick’s first bite. From that racket the Guilds hammered out a Compact: each claim recorded beneath the Charter‑stamp, each haul tallied upon the Tally‑Scales, and each grievance cooled with proper ale before the Brewmaster’s bench. Thus did hunger for the Vein learn the habit of order.
-
-The social contract runs through the Tavern as a main beam. Politics and petitions stay to the common tables; claim marks are posted on the east board at first lamp; the Brewmaster serves as neutral arbiter, taking suggestions and grievances alike, brewing what can be brewed, shelving what cannot. What the tavern hears, the ledger remembers, and what the ledger holds, the Guild enforces.
-
-It is said the Compact kept the Three‑Wide law alive: never squeeze a fight through a knothole. There’s room for a shield, a shoulder, and a stretcher—if the approach was cut honest. So was safety carved where greed would have shaved it thin.
-
-#### **First Faction Slot**
-- Token reserved: `lore.guild.hammerwrights`
-
-#### **Second Faction Slot**
-- Token reserved: `lore.guild.stonescribes`
-
-#### **Third Faction Slot**
-- Token reserved: `lore.guild.brassbound`
+Note: tokens are stable and may be referenced by UI tooltips, quest journal, and ambient triggers; no mechanical promises implied.
 
 
 
-## The Buried Civilization Below (Primary Mystery)
+## The Legend of the First Break (Origin of The Far Mine)
 
-The Underwrights of Orrin‑Runes (`lore.civ.underwrights`) shaped the deep with sound and sign. They tuned crystal halls by note and number, teaching quartz to carry orders like song along a lattice of resonant seams. Their doors thought in rune‑logic, admitting hands that could answer, and their servitors marched by clock and bell.
+I was there the night the bedrock rang like a bell no hammer had struck. The sky held its breath and the hearth-coals sighed as though a draft had turned in the bones of the mountain. Then came the seam—no crack a mason would name, but a line of perfect unmaking—threading through basalt and schist as if the stone had remembered a door and opened it again. Our lanterns peered over the lip and found not a floor, only a vein diving straight down, a dark throat ribbed with crystals that caught the light and threw it back in patient colors.
 
-Their rise was steady iron: crystal acoustics, brass logic, and steam discipline woven into a single craft. Their fall, called Gearfall, was a sudden discord. Some say a mis‑tuned keystone cracked the Brass Vein; some whisper a door answered the wrong question. Fragments remain—corridors that still hum a working tone, sealed vault mouths that blink awake at the scrape of steel.
+We rigged lines to test it, ropes song‑tested, knots blessed with spit and brass, and dropped the plumb. It drank hemp for an hour with no bottom-tug. So the first of us made our bargains: breath for depth (for the air grows stingy below), brass for lift (for the winch must love you), and a little blood to wake the stone to our names—just the thumbprint smear on a pick’s neck, the way our grandfolks did when steel joined clan-work. Down we went, past seams that hummed. Each time we called, the answer came not as echo, but as harmonics—fifth upon third upon root—until the whole vein felt like a standing chord waiting for a hand.
 
-Corrupted automatons and half‑sleeping guardians drift the dark like shed tools that learned to walk. They are not legion in the upper bands, but their spoor—scored brass, tar of old grease, a metronome knock—turns up whenever the Vein bends back on an old path. What can be salvaged may yet feed craft and cunning in seasons to come.
+When the rope coffers ran dry and still the plumb whispered down, we named it as true dwarves name: by its farthest measure. “Mark it,” I said, chalk to slate. “Write lore.mine.the_far_mine in the ledger and in your lungs. The Far Mine.” The name fit like a collar, and the crystals answered with a faint, glass‑sweet tremor. To this turn, the first descent is sung not for courage but for calibration, for we learned that night the vein listens to the pitch of our work. Some say that is why a hammer swings truer in the lore.biome.crystal_caverns, where the resonance steadies the wrist. I say only: hear before you hew.
 
-Lexicon artifacts
-- `lore.artifact.singing_keystone`
-- `lore.artifact.brass_codex`
-- `lore.artifact.bellows_heart`
+> The stone keeps the songs we dare to sing within it.
 
-
-
-## Timeline (Diegetic, Bullet Scale)
-
-- Deep Age — the Underwrights tune the crystals.
-- Gearfall — collapse scatters the servitors.
-- Guild Dawn — dwarves discover The Far Mine mouth.
-- The Compact — factions formalize claims.
-- Present Delve — player enters L1: Crystal Caverns.
+> If you must descend, carry a story and a spare line.
 
 
 
-## Places & Tokens (Stable IDs for Systems)
+## The Dwarven Guild Compact (Why guilds, why a tavern hub)
 
-- `lore.place.tavern.hearth_and_anvil` — The Hearth & Anvil, neutral ground under Guild sight; anchor for community flow; cross‑ref tavern NPC manifest in data/dialogue/tavern-npc-keeper.json.
-- `lore.law.three_wide` — The Three‑Wide Law mandates a three‑stride approach before sealed doors; connects to approachDepth and corridor width flags; cross‑ref docs/world-generation/cave-gen-algorithm.md (§Three‑Wide law).
-- `lore.biome.crystal_caverns` — Narrative name for the entry biome; maps to `biome.crystal_caverns`; cross‑ref data/world/biome-crystal-caverns.json (tileType, hardness).
-- `lore.materials.copper|iron|quartz` — Common ores and crystal; maps to `mat.ore.copper`, `mat.ore.iron`, and `mat.crystal.quartz`; cross‑ref docs/technology-systems/crafting-design.md (§Hardness bands).
-- `lore.sound.ambient.tavern.loopA` — Ambient tavern bed used in the Hearth & Anvil; confirm presence and filename in data/audio/sound-manifest.json with @zeta.
+We were bright with the First Break and brighter still with envy. Claims were chalked twice over, lamp‑lines crossed like stubborn goats, and more than one cart came back brassed to splinters “by accident.” So we gathered in the only room all our boots consented to soil together—the common floor of lore.place.tavern.hearth_and_anvil. There, with tankards still and ledgers open, the three banners were lashed into one scroll: the Dwarven Guild Compact. It did not make us kin, but it made us predictable.
 
+The Compact bound lamp to span and span to safety, codified the hewing lanes, and cooled the quarrels. The keep’s bell, not a supervisor’s glare, would end disputes. Door approaches hewed three across, and corridors kept to three palms of dwarf broad—what we now call the lore.law.three_wide—so haulers, wardens, and tinkerers might pass without bruised tempers or pinched lungs. The Hearth & Anvil stood neutral by oath; its long table became our coordinate of peace, our staging forge, our rumor mill and our rest. If a tune is playing there (and it is—lore.sound.ambient.tavern.loopA), you may trust for a few measures that your back is to a friendly wall.
 
-
-## Myth-to-Mechanic Bridges (Engineer Notes)
-
-- Hardness gates ← crystal temper bands of the Vein; map to hardness 3/4/5/7 without altering balance curves.
-- Stamina and Poise ← “heart‑wind” and “stance” metaphors; no mechanical rule changes implied.
-- Lamps and halos ← guild lantern rites; align with existing lamp placement and falloff rules.
-- The Three‑Wide law ← respected in Tavern talk; binds to corridor generation and approachDepth pre‑door checks.
-- Enemy ids ← `enemy.goblin.grunt` and `enemy.cave.burrower` named in‑lore as “surface‑scavver” and “sink‑worm”; cross‑ref data/combat/enemy-goblin-grunt.json.
-- Telegraphs tone ← strikes “speak before they bite” per combat design; cross‑ref docs/combat-systems/combat-design.md (§Telegraphs tone).
+Compact Articles (select):
+- Lamps placed at measured spans; darkness between is a fine to all.
+- Corridors and door approaches kept Three‑Wide by law and common sense.
+- Ore rights by first chip, witnessed and inked; no ghost‑claims.
+- No sabotage of tools or stations; a bent wrench is a bent future.
+- The keeper’s bell ends disputes; hammers cool until dawn.
 
 
 
-## [HOOK] Lines (UI-safe, ≤90 chars each)
+## Why the Mine is Bottomless (Diegetic Explanation)
 
-- Three strides wide behind a door, or the dark will pinch your beard.
-- Quartz sings when the right steel hums back.
-- The Mine breathes warm as a forge, listen to the heart-wind.
-- Below the brass fell, and the crystals remembered.
-- Claim true, tally fair, or the Brewmaster closes your book.
-- The gear that bored the world left teeth in the stone.
-- Lamps are vows against the dark, trimmed and true.
-- Surface-scavvers sniff the spill, keep your stance.
-- Sink-worms love a lone bootprint in soft dust.
-- Doors heed rune and weight, not whispers.
+Ask ten miners and you’ll get eleven answers, but all rhyme. The Far Mine is bottomless because it is not a single shaft in the way a straw is a straw. It is a column of resonant strata stacked like organ pipes, each crystal bed swallowing sound and sight and handing both downward. Seams shift like fish in a dark river; where you mapped a sill yesterday you’ll find a throat today. The charts are honest, yet the rock is more so. Some feel a push at the soles a heartbeat before the lift groans—a pressure from old machines far below, the breath of a forge that forgot how to stop.
+
+The old books from the brass-ages speak in guarded tongue about breath‑engines, and I have palmed stones that remembered a cut made a century prior: tap them and you’ll hear the tune they kept. “Stone that remembers,” we call it in the ledger, though no claim is made beyond the saying. Add to it the soft drift of plates old as the hills and the polite conspiracies of water, and you have a mine that leans away when chased and opens when you sing true. Bottomless? No. Only longer than we are patient, deeper than we are loud.
+
+> Now and then, in changing seasons, the Mine turns in its sleep and settles deeper.
 
 
 
-## Tavern Seeds (Diegetic Anchors)
+## What Sleeps Below (Ancient Civilization Seed)
 
-- Old hands say the Underwrights taught quartz to carry orders farther than a shout.
-- Three chalk lines before a door, else the stretcher will not fit back through.
-- Brass glitters in broken seams, and bad luck follows any pocket that steals it.
-- The Brewmaster’s Charter‑stamp bites truer than a magistrate’s seal, so mind your mark.
-- When the steam rises at shift‑change, expect the passage you knew to twist on you.
-- Some nights the Tally‑Scales tick by themselves like a clock with one tooth left.
+We mark the deep signs with a placeholder token, lore.civilization.underkings, for the scrolls will need space for their proper name once we earn it. They were a maker‑caste, by all angles of the artifacts: brass etched with glyphs that read equally under oil‑light or spark, calibrations tucked into corners like jokes for apprentices. Their scripts are not ink but cut air—chamfered channels that sing when your lamp is at the right height. I have seen doors with no door, only a sentence in metal waiting for the pressure of a correct thumb and the warmth of a remembered tune.
 
+Guardians? Aye. The hill‑legends say the Underkings set watchers to tend their engines, and some of those watchers woke badly. In the driftways we have found husks with spring‑spines and melted lenses, their brass pollen baked by time. Once in a rare while a thing moves that ought to be a relic, and we step light. Even the shallow routes grumble with agitators—a goblin grunt here, a cave burrower there (ledgered as enemy.goblin.grunt and enemy.cave.burrower in the combat scrolls)—as if stirred by vibrations they only half remember. We promise nothing by the telling; the telling is to keep our nerves oiled.
 
-
-## Integration & Cross-check Notes
-
-- [ ] Confirm audio id `ambient.tavern.loopA` present in data/audio/sound-manifest.json (with @zeta).
-- [ ] Keep tileType strings exact: `rock`, `floor`, `ore.copper`, `ore.iron`, `ore.quartz`.
-- [ ] Validate that [HOOK] lines meet UI length on all surfaces (hotbar tips, loading).
-- [ ] No color tokens hard‑coded in lore; align with style-guide.md for palette handling.
-- [ ] Verify `biome.crystal_caverns` hardness bands align to 3/4/5/7 in data/world/biome-crystal-caverns.json.
-- [ ] Ensure `lore.law.three_wide` is referenced where approachDepth or corridor enforcement is surfaced to UI.
+As for relics, the motifs repeat. Keys of steam: valves too fine for a smith’s guesswork, that confess to pressure like a musician to tempo. Stone‑bind runes: not magic, not yet, but a geometry that braces timber as if the mountain itself leans in. Ember‑wards: little sun‑traps set in filigree to keep watch‑fires forever on the verge of catching. Hooks for futures, these, and we’ll hang proper names on them when our wrists have the strength. Until then, we log, we listen, and we step back from brass that hums in the wrong key.
 
 
 
-## Risks & Guardrails
+## The Three Guilds at First Light (Bridge to factions doc)
 
-- “Bottomless” can be misread as literally endless play; preferred phrasing is “seems without end” or “folds upon itself.” Do not claim infinity in any UI or VO.
-- Lore metaphors (heart‑wind, crystal song) must not imply unplanned mechanics; keep them as texture, not systems.
-- Automata references establish future hooks; ensure MVP content does not promise active construct encounters beyond enemy list.
-- Faction tokens are placeholders; do not surface names or perks until guild-factions.md lands.
-- Keep diegetic names mapped to technical ids where players might see them; avoid leaking raw ids in surface text.
+At the opening days, three banners rose over the chalk: the lore.guild.steamwrights with their gauges, pumps, and breath‑wise courage—makers of lifts, lines, and engines patient to pressure; the lore.guild.stonebinders with their squares and spans—keepers of supports, maps, and the calm that makes a wall stand; and the lore.guild.emberwatch with lanterns high and tempers banked—wardens of lanes, watchers of edges, and singers‑down of fear. They bickered like siblings and fought like cliffs, yet under the Compact their quarries fit: steam for motion, stone for meaning, ember for mercy. A mine learns the hands that handle it. The Far Mine learned these three.
 
 
 
-## Acceptance Checklist
+## Keeper’s Marginalia (UI-safe snippets)
 
-- [ ] Lore tone consistent with Lorekeeper Runebeard; mythic yet precise.
-- [ ] Tokens stable, snake‑cased, and aligned with existing ids or planned manifests.
-- [ ] [HOOK] lines ≤90 chars, standalone, non‑promissory, JSON‑safe (no quotes required).
-- [ ] Cross‑refs present and accurate to current repo paths.
-- [ ] Document parses as Markdown (UTF‑8) and is ready to commit under docs/narrative/.
+- Three‑Wide keeps carts friendly and lungs unpinched.
+- A lamp every span; shadows eat more than courage.
+- Copper sings bright; iron carries the tune.
+- Quartz gates hum before they show; listen first.
+- The Hearth & Anvil buys no quarrels, only silence.
+- First chip marks the claim; ink makes it civil.
+- Keep brass polite; pressure remembers insults.
+- When the bell speaks, hammers rest and hearts do too.
+
+
+
+## Integration Notes & Acceptance
+
+Notes for engineers/designers:
+- Tokens listed in §2 are stable for UI/journal. Avoid binding lore language to numeric promises.
+- Ambient cue lore.sound.ambient.tavern.loopA aligns with data/audio/sound-manifest.json id amb.tavern.loopA.
+- Cross-check ids: tools in data/items/tools.json; stations in docs/technology-systems/crafting-design.md; cave/biome ids per docs/world-generation/cave-gen-algorithm.md.
+- Enemy ids enemy.goblin.grunt and enemy.cave.burrower are referenced narratively only; no encounter guarantees are implied by this file.
+
+Acceptance checklist:
+- Markdown parses; sections present; tone consistent; UI-safe snippets ≤90 chars.
+- Tokens match across this file and guild-factions.md.
+- No hard mechanical claims; purely narrative alignment with MVP systems.
