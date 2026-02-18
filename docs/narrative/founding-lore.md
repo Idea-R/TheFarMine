@@ -1,134 +1,158 @@
-# Founding Lore — The Far Mine and the Stones Below
+# The Far Mine — Founding Lore and Deep Oaths (Sprint 1)
 
 Provenance: owner @epsilon (Narrative Systems — Lorekeeper Runebeard)
 
 Cross-refs:
-- docs/technology-systems/crafting-design.md (hardness gates)
-- docs/combat-systems/combat-design.md (Three‑Wide Law nod)
-- data/world/biome-crystal-caverns.json
-- data/dialogue/tavern-npc-keeper.json
-- data/visual/color-palette.json
+- docs/technology-systems/crafting-design.md (§Hardness)
+- docs/world-generation/cave-gen-algorithm.md (§Three‑Wide Law, Tiles)
+- docs/combat-systems/combat-design.md (§Telegraphs)
+- data/visual/color-palette.json (ui.frame.brass, ui.frame.copper, ui.frame.crystal, mapping.depthTint.l0–l3)
 - data/audio/sound-manifest.json (ambient.tavern.loopA)
+- data/combat/enemy-goblin-grunt.json (surface foe baseline)
+- data/items/tools.json (tier keys for T1–T3 and beyond)
+
+"Stone remembers, brass records, and bread seals the bargain."
+
+"Hold your lamp high; the dark bargains low."
 
 
-## 2) Primer (Short Overview)
 
-Claim’s Mouth is our warm-breathed tavern at the Mine’s lip, where mugs clink, gear mends, and warrants hang heavy as iron. When the lamps hum and ambient.tavern.loopA is in the air, you’re among kin and contract.
+## Executive Summary
 
-Below that threshold yawns the Far Mine, a legend made walkable. It is said to be bottomless not for depth alone but for the way it shifts, a spiral of strata that refuses to be finished. Spent claims curl away and new seams arrive as if the mountain were breathing.
+A quake-night of Singing Stone split the hill’s heart and opened a spiraling claim whose breath smelled of old metal and warm crystal. Dwarven guilds converged by dawn; oaths were hammered, contracts inked in brass and blood, and lanes laid Three‑Wide to keep limbs and tempers intact.
 
-The Guild Compacts keep us from cutting each other to ribbons. Warrants set rights, bounties tug coin, and the Three‑Wide Law keeps doors and lanes wide enough for shield and pride both. So we delve by custom as much as by courage.
-
-And deeper than our oldest tale runs a whisper of an elder civilization. Some call them the Deepwrights, others the Prismwrights, who taught stone to sing and light to obey. Their handiwork glints in the Crystal Caverns and beyond for those with clear eyes.
+Rumor with iron in it: far below turns an elder engine-world, the Underking’s Loom (lore.artifact.underloom). Its slow pulse redraws the deep, keeps the shaft ever-deepening, and wakes new halls by season. We mine the margins of a sleeping maker’s craft; when our tools harden, the doors yield.
 
 
-## 3) The Legend of the Far Mine (Why it is Bottomless)
 
-Ask a miner and they’ll spit: the Mine’s cursed or ensorcelled, a living spiral that hates a ledger. You clear a vein, and the walls take a new set. Your last maps turn to kindling before your next shift.
+## The Opening of Claim’s Mouth (Origin of the Bottomless Mine)
 
-Ask a scholar and they’ll stroke a beard: the Mine sits upon an Under-Mechanism, a self-maintaining mantle lattice built by an elder folk. It senses stress, demand, and claim-flow, then rethreads caverns, slopes, and crystal seams in a repeating helix.
+On the Shiver Year’s longest night, the hill sang. Not a song for ears—your bones took it in. Strata slipped like plates in a book, and the turf tore to show a black spiral, stones whirling inward as if the ground were remembering a staircase. Lanterns found not a cave but a throat, its walls oiled with mica and old soot, stepping down in patient circles. We named it the Far Mine (lore.location.far_mine), for even the first echo took too long to return.
 
-Both truths serve our work. The living strata-spiral is why delves never end, why seasons layer cleanly: old runs fold shut as new routes unfurl. As claims are spent, the lattice reknits, shaping fresh chambers, hazards, and seams within the same world’s bones.
+Diegetic engine: Below the throat sits the Underking’s Loom (lore.artifact.underloom), a self-boring regulator from elder days. It spins slow as winter molasses, unpicking faults and weaving them shut behind it, pushing the crust to re-face itself. To us it reads as never-ending depth: galleries shift, doors rekey, seams refresh. The mine is “bottomless” because the Loom keeps drawing new arrangements forward as seasons turn and our bite gets sharper.
 
-
-## 4) The Elder Makers Below (Ancient Civilization)
-
-We name them the Deepwrights, though among lorekeepers the softer word is Prismwrights. They were stone-programmers, carving hymns into crystal so earth-pressure bent to their will and light behaved like trained hounds.
-
-Their leavings seed our future routes: Prism Archives that may still recall commands, Keystone Lathes that shape rock to a pattern, Choir-Drills that sing seams awake, and Ward Runes that keep roofs from grieving. Take the hint: survivals are likely in deeper biomes, and not all of them sleep.
+- Implementation notes:
+  - Seasonal awakening frames worldgen reseeds and unlock flags; “doors shift” is narrative cover for procedural layouts (see docs/world-generation/cave-gen-algorithm.md §Tiles).
+  - Early strata anchor to biome.crystal_caverns (MVP), with planned unlocks toward biome.magma_depths (future), biome.ashen_foundry (future), biome.rooted_shales (future).
+  - Depth tint ties to mapping.depthTint.l0–l3 for surface-to-MVP layers; extend as tiers grow (data/visual/color-palette.json).
 
 
-## 5) Dwarven Founding at Claim’s Mouth (Guild Compact)
 
-The First Warrant ended the last of the clan feuds at the Mine’s rim. We signed a neutral peace, raised a tavern called Claim’s Mouth, and swore the Three‑Wide Law so no shield caught a jamb and no comrade was crushed for lack of lane.
+## The Guild Compact of Brass and Bread (Dwarven Mining Guilds)
 
-Guild politics matter because the Mine is appetite with rules. Warrants sort who may bite which seam, bounties make order of monsters, and claims hold the purse-strings for our vendors. When you upgrade a stall or take a contract, you’re oiling the same gear that keeps us from civil war.
+When the claim’s mouth yawned, three banners reached it by breakfast and a fourth by noon. The Guild Council (lore.org.guild_council) was struck on an anvil plate, hot and brief:
 
+- Rotating rights to surface the take by bell and ledger—no hoarder’s night runs.
+- The Three‑Wide Law (lore.law.three_wide): every primary lane walks three dwarves abreast—one to haul, one to guard, one to mend—so no soul is pinched by greed or stone. (Aligns with docs/world-generation/cave-gen-algorithm.md §Three‑Wide Law.)
+- Disputes settled by Bread and Brass: break a loaf together, then lay brass tallies; highest tally claims route for a watch, loser mans props and lamps.
+- Telegraph-keeping: all fighters must read arc, stomp, and shimmer before striking; no glory charges in tight lanes. (See docs/combat-systems/combat-design.md §Telegraphs; mapping.telegraph.arc.amber.)
 
-## 6) Timeline (Concise, ID-stable Era Tags)
-
-- era.deepwrights.prime — The Choir-Drills kindle the Under-Mechanism and the lattice takes its first breath. Pressure and light obey hymn and hand.
-- era.deepwrights.vanishing — Prism Archives shutter and Ward Runes gutter. The old songs go quiet and the deep begins to drift unguided.
-- era.dwarf.scouts.first_hearth — Scouts find the Warm Vent and kick stones into a cookfire. First tents, first mugs, first maps scribbled in soot.
-- era.dwarf.first_warrant — The Claim’s Mouth compact is signed. Feuds settle, lanes are set three wide, and the tavern doors swing for all.
-- era.guilds.brass_ascendant — Steamworks and brass set rhythm to delving. Lift-cages, pumps, and steady forges make deeper runs ordinary.
-- era.mine.rethreading_observed — Miners note that spent claims curl shut and new seams open nearby. Scholars name the pattern a strata-spiral.
-- era.current.sprint1 — The Crystal Caverns open to prospectors. Guild posts simple warrants; vendors stand ready for first upgrades.
+Factions (stubs for later detailing):
+- guild.brassbound — book-and-bolt traditionalists; love a ledger, fear a shortcut.
+- guild.steamwrights — boiler-brained optimists; if it hisses, they bless it.
+- guild.runecarvers — etchers of wards and readers of old script; cautious, proud.
 
 
-## 7) Laws, Rites, and Superstitions (Systems-Linked)
 
-- Three‑Wide Law: Doors and lanes are kept three wide so a shield wall, a wounded friend, and a full cart can pass. Worldgen honors it, and combat drills assume you’ve room to brace. See the nod in docs/combat-systems/combat-design.md for spacing sense.
+## The Ever-Deep Rationale (Why Bottomless)
 
-- Rite of First Spark: Before biting harder stone, a delver brings a tool to the forge or steam workshop for its first true temper. Sparks fly, oaths are sworn, and the bite improves. This is our tale-side of hardness gates as set in docs/technology-systems/crafting-design.md.
+Diegetic: The Loom redraws the deep like a patient tailor—hemming faults, cross-stitching crystal beds, and turning doors to new keys. We hear the Singing Stone (lore.phenomenon.singing_stone) before big shifts, and our lamps pick new hues as depths breathe. Seasons wake certain biomes, and guild rites mark which lanes are “warm.”
 
-- Lantern Praxis: We hang warm lamps at a mouth to mark it safe and true. A line of steady light reads as haven, and we keep them trimmed so the dark does not lie. Stray colors and wandering glows are distrusted as wild stone.
-
-
-## 8) Places & Proper Nouns (Glossary with Stable IDs)
-
-- place.tavern.claims_mouth — Claim’s Mouth is the neutral tavern at the Far Mine’s lip, a hearth for warrants, ale, and uneasy truces.
-- myth.device.under_mechanism — The Under-Mechanism is the elder lattice that senses stress and rethreads caverns in a living spiral.
-- culture.deepwrights — The Deepwrights, called Prismwrights by lorekeepers, carved hymns into crystal to command pressure and light.
-- charter.first_warrant — The First Warrant is the charter that founded Claim’s Mouth, ended the feuds, and fixed the Three‑Wide Law.
-- rite.first_spark — The Rite of First Spark is a forge-blessing where a tool earns its temper and a delver earns the tool.
-- law.three_wide — The Three‑Wide Law is the custom that keeps lanes and doors broad enough for safety, honor, and swift retreat.
+Engineering-friendly summary:
+- Progression gates map to tool power and hardness (docs/technology-systems/crafting-design.md §Hardness).
+  - T1 → rock seams/copper faces; props hold in sanded shale. (data/items/tools.json tier: T1)
+  - T2 → iron-gated ribs and node clamps; pry bars bite iron tongues. (tier: T2)
+  - T3 → quartz-veined locks and crystal knots; cutters hum true. (tier: T3)
+  - Deeper locks imply future tiers (T4+), communicated as rumors/chants until shipped.
+- “Bottomless” in MVP = season-based deepening + fresh layouts; not literal infinite shaft.
+- Biome unlocks flagged by season + tier; diegetic “doors shifting” = worldgen variant roll.
 
 
-## 9) UI Tooltip Hooks [HOOK]
 
-[HOOK] Stone laughs at a dull bite. Temper tools or turn back.
+## The Elder Makers Below (Ancient Civilization)
 
-[HOOK] Keep lanes three wide so shield, pick, and pride fit through.
+Before our grandmothers’ stones were laid, gear-scribes and crystal weavers walked the warm dark. We name them the Elder Makers (lore.civilization.elders). They bound heat into chores, taught rock to remember, and set guardians to mind their stitches. Their intent—so the runes suggest—was to stitch fault-lines and harvest deep heat with gentler hands than quakes provide. But stewards left too long grow strange.
 
-[HOOK] Claim's Mouth waits warm; spend your haul, wet your whistle, plan deeper.
-
-[HOOK] The Mine rethreads spent claims. Maps age like bread, so eat quick.
-
-[HOOK] Sing low near crystal; the Deepwrights carved ears into the light.
-
-[HOOK] Lanterns in a line mark a safe mouth. Stray glow means wild stone.
-
-[HOOK] Choir-Drills wake old seams. If walls hum, brace and mind the roof.
-
-[HOOK] Hard rock? Tier up at the forge; sparks buy teeth the stone respects.
+- Remnants:
+  - Regulator Shrines (lore.site.regulator_shrines): pillar-rings with runic throttles; turn the right word, and the hall breathes easier.
+  - Guardians (lore.guardian.designations): layered brass and bone-crystal; current seen pattern: guardian.tier1.sentinel (lane-favoring, arc-telegraph, amber glow).
+- Present state:
+  - The Loom keeps its rota, blind to us; regulators drift from scripts to feral routines.
+  - Some automata honor lanes; some have forgotten and crush the middle. Read your telegraphs.
 
 
-## 10) Quest & Event Seeds (Immediate, MVP-safe)
 
-- hook.quartz.scouting: Scout the Seam — Slip past the lamp band, find a bright vein, and return with shard.quartz. Target: mining. Surface: tavern board.
+## Tales from the Taproom (Diegetic Hooks for Tavern Dialogue)
 
-- hook.goblin.telegraph: Read the Swing — Parry a goblin’s slash_sweep three times without a scratch, then report to the Keeper. Target: combat. Surface: NPC line in data/dialogue/tavern-npc-keeper.json.
+- hook.tavern.rookie_rules — Three‑Wide, lamp left, haul middle, guard right. Surfaces: tooltips, tutorial.
+- hook.tavern.ore_gates — “If your pick sings flat, the rock says ‘later.’” Surfaces: crafting UI hint.
+- hook.tavern.goblins_lane_law — Goblins cheat the lane; read their swing’s amber arc. Surfaces: combat tutorial.
+- hook.tavern.singing_stone — Hear the floor hum? Colors run deeper next watch. Surfaces: loading tips.
+- hook.tavern.brass_compact — Bread, then brass; fight after the tally. Surfaces: hub dialogue.
+- hook.tavern.underloom_rumor — Something below is weaving us new doors. Surfaces: loading tips.
+- hook.tavern.shrine_whisper — Twist the right rune, and the air turns kind. Surfaces: exploration hint.
+- hook.tavern.tool_tiers — New teeth, new doors; sharpen before you swagger. Surfaces: crafting UI hint.
 
-- hook.forge.rite: First Spark Temper — Complete the Rite of First Spark by crafting tool.pick.t2.reinforced. Target: crafting. Surface: tavern board and forge prompt.
-
-- hook.lantern.praxis: Trim the Line — Replace three guttering lamps along the safe mouth and note any stray glows. Target: exploration. Surface: tavern board.
-
-- hook.keystone.fragment: Odd Cut Stone — Recover a keystone fragment etched with prism script from the Crystal Caverns. Target: exploration/lore. Surface: NPC line, later vendor upgrade.
-
-- hook.threewide.repair: Clear the Jam — Widen a pinched passage to lawful breadth so carts can pass. Target: mining/build. Surface: guild notice at Claim’s Mouth.
-
-
-## 11) Integration Notes (For Engineers/Designers)
-
-- The Under-Mechanism myth is the diegetic wrapper for procgen and season depth. Safe to surface in loading tooltips and short NPC lines.
-
-- No raw color or audio tokens appear in the lore body; only conceptual mentions. File references are listed in Cross-refs and stable IDs in Glossary and Quest Seeds. Color usage should align with data/visual/color-palette.json. Ambient loop reference limited to ambient.tavern.loopA in data/audio/sound-manifest.json.
-
-- Text discipline: all [HOOK] lines are 140 characters or fewer. Names and IDs are stable. Avoid heavy punctuation in UI strings; keep them plain-spoken.
-
-- Three‑Wide Law informs lane and door generation and matches spacing assumptions in docs/combat-systems/combat-design.md. Crafting tiers mirror hardness gates in docs/technology-systems/crafting-design.md.
-
-- Biome tie-in: Crystal Caverns content aligns with data/world/biome-crystal-caverns.json. Tavern Keeper lines align with data/dialogue/tavern-npc-keeper.json.
+Notes:
+- Keep ≤120 chars; Tavern Keeper paraphrases tone per surface.
+- Link goblin lines to data/combat/enemy-goblin-grunt.json baseline where applicable.
 
 
-## 12) Versioning & Acceptance
 
-v1.0
+## Timeline Shards (Compact, usable)
 
-Acceptance checklist:
-- Contains sections 1–11
-- Includes 6–8 [HOOK] lines (≤140 chars)
-- Uses stable ids for glossary and hooks
-- No conflicts with existing ids (tools, audio, biome)
-- Tone: dwarven, clear, approachable
+- lore.era.before_deep — Before-Deep: Elder Makers weave heat and stitch faults; Loom set turning.
+- lore.era.shiver_year — The Shiver Year: Singing Stone splits the hill; the claim’s mouth opens.
+- lore.era.brass_compact — The Brass Compact: guilds bind the Three‑Wide and tally rights.
+- lore.era.season_of_crystals — Season of Crystals (MVP): crystal caverns wake; T1→T3 tools bite.
+
+
+
+## Glossary & Stable Tokens
+
+- The Far Mine → lore.location.far_mine
+- Three‑Wide Law → lore.law.three_wide
+- The Underloom (Underking’s Loom) → lore.artifact.underloom
+- Guild Council → lore.org.guild_council
+- The Singing Stone → lore.phenomenon.singing_stone
+- Elder Makers → lore.civilization.elders
+- Regulator Shrines → lore.site.regulator_shrines
+- Guardian Designations → lore.guardian.designations (e.g., guardian.tier1.sentinel)
+- Biome: Crystal Caverns → biome.crystal_caverns
+- Biome: Magma Depths → biome.magma_depths
+- Telegraph Arc Amber → mapping.telegraph.arc.amber
+- UI Frames (brass, copper, crystal) → ui.frame.brass | ui.frame.copper | ui.frame.crystal
+- Depth Tint Map (levels 0–3) → mapping.depthTint.l0 | mapping.depthTint.l1 | mapping.depthTint.l2 | mapping.depthTint.l3
+- Tavern Ambience Loop → ambient.tavern.loopA
+
+
+
+## Myths vs. Mechanics Notes (Guardrails)
+
+- “Doors shift” is narrative dressing; actual reconfiguration driven by procedural generation and season flags.
+- “Bottomless” in MVP means periodic depth extension, not infinite continuous descent.
+- Elder regulators and guardians exist; their exact effects and patterns unlock by tiered progression.
+- Telegraph reading is lore and mechanic; exact timings follow combat design, not tavern bragging.
+- Seasonal awakening is cadence language; precise dates remain live-ops knobs.
+- Guild faction claims color dialogue and cosmetics; no promised stat edges without explicit feature notes.
+
+
+
+## Cross-System Anchors
+
+- Worldgen: Doors/approaches framed as Loom redraw; enforce Three‑Wide corridors where declared (docs/world-generation/cave-gen-algorithm.md).
+- Combat: Telegraph motifs mapped to mapping.telegraph.arc.amber and peers; goblin grunt uses baseline telegraphs (data/combat/enemy-goblin-grunt.json).
+- Crafting/Progression: Hardness tiers inform gate text and shrine “key” hints (docs/technology-systems/crafting-design.md §Hardness; data/items/tools.json).
+- Audio: Hub/tavern uses ambient.tavern.loopA; depth hums layer by mapping.depthTint.* cues where supported.
+- Visual: Depth tint anchors to mapping.depthTint.l0–l3; UI frames by tier use ui.frame.copper → ui.frame.brass → ui.frame.crystal.
+
+
+
+## Acceptance Checklist
+
+- Internal consistency with existing systems (worldgen lanes, telegraphs, hardness).
+- Stable tokens match current manifests (color palette and audio ids present).
+- Hook blurbs are concise and UI-safe (≤120 chars) with surfaces noted.
+- No hard promises beyond MVP: depth = seasonal unlocks + new layouts; future tiers flagged as rumors.
+- Pull quotes included and suitable for loading tips.
+- Faction stubs and elder tokens stable for cross-file references.
