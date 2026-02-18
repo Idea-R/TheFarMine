@@ -1,102 +1,97 @@
 {
   "version": 1,
-  "notes": "Steampunk dwarven palette: coal/indigo panels, brass/copper trims, parchment/ash text; ui.text.primary on panel ≥4.5:1 and secondary ≥3:1; minimap luminance steps rock < floor < ores (quartz brightest); health crimson vs stamina aquamarine with luminance separation; amber telegraphs readable on stone.",
-  "ui": {
-    "panel": {
-      "bg": "#0E1218",
-      "shadow": "#000000"
+  "meta": {
+    "author": "eta",
+    "updated": "2026-02-18T00:00:00Z",
+    "notes": [
+      "Schema v1: authoritative token map for terrain, UI, characters, effects, materials, and mapping.",
+      "WCAG-ish contrast: primary/secondary/inverted text validated against panel backgrounds.",
+      "Metals include brass/copper/iron with dark/light siblings for specular highlights.",
+      "Telegraph arcs (amber/red/green) tuned for readability over dark cave floors at ≤0.6 opacity.",
+      "Crystal accents (cyan/amethyst) coordinated to avoid conflict with damage telegraph amber."
+    ]
+  },
+  "categories": [
+    "terrain",
+    "ui",
+    "characters",
+    "effects",
+    "materials",
+    "mapping"
+  ],
+  "colors": {
+    "terrain": {
+      "terrain.rock.base": "#3A3732",
+      "terrain.rock.shadow": "#2A2724",
+      "terrain.rock.deep": "#1B1917",
+      "terrain.floor.dust": "#4A443E",
+      "terrain.ore.copper": "#B4653A",
+      "terrain.ore.iron": "#6C6F73",
+      "terrain.ore.quartz": "#D9D1C8",
+      "terrain.lamp.glow": "#8A6F2E"
     },
-    "frame": {
-      "brass": "#C6A646",
-      "copper": "#B66A45",
-      "crystal": "#5FD2E2"
+    "ui": {
+      "ui.panel.bg": "#161A1C",
+      "ui.panel.bg_inverted": "#F0F2F4",
+      "ui.panel.border": "#3A3F45",
+      "ui.separator": "#2B3035",
+      "ui.text.primary": "#E6E6E6",
+      "ui.text.secondary": "#B7BEC7",
+      "ui.text.inverted": "#1B1D1F",
+      "ui.accent.brass": "#E3C35A",
+      "ui.accent.copper": "#D07A4A",
+      "ui.accent.crystal": "#60B9C6",
+      "ui.health.bar": "#C64A4A",
+      "ui.stamina.bar": "#4AA06B",
+      "ui.warning": "#D99A2B",
+      "ui.ok": "#57A85A"
     },
-    "text": {
-      "primary": "#E9E1C8",
-      "secondary": "#B7C2CA",
-      "muted": "#7E8892",
-      "warning": "#E0A63C"
+    "characters": {
+      "characters.player.base": "#5C666E",
+      "characters.player.beard": "#7A4A2A",
+      "characters.player.brass_trim": "#C29A3A",
+      "characters.goblin.base": "#6A8F3A",
+      "characters.goblin.accent": "#8F3A2A",
+      "characters.burrower.base": "#6B5848"
     },
-    "gauge": {
-      "health": {
-        "bg": "#3A0E12",
-        "fill": "#C43C3C"
-      },
-      "stamina": {
-        "bg": "#0B2123",
-        "fill": "#2AB3A8"
-      },
-      "tick": "#C5CFD8"
+    "effects": {
+      "effects.hit.flash": "#FFF2E0",
+      "effects.mine.spark": "#FFB547",
+      "effects.smoke.steam": "#A9B2B9",
+      "effects.light.warm": "#EAB55C",
+      "effects.light.cold": "#7EC7E8",
+      "effects.ui.select": "#5FD1D9"
     },
-    "iconAndSlots": {
-      "iconTint": "#E6E0D1",
-      "slotBg": "#1A2028",
-      "slotBorder": "#3D4754",
-      "hotbar": {
-        "slot": {
-          "active": "#C9A24D",
-          "inactive": "#2A313A"
-        }
-      }
+    "materials": {
+      "material.metal.brass": "#C29A3A",
+      "material.metal.copper": "#B4653A",
+      "material.metal.iron": "#6C6F73",
+      "material.crystal.cyan": "#5FD1D9",
+      "material.crystal.amethyst": "#8C6AD9",
+      "material.leather.brown": "#7A5A3A",
+      "material.metal.brass.dark": "#8B6F2E",
+      "material.metal.brass.light": "#E3C35A",
+      "material.metal.copper.dark": "#8A4C2A",
+      "material.metal.copper.light": "#D78A5A",
+      "material.metal.iron.dark": "#4A4D50",
+      "material.metal.iron.light": "#8E9398",
+      "material.crystal.cyan.dark": "#2F9AA5",
+      "material.crystal.cyan.light": "#89E3EA",
+      "material.crystal.amethyst.dark": "#5D3FB0",
+      "material.crystal.amethyst.light": "#B19BE8",
+      "material.leather.brown.dark": "#5A3F2A",
+      "material.leather.brown.light": "#A37C56"
+    },
+    "mapping": {
+      "mapping.telegraph.arc.amber": "#D99A2B",
+      "mapping.telegraph.arc.red": "#D04A3A",
+      "mapping.telegraph.arc.green": "#57A85A",
+      "mapping.minimap.floor": "#2A2E33",
+      "mapping.minimap.rock": "#40464C",
+      "mapping.minimap.door": "#A67C3A",
+      "mapping.minimap.ore.copper": "#C47749",
+      "mapping.minimap.ore.iron": "#8A8F96",
+      "mapping.minimap.ore.quartz": "#C4D6DA"
     }
-  },
-  "minimap": {
-    "panel": {
-      "bg": "#0B0F14",
-      "border": "#3A4754"
-    },
-    "tiles": {
-      "rock": "#2A2F36",
-      "floor": "#3B424B",
-      "ore": {
-        "copper": "#D8844A",
-        "iron": "#B8C4D0",
-        "quartz": "#F1FBFF"
-      }
-    },
-    "markers": {
-      "lamp": "#FFC857",
-      "player": "#49E3D6",
-      "enemy": "#E05858"
-    }
-  },
-  "mapping": {
-    "telegraph": {
-      "arc": {
-        "amber": "#FFB547"
-      }
-    }
-  },
-  "characters": {
-    "goblin": {
-      "base": "#6FA24D"
-    },
-    "burrower": {
-      "base": "#8E6E4F"
-    },
-    "player": {
-      "base": "#BCA57A"
-    }
-  },
-  "terrain": {
-    "rock": "#505862",
-    "ore": {
-      "copper": "#C77A47",
-      "iron": "#AAB8C4",
-      "quartz": "#E4F2FB"
-    },
-    "floor": "#444B55"
-  },
-  "effects": {
-    "hit": {
-      "light": "#FFD486"
-    },
-    "parry": {
-      "ring": "#96E6FF"
-    }
-  },
-  "lighting": {
-    "lampWarm": "#F2B257",
-    "crystalCool": "#78D4F5"
   }
 }
