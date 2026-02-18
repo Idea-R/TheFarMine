@@ -2,51 +2,110 @@
   "version": 1,
   "id": "enemy.goblin.grunt",
   "name": "Goblin Grunt",
-  "archetype": "melee.light",
-  "body": {
-    "spriteId": "sprites/enemy/goblin",
-    "collider": { "w": 12, "h": 12, "offsetX": 0, "offsetY": 0 },
-    "render": { "tintToken": "characters.goblin.base", "depth": 1 }
+  "kind": "goblin",
+  "render": {
+    "spriteId": null,
+    "tintToken": "characters.goblin.base"
   },
-  "attributes": { "attackPower": 6, "defense": 2 },
-  "health": { "max": 120, "value": 120 },
-  "stamina": { "max": 0, "value": 0, "regenPerSec": 0, "regenDelayAfterActionMs": 0, "regenCooldownUntilMs": 0 },
-  "poise": { "max": 40, "value": 40, "recoverPerSec": 10, "breakDurationMs": 800, "brokenUntilMs": 0 },
-  "movement": { "speedPxPerSec": 56, "approachRangePx": 48, "retreatRangePx": 20 },
+  "attributes": {
+    "attackPower": 5,
+    "defense": 1
+  },
+  "health": {
+    "max": 95,
+    "value": 95
+  },
+  "poise": {
+    "max": 35,
+    "value": 35,
+    "recoverPerSec": 9,
+    "breakDurationMs": 700
+  },
+  "movement": {
+    "speed": 56,
+    "approachRangePx": 34,
+    "retreatRangePx": 54
+  },
   "ai": {
     "state": "idle",
-    "aggroRangePx": 140,
-    "leashRangePx": 240,
-    "cooldownUntilMs": 0,
-    "feintChance": 0.18,
-    "attackWeights": { "swipe_light": 1.0 },
-    "cooldownMsRange": { "min": 900, "max": 1300 },
-    "telegraphDebounceMs": 300
+    "telegraphDebounceMs": 280,
+    "cooldownMsRange": {
+      "min": 900,
+      "max": 1200
+    }
   },
   "attacks": [
     {
-      "id": "goblin_swipe_light",
-      "name": "Light Swipe",
+      "id": "attack.goblin.light_slash",
+      "name": "Light Slash",
       "kind": "melee",
-      "windupMs": 360,
+      "patternWeight": 1,
+      "windupMs": 340,
       "activeMs": 90,
-      "recoveryMs": 380,
-      "cooldownMs": 320,
-      "rangePx": 18,
-      "arcDeg": 90,
-      "hitbox": { "w": 16, "h": 10, "offsetX": 10, "offsetY": 0 },
-      "damage": { "base": 5, "poiseDamage": 10 },
-      "hitStopMs": { "attacker": 20, "victim": 40 },
-      "knockback": { "px": 6, "direction": "forward" },
-      "telegraph": { "colorToken": "mapping.telegraph.arc.amber", "arcOverlay": true, "flashAtMs": -120 },
-      "notes": ["Lane-safe arc ≤110°", "MVP light; readable in tunnels"]
+      "recoveryMs": 360,
+      "cooldownMs": 520,
+      "rangePx": 20,
+      "arcDeg": 80,
+      "hitbox": {
+        "w": 22,
+        "h": 14,
+        "offsetX": 10,
+        "offsetY": 0
+      },
+      "damage": {
+        "base": 5,
+        "poiseDamage": 12
+      },
+      "hitStopMs": {
+        "attacker": 18,
+        "victim": 34
+      },
+      "knockback": {
+        "px": 8,
+        "direction": "forward"
+      },
+      "telegraph": {
+        "colorToken": "mapping.telegraph.arc.amber",
+        "arcOverlay": true,
+        "flashAtMs": -100
+      }
     }
-  ],
+    ]
+  ,
   "loot": {
-    "goldMin": 1,
-    "goldMax": 3,
-    "table": [ { "id": "mat.scrap.copper", "weight": 35 } ],
-    "nothingWeight": 55
+    "currencyMin": 0,
+    "currencyMax": 2,
+    "drops": [
+      {
+        "id": "mat.scrap.goblin",
+        "min": 1,
+        "max": 2,
+        "weight": 1
+      },
+      {
+        "id": "mat.ore.copper",
+        "min": 1,
+        "max": 1,
+        "weight": 0.35
+      },
+      {
+        "id": "mat.wood.shaft",
+        "min": 1,
+        "max": 1,
+        "weight": 0.15
+      }
+    ]
   },
-  "notes": ["Baseline corridor skirmisher", "Tuned for ~30s solo TTK vs AP 8", "Feints only in first 40% of windup"]
+  "audio": {
+    "onSpawn": null,
+    "onTelegraph": null,
+    "onSwing": null,
+    "onHit": null,
+    "onDeath": null
+  },
+  "notes": [
+    "MVP grunt tuned to §7 melee baselines; uses single light slash with conservative poise damage.",
+    "Per-attack cooldown set to 520ms to align with global AI cadence (900–1200ms).",
+    "Sprite placeholder null; color tint uses characters.goblin.base. Telegraph color maps to mapping.telegraph.arc.amber."
+  ]
 }
