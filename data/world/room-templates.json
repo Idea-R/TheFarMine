@@ -3,9 +3,9 @@
   "templates": [
     {
       "id": "room.tunnel.3w.straight",
-      "name": "Straight 3-wide Tunnel",
+      "name": "Straight Tunnel (3‑Wide Approach)",
       "kind": "tunnel",
-      "weight": 10,
+      "weight": 6,
       "rotate": [0, 90, 180, 270],
       "size": { "w": 11, "h": 9 },
       "legend": {
@@ -16,29 +16,31 @@
         " ": "void"
       },
       "grid": [
-        "####DDD####",
-        "####...####",
-        "####...####",
-        "####...####",
-        "####...####",
-        "####...####",
-        "####...####",
-        "####...####",
+        "###########",
+        "###########",
+        "########..#",
+        "D.........#",
+        "D.........#",
+        "D.........#",
+        "########..#",
+        "###########",
         "###########"
       ],
       "doors": [
-        { "side": "N", "cells": [ { "x": 4, "y": 0 }, { "x": 5, "y": 0 }, { "x": 6, "y": 0 } ] }
+        { "side": "W", "cells": [ { "x": 0, "y": 3 }, { "x": 0, "y": 4 }, { "x": 0, "y": 5 } ] }
       ],
       "notes": [
-        "Narrow straight 3-wide approach extending deep; single 3-cell door band on the north edge.",
-        "1-tile rock rim maintained on all other edges; no ore markers present."
+        "Three‑Wide Law: lane depth ≥3 maintained behind door.",
+        "Stamping: map '.'→walkable; 'D'→walkable with flags.DOOR_BAND and mark interior approach cells with flags.APPROACH3W; '#'→rock; 'O'→rock with flags.ORE_PREF.",
+        "Door alignment: corridor digger centers on the middle 'D'. The provided doors[].cells are authoritative in unrotated orientation; engine must rotate these when stamping rotated variants.",
+        "Performance: grids capped to ≤17×17."
       ]
     },
     {
       "id": "room.cavern.basic",
-      "name": "Basic Cavern",
+      "name": "Basic Cavern (3‑Wide Pad)",
       "kind": "cavern",
-      "weight": 8,
+      "weight": 5,
       "rotate": [0, 90, 180, 270],
       "size": { "w": 15, "h": 13 },
       "legend": {
@@ -51,25 +53,26 @@
       "grid": [
         "######DDD######",
         "######...######",
+        "######...######",
+        "#####.....#####",
         "#####.....#####",
         "####.......####",
-        "###.........###",
-        "##...........##",
-        "##...........##",
-        "##...........##",
-        "###.........###",
         "####.......####",
+        "####.......####",
+        "#####.....#####",
         "#####.....#####",
         "######...######",
+        "###############",
         "###############"
       ],
       "doors": [
         { "side": "N", "cells": [ { "x": 6, "y": 0 }, { "x": 7, "y": 0 }, { "x": 8, "y": 0 } ] }
       ],
       "notes": [
-        "Bulbous cavern with centered 3-wide door band on the north edge.",
-        "Three-Wide Law pad: 3x3 floor immediately inside the door, with broader organic interior.",
-        "At least 1-tile rock moat to all template edges except the door band; no ore markers."
+        "Guarantees 3×3 interior pad behind the door as per Three‑Wide Law.",
+        "Stamping: map '.'→walkable; 'D'→walkable with flags.DOOR_BAND and mark interior approach cells with flags.APPROACH3W; '#'→rock; 'O'→rock with flags.ORE_PREF.",
+        "Door alignment: corridor digger centers on the middle 'D'. The provided doors[].cells are authoritative in unrotated orientation; engine must rotate these when stamping rotated variants.",
+        "Performance: grids capped to ≤17×17."
       ]
     },
     {
@@ -89,23 +92,24 @@
       "grid": [
         "#####DDD#####",
         "####O...O####",
-        "###OO...OO###",
         "####O...O####",
+        "####O...O####",
+        "###O.....O###",
         "####OOOOO####",
-        "#####OOO#####",
-        "####OOOOO####",
-        "###OOO#OOO###",
-        "####OO#OO####",
         "#####O#O#####",
+        "######O######",
+        "#############",
+        "#############",
         "#############"
       ],
       "doors": [
         { "side": "N", "cells": [ { "x": 5, "y": 0 }, { "x": 6, "y": 0 }, { "x": 7, "y": 0 } ] }
       ],
       "notes": [
-        "Compact ore-biased nook: only a 3x3 landing beyond the 3-wide door band; no additional floor.",
-        "Ore preference markers (O) surround the landing in rock to bias copper clustering.",
-        "1-tile rock boundary moat elsewhere; O never overlaps floor or door."
+        "'O' markers flag ORE_PREF for copper clustering; template does not directly place ore.",
+        "Stamping: map '.'→walkable; 'D'→walkable with flags.DOOR_BAND and mark interior approach cells with flags.APPROACH3W; '#'→rock; 'O'→rock with flags.ORE_PREF.",
+        "Door alignment: corridor digger centers on the middle 'D'. The provided doors[].cells are authoritative in unrotated orientation; engine must rotate these when stamping rotated variants.",
+        "Performance: grids capped to ≤17×17."
       ]
     }
   ]
