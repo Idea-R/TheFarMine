@@ -1,389 +1,294 @@
-# Community Engagement Playbook — Claim’s Mouth, Our Tavern (Sprint 1)
+# Community Engagement Playbook — The Taproom Ledger (Sprint 1)
 
-## 1) Title & Provenance
-- Owner: @theta (Community — Brewmaster Alehart)
-- Scope: Sprint 1 operational playbook for moderators and devs running Claim’s Mouth tavern
-- Cross-references:
-  - docs/community/build-in-public-template.md
-  - data/community/welcome-sequence.json
-  - docs/visual-systems/ui-framework.md
-  - docs/technology-systems/crafting-design.md
-  - docs/combat-systems/combat-design.md
+Owner: @theta (Community — Brewmaster Alehart)
 
-## 2) Purpose & Principles
-Purpose
-- This tavern exists to welcome miners, smiths, and wayfarers into The Far Mine’s forge of ideas—where we share work-in-progress, gather respectful feedback, and shape a sturdier game together.
+Provenance and cross-references:
+- data/community/welcome-sequence.json (welcome flow)
+- docs/community/build-in-public-template.md (upcoming; thread template)
+- docs/visual-systems/style-guide.md (§Accessibility)
+- docs/technology-systems/crafting-design.md (cadence references for build-in-public)
+- docs/combat-systems/combat-design.md (for [combat] feedback tags)
+- docs/world-generation/cave-gen-algorithm.md (for [worldgen] tag)
+- data/audio/sound-manifest.json (for [audio] tag)
 
-Principles
-1) Warm Welcome Always
-   - Greet newcomers; show them the hearth and where the mugs are kept.
-2) Alt-text Always
-   - Every image/clip must include alt-text. If they forget, nudge politely and add it.
-3) Build-in-Public Cadence
-   - Ship small, weekly. Show the rough edges. Invite reactions.
-4) Respectful Dwarven Discourse
-   - Debate ideas, not folks. Be stout, not sour. No slurs, no harassment.
-5) Actionable Feedback
-   - Tags, seeds, clips, and clear steps. We turn good notes into better builds.
+Authoritative for: Sprint 1 (MVP Discord)
 
-## 3) Channel Map (Purpose, Posting Rules, Pacing)
+---
 
-### {{channel.announcements}}
-- Purpose: One-way ship notes and key wayfinding; the notice board by the door.
-- Who posts: @dev, @mod only.
-- Allowed content: Release notes, schedule notices, major decisions, links to threads.
-- Cadence: 1–3 posts/week; pin the latest sprint/major.
-- Quick rules:
-  - No replies (lock or redirect to threads).
-  - Link out to {{channel.build_in_public}}, {{channel.patch_notes}}, or applicable threads.
-- Pin policy: Keep 2–3 pins max: current sprint, latest patch, welcome orientation.
-- Copy-ready pin:
-  - “Welcome to Claim’s Mouth! Start in {{channel.welcome}}, join the weekly build thread in {{channel.build_in_public}}, and bring feedback (with tags) to {{channel.feedback_mine}}. All times UTC.”
+## 2) Goals & Success Criteria (Sprint 1)
 
-### {{channel.build_in_public}}
-- Purpose: Weekly hub thread to share WIP; gather reactions and threaded Q&A.
-- Who posts: @dev primary; @mod facilitates; @everyone replies in threads.
-- Allowed content: WIP clips, screenshots, short devlogs, polls linked to the thread.
-- Cadence: New thread every Friday 17:00 UTC (see Section 4).
-- Quick rules:
-  - One parent thread per week. Mods pin the week’s thread; unpin last week.
-  - All images/clips require alt-text in the parent post or within thread reply.
-  - Reactions: use the reaction kit to keep signal clean.
-- Reaction kit:
-  - 👍 agree, 🧠 insightful, 🪓 want/need, 🐞 bug-spotted, 🧪 try-this, ❓ clarify
-- Link to template: docs/community/build-in-public-template.md
-- Copy-ready thread opener (post each Friday):
-  - “Week [ISO date range]: At the anvil now—see notes below. Drop thoughts in replies, tag domain if deep-dive. Reactions guide above. Alt-text always. Cross-refs in {{channel.announcements}}.”
+Goals:
+- Welcome newcomers smoothly within 48 hours; guide them to say hello and tag feedback.
+- Maintain weekly build-in-public thread cadence with clips/links, without overburdening devs.
+- Run one light-weight poll and one feedback session per week.
+- Keep conversations kind, focused, and searchable (tags + threads).
 
-### {{channel.tavern_talk}}
-- Purpose: General chat, light debate, and community camaraderie.
-- Who posts: @everyone; @mod steers tone.
-- Allowed content: On-topic game chat, light off-topic (max 10% of scroll), intros.
-- Cadence: Ongoing; encourage daily sparks.
-- Quick rules:
-  - Keep off-topic in short bursts; move deep tangents to threads or DMs.
-  - Alt-text for every image/clip. No NSFW. Be kind.
-- Copy-ready room toast:
-  - “Mugs up! Share what you mined today. One ask: alt-text on images and clips so all dwarves can see.”
+Success metrics (targets):
+- Time-to-first-reply for new intros ≤ 12h
+- Weekly update posted by Tue 18:00 UTC
+- ≥ 5 tagged feedback posts/week
+- Mod response SLA ≤ 24h on [bug] + [crash]
 
-### {{channel.feedback_mine}}
-- Purpose: Structured player feedback using domain tags for fast routing.
-- Who posts: @everyone; @mod triages.
-- Allowed content: Tagged feedback with clip/seed/version and steps.
-- Cadence: Ongoing; moderators sweep twice daily.
-- Quick rules:
-  - Start posts with tags: [ui], [combat], [worldgen], [crafting], [audio], [lore]
-  - Include: seed, version/hash, repro steps, and 10–20s clip if visual.
-- Copy-paste feedback template:
-  ```
-  [worldgen] Short title — what changed or surprised you?
-  Version/hash: v0.## (commit #######)
-  Seed/Map: 123456 | Biome: Basalt Depths
-  Steps: 1) ... 2) ... 3) ...
-  Expected vs Actual: ...
-  Clip (10–20s) + Alt-text: link | “Describe what’s visible/heard”
-  Notes: Any context (hardware, controls, mods disabled)
-  ```
+---
 
-### {{channel.bug_reports}}
-- Purpose: Report reproducible defects; speed triage and routing.
-- Who posts: @everyone; @mod confirms and routes.
-- Allowed content: Bugs following schema below only.
-- Cadence: Ongoing; daily triage pass at 10:00 and 18:00 UTC.
-- Quick rules:
-  - One bug per post. Include clip and repro steps.
-  - Use emoji pipeline (see Section 6).
-- Bug schema (copy-paste):
-  ```
-  Title: [BUG] concise summary
-  Version/hash: v0.## (commit #######)
-  Seed/Map: ###### | Biome: ______
-  Repro Steps: 1) ... 2) ... 3) ...
-  Expected: ...
-  Actual: ...
-  Clip (10–20s) + Alt-text: link | “Describe the issue shown”
-  System/Browser: OS, CPU/GPU (or browser + version)
-  Logs (if available): link
-  ```
-- Triage reactions:
-  - 👀 seen, 🧭 routed, 🧪 needs repro, ✅ accepted, 🧱 not in scope
+## 3) Channel Map & Purposes (authoritative for Sprint 1)
 
-### {{channel.playtest_queue}}
-- Purpose: Organize playtest signups and confirmations.
-- Who posts: @everyone signs up; @mod coordinates.
-- Allowed content: Signup reactions, windows, confirmations.
-- Cadence: Windows Sat/Sun 18:00–20:00 UTC; call opens Wed.
-- Quick rules:
-  - Post a session card. Players react ✅ to claim a slot. First-come-first-served.
-  - Mods DM confirmations 24h prior with build/version and voice/text channel info.
-- Copy-ready session card:
-  ```
-  Playtest Window — Sat/Sun 18:00–20:00 UTC
-  Build: v0.## (commit #######)
-  Focus: [combat] parry frames | [worldgen] choke points
-  Slots: 8
-  How to join: React ✅ and ensure DMs open. We’ll confirm with a DM + checklist.
-  ```
+Use these channel tokens; replace with real IDs at deployment. Each item lists Purpose, Allowed posts, and Mod notes.
 
-### {{channel.showcase}}
-- Purpose: Community art, builds, and clips worthy of a proud mantle.
-- Who posts: @everyone; @mod curates for spotlight.
-- Allowed content: Original works only. Include alt-text.
-- Cadence: Ongoing; 1 spotlight/week (see Section 4).
-- Quick rules:
-  - Include a consent line for rehost: “I consent to rehost on socials/site.”
-  - Credit the maker; no third-party rip/ports.
-- Copy-ready prompt:
-  - “Share your proudest forge-fire! Add alt-text, and say if we can feature it in the community spotlight.”
+- {{channel.welcome}}
+  - Purpose: Automated welcome-sequence for new arrivals.
+  - Allowed: Bot messages only (welcome, starter tips, links).
+  - Mod notes: No chatter. Pin latest rules link. Verify bot reactions fire.
 
-### {{channel.patch_notes}}
-- Purpose: Sprint and micro patch rollups; canonical changelog.
-- Who posts: @dev primary; @mod assists.
-- Allowed content: Detailed patch notes with links back to {{channel.announcements}} and relevant threads.
-- Cadence: On every patch; sprint wrap weekly if needed.
-- Quick rules:
-  - One post per patch; index by ISO date and version/hash.
-  - Link to docs: ui framework, crafting design, combat design when relevant.
+- {{channel.rules}}
+  - Purpose: Code of Conduct, safety resources, spoiler policy, quick summaries.
+  - Allowed: Read-only; mods/devs/brewmaster update posts.
+  - Mod notes: Keep a short summary at top. Update edit date when changed.
 
-### {{channel.rules}}
-- Purpose: Short, clear code of conduct; enforcement link.
-- Who posts: @mod only.
-- Allowed content: Code of Conduct and link to moderation policy.
-- Cadence: Static; update on policy changes.
-- Quick rules:
-  - Keep concise; pin; redirect disputes to {{channel.mod_lounge}} via DM.
+- {{channel.tavern_talk}}
+  - Purpose: General chat; low-stakes social and light off-topic.
+  - Allowed: Daily hello thread; casual discussion; light memes (PG-13).
+  - Mod notes: Encourage alt-text for images/clips. Use slowmode during spikes (start 5s; increase to 15–30s if needed). Nudge to threads for deeper topics.
 
-### {{channel.welcome}}
-- Purpose: Entry point for the welcome bot; orientation board.
-- Who posts: Bot and @mod; no public chat.
-- Allowed content: 5-message sequence, orientation links, role instructions.
-- Cadence: Auto per-join; refreshed quarterly.
+- {{channel.announcements}}
+  - Purpose: Dev team and Brewmaster updates; weekly build-in-public links; patch notes.
+  - Allowed: Read-only for @dev, @mod, @brewmaster, @bot system posts.
+  - Mod notes: Keep posts concise; pin the weekly build thread. Lock comments; direct discussion into linked threads.
 
-### {{channel.mod_lounge}}
-- Purpose: Private mod room; escalations, decision logs, rota.
-- Who posts: @mod, @dev (as invited).
-- Allowed content: Incident notes, consensus records, schedule, tooling.
-- Cadence: Daily check-in; incident-driven.
-- Quick rules:
-  - Document actions; use timestamps (UTC) and links to source messages.
-  - Keep secure; no screenshots shared outside without consent.
+- {{channel.build_in_public}}
+  - Purpose: Weekly dev threads per team/domain.
+  - Allowed: One new thread per team per week using template; replies in threads only.
+  - Mod notes: Enforce template use (see docs/community/build-in-public-template.md). Convert stray replies to the right thread.
 
-## 4) Weekly Rituals & Cadence (UTC)
-- Fridays 17:00 UTC — Build-in-Public Weekly Thread
-  - Owner: @theta; backup: @mod.backup
-  - Actions:
-    - Post new thread in {{channel.build_in_public}} (template linked in docs/community/build-in-public-template.md)
-    - Pin new, unpin last; cross-link in {{channel.announcements}} with a one-line summary.
-- Sat/Sun 18:00–20:00 UTC — Playtest Windows
-  - Signups in {{channel.playtest_queue}}; ✅ reactions; DM confirmations 24h prior.
-  - After session: post recap thread under the week’s build-in-public.
-- Midweek Poll — Wed 18:00 UTC
-  - One focused question; post in {{channel.tavern_talk}} or {{channel.announcements}} with a thread; 48h duration; summarize outcome Friday.
-- Community Spotlight — 1 item/week
-  - Feature in the weekly build-in-public thread; credit creator; confirm consent.
+- {{channel.playtest_queue}}
+  - Purpose: Playtest signups, schedules, and distribution of test keys/URLs when ready.
+  - Allowed: Signup posts; schedule updates; threads per session.
+  - Mod notes: Archive threads after sessions. No sharing of keys outside session threads.
 
-## 5) Moderation Guidelines (MVP)
-Tone
-- Dwarven-warm and steady-handed. Pour generously, but keep the floor dry and safe.
+- {{channel.feedback_mine}}
+  - Purpose: Feature/UX feedback with tags for discoverability.
+  - Allowed: New posts must start with tags: [ui], [combat], [worldgen], [crafting], [audio], [lore]; optional [bug] or [suggestion].
+  - Mod notes: One thread per topic; ensure tags present; request repro info when needed. Cross-ref docs where relevant.
 
-Code of Conduct (short)
-- Be kind. Critique ideas, not people.
-- No slurs, harassment, or dogpiles.
-- Use spoiler tags as needed; label threads [SPOILER] in titles.
-- Alt-text for all images/clips. No NSFW.
+- {{channel.bug_reports}}
+  - Purpose: Bugs only; triage-ready details.
+  - Allowed: Reports must include version/hash, seed (if worldgen), repro steps, and a 10–20s clip or screenshot with alt-text.
+  - Mod notes: One thread per bug. Add status emoji on first reply. Escalate [crash] within SLA.
 
-Intervention Ladder
-1) Nudge (light public or DM)
-   - Use when: missed alt-text, gentle off-topic drift, mild sarcasm toward a person.
-   - Copy: “Hey friend—mind adding alt-text/moving this to thread? Thanks!”
-2) Warn (DM + optional public thread note)
-   - Use when: repeated behavior after nudge, heated tone, rule brushes.
-   - Copy: “We need to keep the tavern safe and focused. Please follow X rule. Next step is timeout.”
-3) Timeout (24h)
-   - Use when: insults, veiled slurs, derailment after warn, spoiler blasts.
-   - Log in {{channel.mod_lounge}} with links, UTC time, and rule cited.
-4) Ban (consensus in {{channel.mod_lounge}})
-   - Use when: harassment, slurs, hate, spam raids, doxxing, or repeated timeouts.
-   - Require: two-mod agreement; document reasoning and evidence.
+- {{channel.media_clips}}
+  - Purpose: Short gameplay clips and screenshots.
+  - Allowed: 10–20s clips or single images; alt-text strongly encouraged.
+  - Mod notes: Move feedback-y posts to feedback_mine; remind to add tags there.
 
-Content Boundaries
-- No NSFW. No leaks of third-party or partner assets. Keep datamined spoilers behind [SPOILER] and in marked threads. Remove and warn as needed.
+- {{channel.moderation_log}}
+  - Purpose: Private mod room for escalations and decisions.
+  - Allowed: Mods/brewmaster/dev leads only. Logs, decisions, templates.
+  - Mod notes: Log all formal warnings/timeouts/bans with links and timestamps.
 
-## 6) Feedback Intake & Triage Flow
-Emoji Pipeline (apply in {{channel.feedback_mine}} and {{channel.bug_reports}})
-- 👀 seen (mod acknowledged)
-- 🧭 routed (assigned to domain owner)
-- 🧪 needs repro (ask for steps/clip/logs)
-- ✅ accepted (goes to backlog/issue)
-- 🧱 not in scope (kind explanation + link to roadmap/why)
+---
 
-Routing Matrix
-- [worldgen] → @beta
-- [combat] → @gamma
-- [crafting] → @delta
-- [audio] → @zeta
-- [visual/ui] → @eta
-- [lore] → @epsilon
-- Community ops owner: @theta (oversees flow)
+## 4) Roles & Permissions
 
-SLA Targets (MVP)
-- Acknowledge (👀) within 24h UTC
-- Route (🧭) within 48h UTC
-- Close loop within 5 days with decision or mark [backlog]
+Roles:
+- @dev (core developers, domain owners)
+- @mod (moderators)
+- @brewmaster (community owner; escalation point)
+- @guild (members)
+- @bot (automation)
 
-Triage Checklist
-- Tags present (domain)
-- Version/hash included
-- Seed/map + repro steps included
-- 10–20s clip + alt-text (if visual/audio)
-- System/browser noted (for bugs)
-- Kind follow-up if missing info
+Permissions quick matrix:
+- Post in {{channel.announcements}}: @dev, @mod, @brewmaster, @bot only.
+- Pin messages: @mod, @brewmaster, designated @dev leads in their threads/channels.
+- Apply/edit forum tags (feedback_mine, bug_reports): @mod, @brewmaster, @dev domain owners.
+- Toggle slowmode in {{channel.tavern_talk}}: @mod, @brewmaster.
+- Manage threads (rename, archive, move): @mod, @brewmaster; @dev in build_in_public.
+- View {{channel.moderation_log}}: @mod, @brewmaster, designated @dev lead.
+- Start threads in build_in_public: @dev, @brewmaster (as backup).
+- Everyone (@guild) can post in tavern_talk, media_clips, feedback_mine, bug_reports (subject to rules).
 
-## 7) Engagement Tactics (Templates & Prompts)
-Pointers
-- Use docs/community/build-in-public-template.md for weekly openers and structure.
-- Pair each dev clip with one focused question and a reaction ask (from the kit).
+---
 
-Copy-ready thread sparks (one-liners)
-1) “Worldgen Room Fits — did the three-tile doors behave for you?”
-2) “Combat Timing — are parry windows readable at torchlight speed?”
-3) “Crafting UI — which step felt murky: selecting alloy or assigning fuel?”
-4) “Audio Peaks — which sound is too brassy in caves: pickaxe, footsteps, or UI pings?”
-5) “Lore Threads — did the miner’s journal hint too loudly or just right?”
-6) “UI Contrast — can you parse focus state on dim monitors? What fails first?”
+## 5) Moderation Guidelines (Code of Conduct summary + actions)
 
-Alt-text reminder snippet
-- “Alt-text helps every dwarf at the table. Add 1–2 lines describing key motion, text, and contrast. Example: ‘Top-down room; three-tile stone door; goblin enters; parry spark at frame 12; UI prompt flickers.’”
+Conduct principles:
+- Be kind; critique ideas, not kin. No slurs, harassment, or dogpiles.
+- Keep spoilers tagged; respect content warnings.
+- Use alt-text for images/clips; avoid flashing content.
+- Stay on topic; use tags and threads to keep the taproom tidy.
 
-Lightweight poll template
-```
-Midweek Poll — Focus: [topic]
-Options: A) ... B) ... C) ...
-Closes: [ISO date] 18:00 UTC
-Thread replies: share why you chose your pick.
-```
+Enforcement ladder (recommended windows):
+1) Gentle nudge in-thread (within minutes of issue spotted).
+2) Formal warning via DM (within 1 hour if behavior continues or is medium severity).
+3) 24h timeout (apply within 15 minutes after ignored warning or for serious first offenses).
+4) Ban (with mod consensus; document in moderation_log immediately).
 
-## 8) Onboarding & Welcome Flow
-How the JSON is used
-- data/community/welcome-sequence.json defines the 5-message welcome sequence (copy, links, delays). The welcome bot reads the JSON on member join and posts to {{channel.welcome}} and/or DM based on config flags.
+Escalation flow:
+- If safety risk (threats, hate speech, doxxing): immediate timeout → post incident summary in moderation_log → notify @brewmaster + @dev lead with links and screenshots.
+- If legal/IP concerns: delete content, preserve evidence in moderation_log, notify @brewmaster.
 
-Steps
-1) Upon join → DM or {{channel.welcome}} sequence (5 messages; see JSON)
-   - Includes: house rules, channel map, alt-text primer, role info, current week’s thread.
-2) Auto-post public welcome ping
-   - Message in {{channel.announcements}} or {{channel.tavern_talk}}:
-     - “Welcome, @newcomer! Say hi in {{channel.tavern_talk}}, grab roles (if available), and peek at this week’s forge: {{channel.build_in_public}}.”
-3) Starter quests (first week)
-   - “Post one tagged feedback item in {{channel.feedback_mine}} with a short clip this week.”
-   - “React ✅ in {{channel.playtest_queue}} to join a playtest window.”
+Spoilers policy:
+- Use spoiler tags for plot, surprises, and late-game systems. If a dev leak occurs: delete, DM the poster explaining, and note in moderation_log.
 
-## 9) Roles & Permissions (MVP)
-Roles
-- @dev — core team; post in announcements/patch; create official threads.
-- @mod — moderation; manage threads, pins, slowmode; run triage and playtests.
-- @community — helpers; greet, nudge alt-text, compile spotlights (no punitive powers).
-- @everyone — members; post in general, feedback, bugs, showcase.
+---
 
-Posting Powers
-- {{channel.announcements}}: locked to @dev/@mod
-- {{channel.patch_notes}}: @dev primary (assist @mod)
-- {{channel.feedback_mine}} / {{channel.bug_reports}} / {{channel.tavern_talk}} / {{channel.showcase}}: open to @everyone
-- Thread management: @mod
+## 6) Onboarding Flow & First 48 Hours
 
-Backup Rota (weekend coverage for @theta)
-- Primary backup: @mod.backup
-- Secondary backup: @mod.sentinel
+Welcome bot:
+- Source: data/community/welcome-sequence.json
+- Token replacement: Replace channelToken placeholders (e.g., {{channel.welcome}}) with actual channel IDs before enabling.
+- Cadence: Messages dispatch with staggered delays of 0/1500/1500/1500/1500 ms (first is immediate, next four spaced by 1.5s each).
+- Dry-run in a test server; confirm reactions and link targets.
 
-## 10) Metrics & Review
-Weekly taps (pull by Monday 12:00 UTC)
-- New members (weekly)
-- 24h welcome completion rate (reached message 5 / total joined)
-- Number of feedback items tagged (by domain)
-- Triage SLA hit rate (24h/48h/5-day)
-- Playtest signups (✅) and show rate
-- Thread reactions and replies (weekly build thread)
+Mod checklist for new joins:
+- React with 👋 to their first tavern hello within 12h.
+- If no hello in 24h, post a friendly ping in {{channel.tavern_talk}} linking {{channel.welcome}} and {{channel.rules}}.
+- For first-time posters, point them to {{channel.feedback_mine}} with tag examples and to {{channel.bug_reports}} for issues.
+- If they post a clip/image, remind about alt-text once (warmly).
 
-Tooling
-- Discord Insights (member growth, messages, engagement)
-- Manual tally sheet (Google Sheet)
-  - Columns: Date (ISO), New Members, Welcome Complete %, Feedback Count, SLA Hit %, Playtest ✅, Show %, Build Thread Reactions, Build Thread Replies, Notes/Top 3
+---
 
-Monday 17:00 UTC Standup (10 min)
-- Review metrics
-- Decide Top 3 actions (assign owner, due ISO date)
-- Log decisions in {{channel.mod_lounge}}
+## 7) Weekly Rituals (Cadence & Templates)
 
-## 11) Bot & Automation Notes (MVP wiring)
-Placeholders (to be replaced with actual IDs)
-- {{id.channel.announcements}}
-- {{id.channel.build_in_public}}
-- {{id.channel.tavern_talk}}
-- {{id.channel.feedback_mine}}
-- {{id.channel.bug_reports}}
-- {{id.channel.playtest_queue}}
-- {{id.channel.showcase}}
-- {{id.channel.patch_notes}}
-- {{id.channel.rules}}
-- {{id.channel.welcome}}
-- {{id.channel.mod_lounge}}
+Build-in-Public (weekly):
+- Schedule: Draft on Mon; Post Tue 18:00 UTC in {{channel.announcements}}. Create/attach a thread in {{channel.build_in_public}} using docs/community/build-in-public-template.md.
+- Assets ask: 1–2 short clips (10–20s) or 1–2 screenshots per domain ([combat], [worldgen], [crafting], [audio], [ui], [lore]). If blocked, text-only is fine—no last-minute pings.
+- Cross-link: Pin the announcement. Post a one-line invite in {{channel.tavern_talk}} linking the thread.
 
-Events (MVP)
-- Welcome bot
-  - On member join: post 5-message sequence (from JSON); add 👋 reaction to message 1 upon completion.
-- Reaction roles (if used)
-  - Stub only; document mapping in a separate config later.
-- Thread auto-pinner
-  - Manual in MVP: @mod pins new weekly build thread; unpins prior.
+Poll (weekly, Fri):
+- Topic examples: UI readability, ore find rates, favorite enemy read.
+- Mechanics: Single question, ≤ 4 options, run for 48h. Post results summary on Mon with a one-line takeaway.
 
-Logging
-- Summarize moderation actions daily in {{channel.mod_lounge}}:
-  - Format: [ISO date] [Action] [User] [Channel/Link] [Rule] [Owner] [Notes]
+Feedback Session (weekly, Sun UTC window):
+- Format: Threaded Q&A in {{channel.feedback_mine}}; tag focus rotates weekly (e.g., Week 1 [combat], Week 2 [worldgen], Week 3 [ui]/[crafting], Week 4 [audio]/[lore]).
+- Preparation: 2 seed questions and 1 clip or screenshot if available.
+- Wrap-up: Summarize top 3 takeaways and current statuses by end of day Sun.
 
-## 12) Voice, Style, and Accessibility
-Brewmaster tone examples
-- Intro: “Welcome to Claim’s Mouth—warm stone, bright fire. Pull a stool and show us what you’re hammering.”
-- Nudge: “Friend, your craft shines—add alt-text so every dwarf can admire the grain.”
-- Outro: “That’s the pour for this week. Keep your edges sharp and your tempers cooler.”
+Note: Cadence references in docs/technology-systems/crafting-design.md inform how much we ask of devs—keep asks small and predictable.
 
-Alt-text best practices (pixel art clips)
-- Describe key motion, UI states, and timing cues (frames/seconds).
-- Note contrast and readability (e.g., “dark basalt floor; pale UI tooltip flickers”).
-- Keep it 1–2 lines; include sound cues if meaningful.
+---
 
-Accessibility reminders
-- Use sufficient color contrast in images (aim WCAG AA).
-- Timezones always UTC; dates as ISO (YYYY-MM-DD).
-- Avoid flashing imagery; warn if >3 flashes/second.
+## 8) Feedback Triage & SLAs
 
-## 13) Escalation & Crisis Handling
-Spam/Raids (immediate steps)
-- Enable slow mode (30–120s) in active channels.
-- Lock {{channel.announcements}} and {{channel.welcome}} to @dev/@mod only.
-- Toggle temporary member screening (if available).
-- Ping @mod and coordinate in {{channel.mod_lounge}}.
-- Remove spam, ban obvious bots, and document actions.
+Tag grammar for members:
+- Primary domain tag required: [ui], [combat], [worldgen], [crafting], [audio], [lore]
+- Optional: [bug] or [suggestion] appended after the domain tag
+- Example: “[combat] [suggestion] Goblin arc too wide?”
 
-Harassment Reports
-- Move to DM with reporter; acknowledge and thank them.
-- Collect links, screenshots, and timestamps (UTC).
-- Discuss with a second mod in {{channel.mod_lounge}}; decide per ladder.
-- Act within the guideline ladder; inform both parties as appropriate.
-- Record outcome with evidence and rationale.
+Mod triage checklist (24h SLA on all, 12–24h for [bug]/[crash]):
+- Validate tags; edit to add missing tags where appropriate and comment noting the change.
+- For [bug] or worldgen issues: request version/hash, seed, repro steps, 10–20s clip or screenshot with alt-text.
+- Post a first-reply summary with bullets and add one status emoji:
+  - 🔎 investigating
+  - 🧪 queued (for playtest or internal repro)
+  - ✅ accepted (will implement/fix)
+  - 🧰 backlog (accepted but unscheduled)
+  - ❌ out-of-scope
+- Route to domain owners:
+  - Mention the domain owner (“blackboard” style note) and/or link the GitHub issue when enabled.
+  - Edit the top post or first moderator reply to include “Routed: <link or @mention>”.
 
-## 14) Acceptance Checklist
-- Strategy actionable (weekly cadence, channel rules, and templates present)
-- Roles and permissions clear (owners, backups, posting powers)
-- Channel purposes and pacing defined, with pin/thread policies
-- Triage flow defined with emoji pipeline, routing, and SLA targets
-- Onboarding flow references data/community/welcome-sequence.json
-- Accessibility reminders included (alt-text, contrast, UTC, ISO dates)
-- Moderator quick references included (copy-ready pins, templates, prompts)
+Domain owner acknowledgements (48h ideal):
+- Acknowledge receipt with a quick note and status emoji.
+- Provide rough ETA or “backlog.”
+- If silence > 48h: @brewmaster posts a gentle nudge; if still silent, roll into the next weekly roundup.
 
-Cross-refs and Useful Links
-- Build-in-public template: docs/community/build-in-public-template.md
-- Welcome sequence JSON: data/community/welcome-sequence.json
-- UI Framework: docs/visual-systems/ui-framework.md
-- Crafting Design: docs/technology-systems/crafting-design.md
-- Combat Design: docs/combat-systems/combat-design.md
+---
 
-Pour steady, post true, and keep the hearth bright.
+## 9) Message Snippets & Templates
+
+Welcome nudge in tavern_talk:
+“Welcome to the taproom! If you’re new, say hello here and check the quick-start in {{channel.welcome}} and our house rules in {{channel.rules}}. Pull up a stool—what brought you to The Far Mine?”
+
+Feedback tagging reminder:
+“Mind tagging your post so others can find it later? Use one domain tag up front like [ui], [combat], [worldgen], [crafting], [audio], or [lore], plus optional [bug] or [suggestion]. Example: ‘[worldgen] [suggestion] Ore veins feel sparse in early caves.’ Thanks!”
+
+Bug report checklist:
+“To help the smiths fix it fast, please add:
+- Game version/hash
+- Seed (if worldgen)
+- Repro steps (1–2 lines)
+- 10–20s clip or screenshot with alt-text
+Post that in {{channel.bug_reports}} if it’s a bug. We’ll triage within 24h.”
+
+Build-in-public thread opener (short):
+“Weekly pour is ready! This thread follows our template (see docs/community/build-in-public-template.md). Highlights below; replies in this thread please. If you’ve got thoughts, tag them in {{channel.feedback_mine}} with the right domain label.”
+
+---
+
+## 10) Events Calendar (UTC) & Rota
+
+Rota (moderation coverage):
+- Mon–Tue: @brewmaster primary
+- Wed–Thu: Mod A
+- Fri–Sat: Mod B
+- Sun: @brewmaster or backup
+
+Off-hours policy:
+- Reaction-only within 12h; escalate only for safety issues or [crash]/[bug] storms.
+
+Calendar blocks (UTC):
+- Tue 18:00 — Weekly build-in-public update
+- Fri 16:00 — Poll launch (48h window)
+- Sun 17:00–20:00 — Feedback session focus thread
+
+---
+
+## 11) Accessibility & UX Guardrails (Community)
+
+- Always include alt-text on images and brief descriptions on clips.
+- Prefer 10–20s clips over long videos; avoid flashing/strobe imagery.
+- Thread titles: tags first, question or statement after. Example: “[combat] Goblin arc too wide?”
+- Contrast and readability: follow docs/visual-systems/style-guide.md (§Accessibility) when preparing assets.
+- Use spoiler tags for late-game content, puzzles, and narrative reveals.
+
+---
+
+## 12) Metrics & Review
+
+Weekly metrics to capture (how-to in one line):
+- New joins: Export from server insights; log weekly delta.
+- % greeted within 12h: Sample last week’s intros; count 👋 within 12h / total intros.
+- # feedback threads: Count new threads in feedback_mine for the week.
+- Time-to-first-dev-ack: Average hours from post time to first @dev reply on top 10 active threads.
+- Poll votes: Total votes and option breakdown; add one-line takeaway.
+
+Review ritual:
+- 15-minute Monday check-in (mods + brewmaster + available dev lead):
+  - What worked (1–2 bullets)
+  - What needs adjusting (1–2 bullets)
+  - Risks or load concerns
+  - Action items with owners (due next Mon)
+
+---
+
+## 13) Tools & Automation Hooks
+
+Welcome bot config:
+- Replace channelToken placeholders with actual channel IDs in data/community/welcome-sequence.json.
+- Dry-run in a test server before go-live; verify timing (0/1500/1500/1500/1500 ms), links, and reaction adds.
+- Enable only after {{channel.rules}} is populated and pinned in {{channel.welcome}}.
+
+Future (post-MVP, not in scope for Sprint 1):
+- Slash commands for tagging (e.g., /tag [combat] [suggestion]).
+- Lightweight bug report form feeding {{channel.bug_reports}} with required fields.
+
+---
+
+## 14) Risk Notes & Load Management
+
+- Keep asset asks minimal to respect developer load; if any domain is under crunch, skip clips and post text-only updates.
+- Avoid performative rituals—if a ritual isn’t adding player value or clarity, trim it.
+- Centralize discussion in threads to prevent rework; link once, reference often.
+- Watch for tag creep; keep the tag set stable this sprint.
+
+---
+
+## 15) Acceptance Checklist
+
+- Channels defined with purposes and moderation notes, using deployment tokens.
+- Rituals scheduled with concrete times and copy blocks ready.
+- Triage SLAs, statuses, and routing to domain owners are explicit and feasible.
+- Welcome flow integrated via data/community/welcome-sequence.json with timing and token replacement.
+- Metrics list prepared with simple collection notes for weekly review.
+
+Brewmaster’s last word: Keep the tap clean, the kegs light, and the conversation easy to find.
