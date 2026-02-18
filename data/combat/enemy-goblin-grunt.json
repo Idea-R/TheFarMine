@@ -3,180 +3,227 @@
   "id": "enemy.goblin.grunt",
   "meta": {
     "author": "gamma",
-    "updated": "2026-02-18T00:00:00Z",
+    "updated": "2026-02-18T13:00:00Z",
     "notes": [
-      "Baseline early-game melee unit; simple AI with single light slash.",
-      "Tuned to MVP combat baselines from combat-design.md.",
-      "Poise tuned for predictable early parry/break teaching moments."
+      "Baseline melee fodder that teaches block/parry via frequent jabs.",
+      "Light poise threats; backs off to avoid overlap spam.",
+      "Intended for early zones with ~30s TTK for base gear."
     ]
   },
   "visuals": {
-    "spriteId": "sprites/enemies/goblin_grunt",
+    "spriteId": "sprites.goblin.grunt",
     "tintToken": "characters.goblin.base",
     "accentToken": "characters.goblin.accent"
   },
   "audio": {
     "telegraphSfxId": "sfx.combat.telegraph.whoosh",
-    "swingLightSfxId": "sfx.combat.swing.whoosh.light",
+    "swingLightSfxId": "sfx.combat.swing.light",
     "hitLightSfxId": "sfx.combat.hit.light",
     "blockImpactSfxId": "sfx.combat.block.impact",
     "parrySuccessSfxId": "sfx.combat.parry.success",
     "poiseBreakSfxId": "sfx.combat.poise.break"
   },
   "stats": {
-    "health": {
-      "max": 100,
-      "value": 100
-    },
+    "health": 140,
     "attributes": {
       "attackPower": 5,
       "defense": 1
     },
     "poise": {
-      "max": 35,
-      "value": 35,
+      "max": 40,
+      "value": 40,
       "recoverPerSec": 9,
       "breakDurationMs": 700
     }
   },
   "movement": {
-    "speedPxPerSec": 56,
-    "approachRangePx": 24,
-    "retreatRangePx": 46
+    "speedPxPerSec": 62,
+    "approachRangePx": 22,
+    "retreatRangePx": 32
   },
   "ai": {
     "state": "idle",
-    "telegraphDebounceMs": 120,
+    "telegraphDebounceMs": 140,
     "cooldownMsRange": {
-      "min": 420,
-      "max": 650
+      "min": 380,
+      "max": 560
     },
     "attackWeights": {
-      "light_slash": 1.0
-    }
+      "jab": 0.65,
+      "slash": 0.35
+    },
+    "behaviorNotes": [
+      "Favours quick jabs after brief shoulder feints.",
+      "Retreats slightly when crowded, re-approaches at ~20px."
+    ]
   },
   "attacks": [
     {
-      "id": "light_slash",
-      "name": "Light Slash",
-      "damage": {
-        "base": 5
-      },
-      "poiseDamage": 10,
-      "timings": {
-        "windupMs": 340,
-        "activeMs": 90,
-        "recoveryMs": 320,
-        "cooldownMs": 520,
-        "flashAtMs": -100
-      },
+      "id": "jab",
+      "name": "Jab",
       "geometry": {
         "rangePx": 20,
-        "arcDeg": 75
+        "arcDeg": 75,
+        "multiHit": false
       },
+      "timings": {
+        "windupMs": 260,
+        "activeMs": 80,
+        "recoveryMs": 280,
+        "cooldownMs": 450
+      },
+      "staminaCost": 0,
+      "poiseDamage": 8,
+      "damageBase": 12,
       "hitStop": {
-        "attackerMs": 18,
-        "victimMs": 34
+        "attackerMs": 12,
+        "victimMs": 24
       },
       "telegraph": {
+        "flashAtMs": -110,
         "colorToken": "mapping.telegraph.arc.amber",
         "arcOverlay": true
       },
       "onHit": {
-        "knockbackPx": 8
+        "knockbackPx": 8,
+        "applyStagger": "light"
       },
-      "sfxOverrides": {
-        "swingId": null,
-        "hitId": null
+      "acceptance": {
+        "clamps": true,
+        "notes": [
+          "Edge cases: can tag at arc limit if target steps in during last 40ms of windup.",
+          "No multi-hit; first contact only consumes hurtbox and applies hitstop."
+        ]
+      }
+    },
+    {
+      "id": "slash",
+      "name": "Slash",
+      "geometry": {
+        "rangePx": 22,
+        "arcDeg": 85,
+        "multiHit": false
+      },
+      "timings": {
+        "windupMs": 340,
+        "activeMs": 90,
+        "recoveryMs": 340,
+        "cooldownMs": 520
+      },
+      "staminaCost": 0,
+      "poiseDamage": 12,
+      "damageBase": 15,
+      "hitStop": {
+        "attackerMs": 14,
+        "victimMs": 32
+      },
+      "telegraph": {
+        "flashAtMs": -120,
+        "colorToken": "mapping.telegraph.arc.amber",
+        "arcOverlay": true
+      },
+      "onHit": {
+        "knockbackPx": 12,
+        "applyStagger": "light"
+      },
+      "acceptance": {
+        "clamps": true,
+        "notes": [
+          "Wide arc may appear to graze through thin props; collision uses primary arc hull only.",
+          "Recovery can be punished; parry window centered late in windup."
+        ]
       }
     }
   ],
   "loot": {
+    "rolls": 1,
     "table": [
       {
-        "id": "mat.scrap.metal",
-        "qtyMin": 1,
-        "qtyMax": 2,
-        "weight": 3.0
+        "id": "loot.none",
+        "weight": 80,
+        "qty": {
+          "min": 0,
+          "max": 0
+        }
       },
       {
-        "id": "coins.copper",
-        "qtyMin": 5,
-        "qtyMax": 12,
-        "weight": 3.5
+        "id": "mat.scrap.metal",
+        "weight": 15,
+        "qty": {
+          "min": 1,
+          "max": 1
+        }
       },
       {
         "id": "mat.ore.copper",
-        "qtyMin": 1,
-        "qtyMax": 1,
-        "weight": 1.2
+        "weight": 5,
+        "qty": {
+          "min": 1,
+          "max": 1
+        }
       }
     ],
-    "rolls": 2,
     "notes": [
-      "Common scrap and copper coins; occasional copper ore.",
-      "Weights tuned for early progression pacing."
+      "Majority of rolls yield nothing; small chance for basic crafting parts."
     ]
   },
   "acceptance": {
     "clamps": {
-      "attack.timings.windupMs": [
-        200,
-        700
-      ],
-      "attack.timings.activeMs": [
-        70,
-        120
-      ],
-      "attack.timings.recoveryMs": [
-        200,
-        600
-      ],
-      "attack.timings.cooldownMs": [
-        250,
-        800
-      ],
-      "attack.timings.flashAtMs": [
-        -180,
-        -80
-      ],
-      "attack.geometry.rangePx": [
-        14,
-        28
-      ],
-      "attack.geometry.arcDeg": [
-        40,
-        110
-      ],
-      "attack.hitStop.attackerMs": [
-        0,
-        40
-      ],
-      "attack.hitStop.victimMs": [
-        0,
-        80
-      ],
-      "ai.telegraphDebounceMs.min": 0,
-      "ai.cooldownMsRange.minmax": [
-        0,
-        2000
-      ],
-      "poise.defaults": {
-        "max": 35,
-        "recoverPerSec": 9,
-        "breakDurationMs": 700
+      "timings": {
+        "windup": [
+          200,
+          700
+        ],
+        "active": [
+          60,
+          140
+        ],
+        "recovery": [
+          200,
+          600
+        ],
+        "cooldown": [
+          250,
+          800
+        ],
+        "flashAtMs": [
+          -180,
+          -80
+        ]
+      },
+      "poise": {
+        "max": [
+          20,
+          80
+        ],
+        "rps": [
+          6,
+          14
+        ],
+        "breakMs": [
+          600,
+          900
+        ]
       }
     },
-    "crossRefs": [
-      "characters.goblin.base",
-      "characters.goblin.accent",
-      "mapping.telegraph.arc.amber",
-      "sfx.combat.telegraph.whoosh",
-      "sfx.combat.swing.whoosh.light",
-      "sfx.combat.hit.light",
-      "sfx.combat.block.impact",
-      "sfx.combat.parry.success",
-      "sfx.combat.poise.break"
+    "crossRefs": {
+      "paletteTokens": [
+        "characters.goblin.base",
+        "characters.goblin.accent",
+        "mapping.telegraph.arc.amber"
+      ],
+      "audioIds": [
+        "sfx.combat.telegraph.whoosh",
+        "sfx.combat.swing.light",
+        "sfx.combat.hit.light",
+        "sfx.combat.block.impact",
+        "sfx.combat.parry.success",
+        "sfx.combat.poise.break"
+      ]
+    },
+    "notes": [
+      "Early-game melee opponent; teaches parry/block via frequent jabs and readable telegraphs.",
+      "Target TTK ~30s for unupgraded player gear, longer if poor blocking; punish windows after slash."
     ]
   }
 }
