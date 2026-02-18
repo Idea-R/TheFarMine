@@ -2,74 +2,84 @@
   "version": 1,
   "id": "enemy.cave.burrower",
   "name": "Cave Burrower",
-  "kind": "melee",
-  "body": { "w": 12, "h": 12, "speedPxPerSec": 44, "turnRateDegPerSec": 360 },
-  "attributes": { "attackPower": 5, "defense": 0 },
-  "health": { "max": 56, "value": 56 },
-  "poise": { "max": 60, "value": 60 },
-  "ai": {
-    "aggroRangePx": 120,
-    "leashRangePx": 240,
-    "attackCooldownMs": 1000,
-    "repositionOnMissMs": 480,
-    "preferOpenLane": true,
-    "feintChance": 0.04,
-    "keepDistancePx": 6,
-    "attackWeights": [ { "id": "burrow_emerge", "weight": 7 }, { "id": "pounce_lunge", "weight": 3 } ],
-    "canBurrow": true,
-    "burrowTravelSpeedPxPerSec": 96,
-    "burrowCooldownMs": 2200,
-    "burrowMinRangePx": 40
+  "archetype": "melee.ambush",
+  "body": {
+    "spriteId": "sprites/enemy/burrower",
+    "collider": { "w": 12, "h": 12, "offsetX": 0, "offsetY": 0 },
+    "render": { "tintToken": "characters.burrower.base", "depth": 1 }
   },
-  "telegraph": { "colorToken": "mapping.telegraph.arc.amber", "useGlobalAudio": true, "sfxId": "sfx.combat.telegraph.swing" },
+  "attributes": {
+    "attackPower": 7,
+    "defense": 3
+  },
+  "health": {
+    "max": 130,
+    "value": 130
+  },
+  "stamina": {
+    "max": 0,
+    "value": 0,
+    "regenPerSec": 0,
+    "regenDelayAfterActionMs": 0,
+    "regenCooldownUntilMs": 0
+  },
+  "poise": {
+    "max": 50,
+    "value": 50,
+    "recoverPerSec": 8,
+    "breakDurationMs": 900,
+    "brokenUntilMs": 0
+  },
+  "movement": {
+    "speedPxPerSec": 48,
+    "approachRangePx": 38,
+    "retreatRangePx": 12
+  },
+  "ai": {
+    "state": "idle",
+    "aggroRangePx": 130,
+    "leashRangePx": 240,
+    "cooldownUntilMs": 0,
+    "feintChance": 0.12,
+    "attackWeights": { "lunge_pierce": 1.0 },
+    "cooldownMsRange": { "min": 1100, "max": 1500 },
+    "telegraphDebounceMs": 320
+  },
   "attacks": [
     {
-      "id": "burrow_emerge",
-      "name": "Burrow: Emerge Swipe",
+      "id": "burrower_lunge_pierce",
+      "name": "Burrow Lunge",
       "kind": "melee",
-      "windupMs": 460,
-      "activeMs": 90,
-      "recoveryMs": 520,
-      "cooldownMs": 360,
-      "rangePx": 18,
-      "arcDeg": 90,
-      "hitbox": { "w": 14, "h": 12, "offsetX": 8, "offsetY": 0 },
-      "damage": { "base": 7, "poiseDamage": 16 },
-      "hitStopMs": { "attacker": 22, "victim": 42 },
-      "knockback": { "px": 16, "direction": "forward" },
-      "telegraph": { "colorToken": "mapping.telegraph.arc.amber", "arcOverlay": true, "flashAtMs": -140 },
-      "notes": [ "Ripple telegraph; blockable on pop", "Dodge to sides within 90 ms window" ]
-    },
-    {
-      "id": "pounce_lunge",
-      "name": "Pounce: Lunge Jab",
-      "kind": "melee",
-      "windupMs": 260,
-      "activeMs": 80,
+      "windupMs": 420,
+      "activeMs": 100,
       "recoveryMs": 420,
       "cooldownMs": 360,
-      "rangePx": 26,
-      "arcDeg": 70,
-      "hitbox": { "w": 12, "h": 12, "offsetX": 12, "offsetY": 0 },
-      "damage": { "base": 8, "poiseDamage": 14 },
-      "hitStopMs": { "attacker": 22, "victim": 42 },
-      "knockback": { "px": 18, "direction": "forward" },
-      "telegraph": { "colorToken": "mapping.telegraph.arc.amber", "arcOverlay": true, "flashAtMs": -100 },
-      "notes": [ "Short hop forward—readable but snappy", "Teaches dodge timing" ]
+      "rangePx": 22,
+      "arcDeg": 60,
+      "hitbox": { "w": 14, "h": 10, "offsetX": 12, "offsetY": 0 },
+      "damage": { "base": 7, "poiseDamage": 16 },
+      "hitStopMs": { "attacker": 22, "victim": 44 },
+      "knockback": { "px": 10, "direction": "forward" },
+      "telegraph": { "colorToken": "mapping.telegraph.arc.amber", "arcOverlay": true, "flashAtMs": -120 },
+      "notes": [
+        "Surfaces just before active; narrow lane-safe thrust",
+        "Punishes overcommit; readable telegraph in tunnels"
+      ]
     }
   ],
-  "sfx": { "onHit": "sfx.combat.hit.light", "onBlock": "sfx.combat.block", "onPoiseBreak": "sfx.combat.poiseBreak" },
   "loot": {
-    "drops": [
-      { "itemId": "ore.copper", "min": 1, "max": 2, "weight": 6 },
-      { "itemId": "ore.iron", "min": 1, "max": 1, "weight": 3 },
-      { "itemId": "shard.quartz", "min": 1, "max": 1, "weight": 2 }
+    "goldMin": 1,
+    "goldMax": 4,
+    "table": [
+      { "id": "mat.ore.iron", "weight": 20 },
+      { "id": "mat.crystal.quartz", "weight": 8 }
     ],
-    "nothingWeight": 12
+    "nothingWeight": 62
   },
   "notes": [
-    "Burrows to reposition if player kites; emerges with wide swipe.",
-    "Fair windows: long emerge telegraph; faster pounce punish if ignored.",
-    "Numbers are first-pass; revisit poiseDamage and burrow cadence after two sandbox runs."
+    "Ambusher that teaches spacing and punish windows",
+    "Tuned for ~30–34s solo TTK vs AP 8",
+    "Feints only in first 40% of windup",
+    "Audio cue on surface maps to enemy.burrower.surface"
   ]
 }
