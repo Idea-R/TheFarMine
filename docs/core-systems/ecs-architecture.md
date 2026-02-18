@@ -1,417 +1,469 @@
-# The Far Mine — ECS Architecture (Sprint 1 Alpha)
+# The Far Mine — Core ECS Architecture (Sprint 1)
 
-Owner: Ironforge Stonebeard (Alpha)  
-Version: 0.1 • Date: 2026-02-18  
+Author: Ironforge Stonebeard (Alpha)  
+Version: Draft v0.1 — 2026-02-18  
 Status: Draft v0.1
 
-## 1) Title & Scope
+Scope: MVP vertical slice (Mine L1) focusing on Entities, Components, Systems, World/Registry, Event Bus, Queries, and Scheduling. Runtime target: Bevy (Rust) for the executable, with an engine-agnostic registry API mirrored in src/core/ecs-registry.js for tests and tools.
 
-This document specifies the MVP ECS foundations for The Far Mine, targeting Sprint 1 (Alpha). It is implementation-ready, aligned with src/core/ecs-registry.js as the canonical JS reference, and includes a Bevy (Rust) mapping appendix.
+---
 
-Scope:
-- Entities, Components, Systems
-- World/Registry
-- Event Bus
-- Queries
-- Scheduling
-- Resources
+## 2) Goals & Constraints
 
-MVP target: spawn/move a dwarf; sustain 10k entities baseline with 3 trivial systems at >=60 Hz on a dev laptop.
+- Performance:
+  - Instantiate 10,000 entities with 3 simple components.
+  - Run 3 trivial systems at >= 60 Hz on a dev laptop.
+- Determinism:
+  - Query iteration is eid-ascending.
+  - Per-event-type FIFO ordering within a tick.
+- Stability and naming:
+  - snake_case component names.
+  - Events end with Event; plugins end with Plugin.
+  - Tile size: 16 px; 1.0 world unit per tile.
+- Serialization:
+  - Plan to leverage serde + bevy_reflect for seeds/player state, mapping one-to-one with JS registry schemas for tools.
 
-
-## 2) Design Principles
-
-- Determinism-first: eid-ascending iteration for systems and event draining.
-- Cache-friendly stores: dense arrays per component (SoA-like by component).
-- Schema-validated components: JSON Schema validation in dev mode; no bake-in at runtime in prod.
-- Stable system stages: fixed stage order; append-only order within a stage.
-- Event-driven edges: cross-system edges via typed event queues; FIFO per type per tick.
-- Engine-agnostic core: JS registry is the golden algorithmic reference; Bevy bridge path defined in appendix.
-- Non-goals for MVP: archetype optimizer, multithreading.
-
+---
 
 ## 3) Core Concepts & Data Model
 
-- Entities
-  - Numeric eid, monotonically increasing; freelist reuse. First entity id = 1.
-  - isAlive(eid) contract: true only if currently allocated and not tombstoned.
+- Entities:
+  - 32-bit integer-like ids (eid: u32).
+  - Created/destroyed via registry; reuse ids via a freelist to avoid unbounded growth.
+- Components (MVP set, plain data, minimal validation):
+  - position, velocity, collider (AABB), tile, ore_vein, health, stamina, damageable, inventory, tool, faction, sprite_ref, light, sound_emitter, ui_state.
+  - Data-only; validation limited to light dev checks (range/type).
+- Resources (registry/world named singletons):
+  - game_time (secs, tick count), input_map (actions/axes), asset_index (lookup for sprites, sfx, colors), plus per-system scratch if needed.
+- Events (payload sketches, intended routing):
+  - MineHitEvent { pos: {x,y}, tool: {tool_id,tier}, power: f32, target_tile?: {tx,ty} }
+    - Routed to mining logic; bridged to audio for impacts.
+  - DamageEvent { source_eid?: u32, target_eid: u32, amount: i32, kind?: string }
+    - Routed to combat/damageable; may spawn VFX telegraph.
+  - FootstepEvent { eid: u32, pos: {x,y}, surface?: string }
+    - Routed to audio bridge for footstep SFX; optional surface inferred via tile.
+  - PlaySfxEvent { key: string, pos?: {x,y}, volume?: f32 }
+    - Routed directly to AudioEventBridge (asset_index resolves key).
+  - UiCommand { kind: string, payload?: any, target?: string }
+    - Routed to UI bridge (menus/HUD).
 
-- Components
-  - snake_case names (e.g., position, velocity, sprite_ref).
-  - Storage: per-component dense store with:
-    - ids: number[] (entity ids)
-    - data: object[] (object-per-component instance for clarity in MVP)
-    - indices: Map<EntityId, index> (or number[] fast index map)
-  - Semantics: swap-remove on removal (swap last slot into removed index; update indices).
-  - Deterministic iteration: each store maintains lazy sortedIds snapshot (eid ascending). Mark dirty on add/remove; recompute once per tick when needed.
-  - Validation: schemas set via setSchemas(); enforced in dev mode on add/remove/update paths; no-op in prod.
+---
 
-- Systems
-  - Pure functions: (registry, dtSec) => void
-  - Registered into fixed Stages (enum-like): Input, PrePhysics, Gameplay, Events, RenderPrep.
-  - Order within each stage is append-only and stable across ticks.
+## 4) Storage Strategy (MVP)
 
-- World/Registry
-  - Single runtime container for:
-    - Entity lifecycle (create/destroy)
-    - Component API (add/remove/get/has)
-    - Queries (view)
-    - Resources (named singletons)
-    - Event Bus
-    - Scheduling (staged system lists)
-    - Counters and dev-only diagnostics
-    - Ephemeral per-tick bag (registry._ephemeral: Map-like)
+- Per-component dense store:
+  - Arrays: ids[]: u32, data[]: T, and index: Map<u32, usize> (eid → dense index).
+  - Add: push eid + data; index[eid] = last_index.
+  - Remove: swap-remove from end; update moved eid’s index.
+  - Get/Has: O(1) via index.
+- Deterministic iteration:
+  - Each store maintains lazy sortedIds snapshot: Vec<u32>, invalidated on add/remove.
+  - On first query requiring this store per tick, rebuild snapshot (ids.clone() then sort ascending).
+  - Query iteration always uses the driver store’s sortedIds; multi-store filters preserve driver order.
+- Evolution notes:
+  - If/when component counts grow and cache misses dominate, consider archetype/SoA or sparse-set with chunked SoA per archetype. Keep API stable to swap storage under the hood post-alpha.
 
-- Resources
-  - Named singletons, e.g., GameTime, InputMap, AssetIndex.
-  - get/set/has APIs; no schema enforcement at MVP.
+---
 
-- Events
-  - Lightweight per-type FIFO queues; types are stable strings through P4.
-  - Planned types for Sprint 1: MineHitEvent, DamageEvent, FootstepEvent, PlaySfxEvent, UiCommand.
+## 5) Public API Surface (Registry)
 
+Engine-agnostic JS-like API mirrored by src/core/ecs-registry.js for tests/tools. Bevy runtime provides equivalent semantics (Appendix A).
 
-## 4) Public API (JS reference; mirrors src/core/ecs-registry.js)
-
-Factory:
-- createRegistry(opts?: { mode: 'dev' | 'prod' }) → Registry
-
-Registry methods and properties:
-- createEntity(): EntityId
-- destroyEntity(eid): void
-- isAlive(eid): boolean
-- add(eid, name, data): void
-  - Adds or replaces the component instance for eid. Validates in dev (if schemas present).
-  - Marks component store dirty (sortedIds).
-- remove(eid, name): void
-  - No-op if not present. Swap-remove semantics; marks dirty.
-- get(eid, name): object | null
-- has(eid, name): boolean
-- setSchemas(map: Record<ComponentName, SchemaDef>): void
-  - Sets/overwrites the JSON Schemas; dev mode validation only. Registry does not mutate data to conform.
-- schemas: Record<ComponentName, SchemaDef>
-- view(include: string[], exclude?: string[]) → { each(cb: (eid, ...comps) => void), size(): number }
-  - Selects the smallest include store as driver.
-  - Ensures driver.sortedIds snapshot prepared (eid-ascending).
-  - Iterates driver ids; for each eid:
-    - skip if !isAlive(eid)
-    - require all include has()
-    - require all exclude !has()
-    - pass component data refs in include order
-  - Counters updated: Query.iterations, Query.matches.
-  - MVP: include up to 5 components; excludes are cheap has() checks.
-- register(stage: number, fn: SystemFn): void
-  - Appends system to the stage’s list.
-- tick(dtSec: number): void
-  - dtSec clamped to [0, 0.1].
-  - For each stage in order: run systems; reset per-tick ephemeral after all stages or per tick-start.
-  - Resets store sorted snapshots lazily as needed.
-- setResource(name, obj): void
-- getResource(name): any | undefined
-- hasResource(name): boolean
-- bus: EventBus
-  - emit(type: string, payload: any): void
-  - drain(type: string, fn: (payload: any) => void): number
-    - Processes events FIFO for that type; returns drained count; clears drained events.
-  - clear(type?: string): void
-    - Clears one type or all if omitted.
-- counters: Map<string, number>
-  - inc(key: string, by = 1): void
+- Entity lifecycle:
+  - createEntity(): u32
+  - destroyEntity(eid: u32): boolean
+  - isAlive(eid: u32): boolean
+- Components:
+  - add(eid: u32, compName: string, data: object): void
+  - remove(eid: u32, compName: string): boolean
+  - get(eid: u32, compName: string): object | null
+  - has(eid: u32, compName: string): boolean
+- Queries:
+  - view(include: string[], exclude?: string[]): Iterable<[eid: u32, ...components]>
+    - Driver selection: choose smallest include store (min length) for performance.
+    - Iterate driver.sortedIds (eid-ascending); for each eid, ensure presence of remaining include comps and absence of exclude comps.
+    - Yield [eid, components...] where components are in the same order as include list.
+- Systems and scheduling:
+  - register(stage: StageName, systemFn: (reg, dt) => void, opts?: { name?: string, after?: string[], before?: string[] }): void
+  - tick(dtSec: number): void
+    - dt clamped to [0.0, 0.1] seconds.
+    - Executes stages in fixed order (see Scheduling).
+- Schemas and debug:
+  - setSchemas(map: Record<string, Schema>): void
+  - getDebugStore(name: string): { count: number, ids: u32[], dirty: boolean } | null
+- Resources:
+  - setResource<T>(name: string, value: T): void
+  - getResource<T>(name: string): T | null
+  - hasResource(name: string): boolean
+- Event bus:
+  - bus.emit<T>(type: string, payload: T): void
+  - bus.drain<T>(type: string): T[]   // FIFO snapshot and clear
+  - bus.clear(type?: string): void
+- Counters (for tests/benchmarks):
+  - getCounters(): Record<string, number>
   - resetCounters(): void
-    - Clears all counters to 0 (or removes entries).
-- dev-only: getDebugStore(name): Store
-  - Returns the internal store for the named component in dev mode.
-  - Throws or returns undefined in prod mode.
-  - Store shape (read-only contract): { ids: number[], data: any[], indices: Map|number[], sortedIds: number[]|null, dirtySorted: boolean }
+  - incCounter(name: string, by?: number): void
+- Dev vs prod:
+  - Dev mode: light schema/type checks and console warnings; registry never throws on component ops (returns false/null on failure).
+  - Prod mode: minimal checks; same no-throw contract.
 
-Exports:
-- Stages: { Input: 0, PrePhysics: 1, Gameplay: 2, Events: 3, RenderPrep: 4 }
-- EventTypes: { MineHitEvent, DamageEvent, FootstepEvent, PlaySfxEvent, UiCommand }
+StageName is one of: "Input", "PrePhysics", "Gameplay", "Events", "RenderPrep".
 
-Reference system:
-- MovementSystem(registry, dtSec)
-  - Query: view(['position', 'velocity'])
-  - Integrate: position.x += velocity.vx * dt; position.y += velocity.vy * dt
-  - Guards:
-    - If any of position or velocity components contain NaN/Inf, zero-out offending fields; clamp velocity magnitude by max_speed if provided.
-  - Optional footstep cooldown:
-    - Uses registry._ephemeral.footstep_cd_ms: Map<EntityId, number>
-    - Accumulates movement distance/time; when threshold met, emit FootstepEvent with eid/pos; set cooldown ~250 ms (tunable resource).
+---
 
+## 6) Scheduling & Stages
 
-## 5) Component Set (Sprint 1 stable names)
+Stage order (global, stable):
 
-- Transform
-  - position { x: number, y: number }
-  - velocity { vx: number, vy: number, max_speed?: number }
-- Physics/World
-  - collider { half_w: number, half_h: number, flags?: number }
-  - tile { type: string, solid?: boolean }
-  - ore_vein { ore_id: string, richness: number }
-- Combat
-  - health { current: number, max: number }
-  - stamina { current: number, max: number, regen_per_sec: number }
-  - damageable { defense: number, poise?: number }
-- Inventory/Items
-  - inventory { capacity: number, items?: any[] }
-  - tool { id: string, tier: number, durability: number, max_durability: number }
-- Identity/Rendering/FX
-  - faction { id: string }
-  - sprite_ref { id: string, tint?: string }
-  - light { intensity: number, color_token?: string }
-  - sound_emitter { id?: string }
-- UI
-  - ui_state { visible: boolean }
-
-Note: Precise JSON Schemas are provided in data/core/component-schemas.json (companion file). The registry does not bake schemas; use setSchemas() in bootstrap.
-
-
-## 6) System Scheduling & Order (MVP)
-
-Stage order:
 1) Input
+   - Gather/normalize inputs; update input_map resource; emit UiCommand as needed.
 2) PrePhysics
+   - Movement integration, simple collision pre-pass, constraints.
 3) Gameplay
+   - Combat, mining, AI, stamina/regen.
 4) Events
+   - Deterministic drain/bridge of events to subsystems (audio, UI, VFX bridges).
 5) RenderPrep
+   - Sprite selection, lighting buffer prep, render-layer sorting.
 
-Example pipeline:
-- Input: read InputMap resource; write velocity.desired or velocity directly.
-- PrePhysics: MovementSystem (position += velocity*dt; clamp/guard)
-- Gameplay: CombatResolveSystem (stub); MiningSystem (stub: emits MineHitEvent)
+Ordering guarantees:
+- Stages execute strictly in the above order per tick.
+- Within a stage, systems can express local ordering via opts.after/opts.before (acyclic). Absent constraints, insertion order is used.
+- Systems should avoid cross-stage side effects; emit events or set resources instead. E.g., PrePhysics should not mutate sprite_ref; instead write data or events consumed in RenderPrep.
+
+---
+
+## 7) Reference Systems & Hooks (MVP)
+
+- MovementSystem (PrePhysics):
+  - Query: [position, velocity]
+  - position += velocity * dt.
+  - If velocity.max_speed is present, clamp speed to <= max_speed (Euclidean).
+  - Guard against NaN/Inf: if detected, zero velocity and skip movement; dev log.
+  - FootstepEvent emission:
+    - Maintain per-entity cooldown (e.g., 0.35s walking cadence) via an ephemeral cache Map<eid, t_next>. Store in registry resource "footstep_cooldowns".
+    - Emit FootstepEvent { eid, pos, surface? } when current time >= t_next and |velocity| > epsilon.
+- Mining hook sketch:
+  - Any system detecting a mining action emits MineHitEvent { pos, tool, power, target_tile } during Gameplay.
+  - OreVein/Tile interaction:
+    - Tile hardness/tool_tier gate for breaking; OreVein hardness reduces effective power.
+    - On break: emit PlaySfxEvent with key from asset_index; spawn inventory loot via InventorySystem (deferred).
+- Combat hooks sketch:
+  - Input/AI triggers emit DamageEvent { source_eid, target_eid, amount, kind } in Gameplay.
+  - Damage processing system:
+    - Reads damageable, health; applies defense; reduces health.current; may emit UiCommand on death/low HP, and telegraph events for VFX.
+  - Stamina/poise:
+    - Integration points only; defer deeper logic to Gamma’s combat spec (consume stamina on heavy actions; regenerate in Gameplay; emit telegraph tokens).
+
+---
+
+## 8) Component Schemas (MVP fields)
+
+Validation: Dev-only range/type checks; Prod: trust data. Cross-team contracts noted.
+
+- position { x: f32, y: f32 }
+  - x,y in world units. No validation beyond finite numbers.
+- velocity { vx: f32, vy: f32, max_speed?: f32 }
+  - Optional max_speed >= 0.0 if present.
+- collider { half_w: f32, half_h: f32, solid: bool }
+  - half_w/half_h > 0; AABB centered on position; solid toggles collision.
+- tile { code: i32, hardness: f32, tool_tier: "t0|t1|t1_5|t2" }
+  - code from tile atlas; hardness >= 0; tool_tier aligns with data/mining/tools.json.
+- ore_vein { kind: "copper|iron|quartz", hardness: f32 }
+  - kind matches data/mining/ore.json; hardness >= 0.
+- health { current: i32, max: i32 }
+  - 0 <= current <= max; on current <= 0, entity considered dead for combat systems.
+- stamina { current: f32, max: f32, regen_per_sec: f32 }
+  - Clamp current to [0,max]; regen_per_sec >= 0.
+- damageable { defense: i32, faction_mask?: u32 }
+  - defense >= 0; faction_mask bitfield compatible with faction routing.
+- inventory { capacity: u8, slots?: [item_id|null] }
+  - capacity <= small MVP cap (e.g., 16); if slots provided, length <= capacity; item_id per data/items/index.json.
+- tool { tool_id: string, tier: u8, mining_power?: f32 }
+  - tool_id matches data/tools/index.json; tier consistent with tile.tool_tier; mining_power >= 0 if present.
+- faction { id: string }
+  - id aligns with data/combat/factions.json; used with damageable.faction_mask.
+- sprite_ref { sprite_id: string, tint_token?: string }
+  - sprite_id resolves via asset_index.sprites; tint_token from data/visual/color-palette.json.
+- light { radius: f32, intensity: f32, color_token: string }
+  - radius >= 0; intensity in [0,1.5]; color_token per color-palette.json.
+- sound_emitter { radius: f32, spatial: bool }
+  - radius >= 0; spatial true for positional attenuation.
+- ui_state { state: string }
+  - state keys agreed with UI team (Eta), e.g., "hud", "menu_pause", etc.
+
+---
+
+## 9) Event Bus & Bridges
+
+- Event bus:
+  - Per-type FIFO queues; emit enqueues, drain returns a snapshot array in FIFO order and clears the queue.
+  - Deterministic within a tick; no persistence across ticks unless a system re-emits/retains by copying to a resource.
+- Bridges (Events stage):
+  - AudioEventBridge:
+    - FootstepEvent → resolve surface → PlaySfxEvent triggerKeys via asset_index.sfx. 
+    - PlaySfxEvent → runtime audio engine (pos/volume optional).
+  - Combat/Telegraph VFX bridge:
+    - DamageEvent (pre-hit/post-hit) → telegraph.arc tokens for VFX system.
+  - UI bridge:
+    - UiCommand → route to UI layer (Eta), targets like "hud", "menu", "notif".
+- Mapping tables:
+  - Placeholders referencing Zeta’s audio map (data/audio/map.json) and Eta’s UI command spec (docs/ui/commands.md). Clamp unknown keys in dev with warnings; noop in prod.
+
+---
+
+## 10) Testing & Benchmark Plan (MVP)
+
+- Unit tests (JS registry):
+  - Entities: create/destroy/isAlive; reuse ids via freelist.
+  - Components: add/remove/get/has; remove on destroyEntity; get returns null for missing.
+  - Queries: view(include/exclude) determinism; ascending eid order; include order respected in payload.
+  - Systems: MovementSystem integration updates position; NaN guards; max_speed clamp.
+  - Events: emit/drain FIFO counts; per-type isolation; clear behavior.
+- Benchmark harness:
+  - Spawn 10,000 entities with position+velocity+health.
+  - Register MovementSystem + 2 trivial systems (no-ops reading components).
+  - Run for 3 seconds wall time; record average Hz (ticks/sec) and per-system invocation counters.
+  - Acceptance: >= 60 Hz on dev laptop; log counters to console; assert determinism (stable first/last eids).
+
+---
+
+## 11) Risks & Assumptions
+
+- Inventory shape may be too prescriptive; keep capacity-only semantics now; slots optional and not required by systems in Sprint 1.
+- Event payload strings (materials, tokens) must align with data files; add dev-time clamps and logs for unknown keys.
+- JSON tooling/import quirks vary; keep schemas flat and loader-friendly; avoid nested enums beyond strings for MVP.
+
+---
+
+## 12) Appendix A — Bevy Mapping (Rust)
+
+- Schedule mapping:
+  - Input → PreUpdate
+  - PrePhysics → FixedUpdate (or a custom Schedule "PrePhysics" inserted before Update if FixedUpdate cadence mismatches)
+  - Gameplay → Update
+  - Events → PostUpdate
+  - RenderPrep → Last (or a custom "RenderPrep" before Render)
+- Components:
+  - Rust structs mirroring schemas with derives:
+    - #[derive(Component, Reflect, Serialize, Deserialize, Default, Clone)]
+    - Register types with app.register_type::<T>() for reflect.
 - Events:
-  - Audio bridge drains PlaySfxEvent
-  - Damage application drains DamageEvent
-- RenderPrep: sprite_ref → renderer buffer; copy position to render transforms
+  - Bevy Event<T> types: MineHitEvent, DamageEvent, FootstepEvent, PlaySfxEvent, UiCommand.
+  - Add via app.add_event::<T>() and systems consuming EventReader<T>, producing via EventWriter<T>.
+- Resources:
+  - game_time: Resource with elapsed_seconds, tick_count.
+  - input_map, asset_index as Resources with reflective serialization as needed.
+- Plugin:
+  - CoreEcsPlugin:
+    - Adds resources, registers components for reflect, adds events.
+    - Adds systems to appropriate schedules in the specified order using bevy’s system ordering (in_base_set, before/after labels).
+- Save/Load:
+  - Use bevy_reflect + serde (bevy_reflect::serde) for seeds/player state snapshots.
+  - Maintain schema parity with JS registry for tools; JS remains for tests/tools; Rust/Bevy is authoritative runtime.
 
-Determinism:
-- All query iterations are eid-ascending via per-store sortedIds snapshot.
-- Event processing is FIFO per type per tick.
+---
 
+## 13) Appendix B — Usage Snippets
 
-## 7) Queries
-
-- view(include: string[], exclude?: string[])
-  - Driver selection: smallest include store by ids.length.
-  - Snapshot: ensure driver.sortedIds is materialized if dirty (sort ascending).
-  - Iteration:
-    - For each eid in driver.sortedIds:
-      - Skip if !isAlive(eid)
-      - For each include: has(eid, comp) must be true
-      - For each exclude: has(eid, comp) must be false
-      - Pass component data refs to callback in include order
-  - Counters:
-    - inc('Query.iterations', +1 per eid visited)
-    - inc('Query.matches', +1 per eid passed to callback)
-
-Notes:
-- MVP supports up to 5 include components.
-- Excludes are cheap has() checks (no data fetch).
-- Do not remove components from the driver store during its iteration to avoid swap-remove skipping; if needed, defer via Events or a post-pass.
-
-
-## 8) Example Usage (code snippet outline)
-
-```js
-import { createRegistry, Stages, EventTypes } from './core/ecs-registry.js';
-import schemas from '../data/core/component-schemas.json';
-
-// 1) Create registry and register schemas
-const reg = createRegistry({ mode: 'dev' });
-reg.setSchemas(schemas);
-
-// 2) Create a player entity
-const player = reg.createEntity();
-reg.add(player, 'position', { x: 0, y: 0 });
-reg.add(player, 'velocity', { vx: 0, vy: 0, max_speed: 6 });
-reg.add(player, 'sprite_ref', { id: 'dwarf_01' });
-
-// 3) Resources
-reg.setResource('InputMap', {
-  getAxis: (name) => (name === 'move_x' ? 1 : 0), // stub: always move right
+Pseudocode (JS registry usage):
+```
+const reg = createRegistry();
+reg.setSchemas({
+  position: { x: 'f32', y: 'f32' },
+  velocity: { vx: 'f32', vy: 'f32', max_speed: '?f32' },
+  health:   { current: 'i32', max: 'i32' },
+  // ...
 });
 
-// 4) Systems
-function InputSystem(r, dt) {
-  const input = r.getResource('InputMap');
-  const ax = input?.getAxis('move_x') ?? 0;
-  const ay = input?.getAxis('move_y') ?? 0;
-  r.view(['velocity']).each((eid, vel) => {
-    vel.vx = ax * (vel.max_speed ?? 4);
-    vel.vy = ay * (vel.max_speed ?? 4);
-  });
-}
+// MovementSystem
+function movementSystem(reg, dt) {
+  const now = (reg.getResource('game_time')?.secs) ?? 0;
+  const cooldowns = reg.getResource('footstep_cooldowns') ?? new Map();
+  if (!reg.hasResource('footstep_cooldowns')) reg.setResource('footstep_cooldowns', cooldowns);
 
-function MovementSystem(r, dt) {
-  r.view(['position', 'velocity']).each((eid, pos, vel) => {
-    const clamp = (v) => (Number.isFinite(v) ? v : 0);
-    vel.vx = clamp(vel.vx); vel.vy = clamp(vel.vy);
-    if (vel.max_speed && Number.isFinite(vel.max_speed)) {
-      const m = Math.hypot(vel.vx, vel.vy);
-      if (m > vel.max_speed && m > 0) {
-        const s = vel.max_speed / m;
-        vel.vx *= s; vel.vy *= s;
+  for (const [eid, pos, vel] of reg.view(['position', 'velocity'])) {
+    let vx = vel.vx, vy = vel.vy;
+    if (!Number.isFinite(vx) || !Number.isFinite(vy)) { vel.vx = 0; vel.vy = 0; continue; }
+
+    const speed = Math.hypot(vx, vy);
+    if (vel.max_speed != null && speed > vel.max_speed && speed > 0) {
+      const s = vel.max_speed / speed;
+      vx *= s; vy *= s;
+      vel.vx = vx; vel.vy = vy;
+    }
+
+    pos.x += vx * dt;
+    pos.y += vy * dt;
+
+    if (Math.hypot(vx, vy) > 0.2) {
+      const next = cooldowns.get(eid) ?? 0;
+      if (now >= next) {
+        reg.bus.emit('FootstepEvent', { eid, pos: { x: pos.x, y: pos.y } });
+        cooldowns.set(eid, now + 0.35);
       }
     }
-    pos.x = clamp(pos.x + vel.vx * dt);
-    pos.y = clamp(pos.y + vel.vy * dt);
-
-    // optional footsteps
-    const eph = (r._ephemeral ||= {});
-    const cd = (eph.footstep_cd_ms ||= new Map());
-    const now = (eph.tick_ms ||= 0); // assume registry populates each tick
-    if ((cd.get(eid) ?? 0) <= now && (Math.abs(vel.vx) + Math.abs(vel.vy)) > 0) {
-      r.bus.emit(EventTypes.FootstepEvent, { eid, x: pos.x, y: pos.y });
-      cd.set(eid, now + 250);
-    }
-  });
+  }
 }
 
-reg.register(Stages.Input, InputSystem);
-reg.register(Stages.PrePhysics, MovementSystem);
+reg.register('PrePhysics', movementSystem);
 
-// 5) Tick loop (dt clamped internally)
-let last = performance.now();
-function frame(now) {
-  const dtSec = (now - last) / 1000;
-  last = now;
-  reg.tick(dtSec);
+// Spawn a mover
+const e = reg.createEntity();
+reg.add(e, 'position', { x: 0, y: 0 });
+reg.add(e, 'velocity', { vx: 1, vy: 0, max_speed: 4 });
 
-  // Drain footsteps in Events stage or here (demo)
-  reg.bus.drain(EventTypes.FootstepEvent, (e) => {
-    // bridge to audio
-  });
-
-  requestAnimationFrame(frame);
+reg.setResource('game_time', { secs: 0, ticks: 0 });
+for (let i = 0; i < 5; i++) {
+  const t = reg.getResource('game_time');
+  t.secs += 0.016; t.ticks++;
+  reg.tick(0.016);
 }
-requestAnimationFrame(frame);
+
+// Drain footsteps (Events stage bridge would normally do this)
+const steps = reg.bus.drain('FootstepEvent'); // FIFO
+console.log('footsteps', steps.length);
 ```
 
+Example Bevy Rust snippets:
 
-## 9) Performance Target & Bench Plan
+Components:
+```rust
+use bevy::prelude::*;
+use bevy::reflect::Reflect;
+use serde::{Serialize, Deserialize};
 
-Target:
-- 10,000 entities with components: position, velocity, sprite_ref
-- 3 trivial systems (e.g., Input, Movement, RenderPrep sync)
-- Sustained >= 60 Hz on a dev laptop (single thread)
+#[derive(Component, Reflect, Serialize, Deserialize, Default, Clone)]
+#[reflect(Component)]
+pub struct Position { pub x: f32, pub y: f32 }
 
-Bench script outline (bench.js):
-- Create registry in prod mode.
-- Create N entities (default 10k); add position, velocity, sprite_ref with randomized values.
-- Register:
-  - InputSystem (sets velocities to a constant)
-  - MovementSystem (integration only)
-  - RenderPrepSystem (no-op copy/read)
-- Run warmup (120 ticks), then measure (600 ticks).
-- Record:
-  - avg_tick_ms, p95_tick_ms
-  - systems: avg_ms per stage/system (optional via simple timing wrappers)
-  - counters snapshot: Entities.alive, Query.iterations, Query.matches
-- Expected baseline (guideline, not a hard gate):
-  - avg_tick_ms <= 16.0
-  - Query.iterations ~= N per system using a single-view driver
-  - GC pressure low (no per-entity allocations inside tick)
+#[derive(Component, Reflect, Serialize, Deserialize, Default, Clone)]
+#[reflect(Component)]
+pub struct Velocity { pub vx: f32, pub vy: f32, pub max_speed: Option<f32> }
 
+#[derive(Event, Default, Clone)]
+pub struct FootstepEvent { pub eid: u32, pub x: f32, pub y: f32 }
+```
 
-## 10) Testing Plan (MVP)
+Movement system and registration:
+```rust
+fn movement_system(
+  time: Res<Time>,
+  mut q: Query<(&mut Position, &mut Velocity)>,
+  mut steps: EventWriter<FootstepEvent>,
+) {
+  let dt = time.delta_seconds().clamp(0.0, 0.1);
+  for (mut pos, mut vel) in q.iter_mut() {
+    let mut vx = vel.vx; let mut vy = vel.vy;
+    if !vx.is_finite() || !vy.is_finite() { vel.vx = 0.0; vel.vy = 0.0; continue; }
 
-Unit tests:
-- Entities
-  - create/destroy/isAlive
-  - Freelist reuse after destroy
-- Components
-  - add/remove/get/has
-  - swap-remove correctness (indices update; ids/data length sync)
-  - dev-only getDebugStore invariants
-- Queries
-  - Deterministic iteration: eid-ascending across multiple adds/removes
-  - Exclude semantics
-  - Counters: iterations vs matches
-- Event Bus
-  - FIFO ordering per type
-  - drain returns count; clear(type?) behavior
-- Systems
-  - MovementSystem integrates position with dt clamp
-  - NaN/Inf guards zero-out invalid numbers
-  - Optional footstep cooldown via _ephemeral does not spam
-- Tick
-  - Stage order respected; register append-only order preserved
+    let speed = (vx * vx + vy * vy).sqrt();
+    if let Some(max_s) = vel.max_speed {
+      if speed > max_s && speed > 0.0 {
+        let s = max_s / speed; vx *= s; vy *= s; vel.vx = vx; vel.vy = vy;
+      }
+    }
 
+    pos.x += vx * dt; pos.y += vy * dt;
 
-## 11) Bevy (Rust) Mapping Appendix
+    if (vx*vx + vy*vy) > 0.04 {
+      // EID retrieval depends on how you map entity ids; placeholder 0 for snippet
+      steps.send(FootstepEvent { eid: 0, x: pos.x, y: pos.y });
+    }
+  }
+}
 
-Mapping:
-- Entity
-  - JS EntityId ↔ bevy::ecs::entity::Entity
-- Components
-  - JS component objects ↔ Rust structs
-    - Example:
-      - #[derive(Component, Reflect, Serialize, Deserialize)]
-        struct Position { x: f32, y: f32 }
-      - #[derive(Component, Reflect, Serialize, Deserialize)]
-        struct Velocity { vx: f32, vy: f32, max_speed: Option<f32> }
-      - Health, Stamina, Damageable, Collider, Tile, OreVein, Inventory, Tool, Faction, SpriteRef, Light, SoundEmitter, UiState mirror fields and names (snake_case -> snake_case)
-- Resources
-  - JS named resources ↔ Bevy Resources via .insert_resource(...)
-  - Examples: GameTime, InputMap, AssetIndex
-- Events
-  - JS bus types ↔ Bevy Events
-    - struct MineHitEvent { pos: Vec2, tool: ToolId, power: f32 }
-    - struct DamageEvent { target: Entity, amount: i32, kind: DamageKind }
-    - struct FootstepEvent { entity: Entity, pos: Vec2 }
-    - struct PlaySfxEvent { id: SfxId, pos: Option<Vec2> }
-    - struct UiCommand { cmd: String, payload: serde_json::Value }
-  - Configure with App::add_event::<...>() and systems to write/read.
-- Systems and Scheduling
-  - JS Stages ↔ a custom Bevy set that mirrors order:
-    - Define: #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
-      enum FarMineCoreSet { Input, PrePhysics, Gameplay, Events, RenderPrep }
-    - Chain with .configure_sets((
-        FarMineCoreSet::Input,
-        FarMineCoreSet::PrePhysics.after(FarMineCoreSet::Input),
-        FarMineCoreSet::Gameplay.after(FarMineCoreSet::PrePhysics),
-        FarMineCoreSet::Events.after(FarMineCoreSet::Gameplay),
-        FarMineCoreSet::RenderPrep.after(FarMineCoreSet::Events),
-      ))
-  - Determinism: Prefer queries without parallel mutation; optionally sort entities by id for iteration if exact parity needed during validation runs.
-- Notes
-  - The JS registry is the algorithmic reference and test harness; production slice uses Bevy ECS.
-  - Event/type names stable per P4; keep asset/event id parity (bridge doc TBD).
+pub struct CoreEcsPlugin;
+impl Plugin for CoreEcsPlugin {
+  fn build(&self, app: &mut App) {
+    app
+      .register_type::<Position>()
+      .register_type::<Velocity>()
+      .add_event::<FootstepEvent>()
+      .add_systems(PreUpdate, () /* input systems */)
+      .add_systems(FixedUpdate, movement_system) // PrePhysics
+      .add_systems(Update, () /* gameplay systems */)
+      .add_systems(PostUpdate, () /* event bridges */)
+      .add_systems(Last, () /* render prep */);
+  }
+}
+```
 
+---
 
-## 12) Risks & Assumptions
+## 1) Title & Metadata
 
-- Risk: Over-prescriptive schemas vs runtime needs.
-  - Mitigation: Optional fields remain lax; validate in dev only; clamp/null-guard in prod.
-- Risk: Query perf hotspots beyond 50k entities.
-  - Mitigation: Stage-local driver selection, counters for visibility; future archetype optimizer or columnar typed arrays.
-- Assumption: Component and event ids in P4 remain stable through Sprint 1.
-- Assumption: Single-threaded tick; no inter-stage parallelism in MVP.
+- Title: The Far Mine — Core ECS Architecture (Sprint 1)
+- Author: Ironforge Stonebeard (Alpha), Version/Date: Draft v0.1 — 2026-02-18, Status: Draft v0.1
+- Scope: MVP vertical slice (Mine L1) with focus on Entities, Components, Systems, World/Registry, Event Bus, Queries, Scheduling. Targets Bevy (Rust) as runtime, but presents an engine-agnostic registry API (mirrors src/core/ecs-registry.js) for tests and tools.
 
+---
 
-## 13) Acceptance Checklist
+## 4.5) Storage Pseudocode (JS registry internals, reference)
 
-- Entities, Components, Systems, World/Registry, Event Bus, Queries, Scheduling documented.
-- Public API mirrors src/core/ecs-registry.js:
-  - create/destroy/isAlive
-  - add/remove/get/has
-  - setSchemas/schemas
-  - view(each/size)
-  - register/tick (dt clamp)
-  - resources get/set/has
-  - EventBus (emit/drain/clear)
-  - counters (inc/resetCounters)
-  - dev-only getDebugStore
-- Stages export: { Input, PrePhysics, Gameplay, Events, RenderPrep }
-- EventTypes export constants present.
-- MovementSystem reference described (integration, guards, optional footstep cooldown via _ephemeral).
-- Component set enumerated with stable names and fields.
-- System scheduling and determinism defined.
-- Queries detail driver selection and counters.
-- Example usage provided.
-- Performance target and bench outline provided.
-- Testing plan enumerated.
-- Bevy mapping appendix included.
+```
+class DenseStore {
+  constructor() { this.ids = []; this.data = []; this.index = new Map(); this.sorted = []; this.dirty = false; }
+  add(eid, comp) {
+    if (this.index.has(eid)) return false;
+    const i = this.ids.length;
+    this.ids.push(eid); this.data.push(comp); this.index.set(eid, i);
+    this.dirty = true; return true;
+  }
+  remove(eid) {
+    const i = this.index.get(eid); if (i === undefined) return false;
+    const last = this.ids.length - 1;
+    const movedEid = this.ids[last];
+    // swap-remove
+    [this.ids[i], this.ids[last]] = [this.ids[last], this.ids[i]];
+    [this.data[i], this.data[last]] = [this.data[last], this.data[i]];
+    this.ids.pop(); this.data.pop();
+    this.index.delete(eid);
+    if (i < last) this.index.set(movedEid, i);
+    this.dirty = true; return true;
+  }
+  get(eid) { const i = this.index.get(eid); return i === undefined ? null : this.data[i]; }
+  has(eid) { return this.index.has(eid); }
+  sortedIds() {
+    if (this.dirty) { this.sorted = Array.from(this.ids).sort((a,b)=>a-b); this.dirty = false; }
+    return this.sorted;
+  }
+}
+```
 
-Forged and signed,
-— Ironforge Stonebeard, Core Systems Engineer
+---
+
+## 9.5) Event Bus Pseudocode
+
+```
+class EventBus {
+  constructor() { this.q = new Map(); }
+  emit(type, payload) {
+    if (!this.q.has(type)) this.q.set(type, []);
+    this.q.get(type).push(payload);
+  }
+  drain(type) {
+    const arr = this.q.get(type) ?? [];
+    this.q.set(type, []); // clear
+    return arr; // FIFO snapshot
+  }
+  clear(type) { if (type) this.q.set(type, []); else this.q.clear(); }
+}
+```
+
+---
+
+## 6.5) Tick Loop Sketch
+
+```
+function tick(reg, dt) {
+  const clamped = Math.max(0, Math.min(0.1, dt));
+  const order = ['Input', 'PrePhysics', 'Gameplay', 'Events', 'RenderPrep'];
+  for (const stage of order) reg._runStage(stage, clamped);
+  // Post-tick: no implicit event persistence
+}
+```
+
+---
+
+Aye, that’s the bedrock for Sprint 1. Solid enough to build upon, light enough to move fast.
