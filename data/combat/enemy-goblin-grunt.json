@@ -2,83 +2,51 @@
   "version": 1,
   "id": "enemy.goblin.grunt",
   "name": "Goblin Grunt",
-  "archetype": "Enemy",
-  "body": { "w": 12, "h": 12 },
-  "attributes": { "attackPower": 6, "defense": 0 },
-  "health": { "max": 64 },
-  "stamina": { "max": 40, "regenPerSec": 10 },
-  "poise": { "max": 70, "recoverPerSec": 35, "breakDurationMs": 800 },
-  "movement": { "speedPxPerSec": 60, "turnRateDegPerSec": 540 },
+  "archetype": "melee.light",
+  "body": {
+    "spriteId": "sprites/enemy/goblin",
+    "collider": { "w": 12, "h": 12, "offsetX": 0, "offsetY": 0 },
+    "render": { "tintToken": "characters.goblin.base", "depth": 1 }
+  },
+  "attributes": { "attackPower": 6, "defense": 2 },
+  "health": { "max": 120, "value": 120 },
+  "stamina": { "max": 0, "value": 0, "regenPerSec": 0, "regenDelayAfterActionMs": 0, "regenCooldownUntilMs": 0 },
+  "poise": { "max": 40, "value": 40, "recoverPerSec": 10, "breakDurationMs": 800, "brokenUntilMs": 0 },
+  "movement": { "speedPxPerSec": 56, "approachRangePx": 48, "retreatRangePx": 20 },
   "ai": {
-    "aggroRangePx": 120,
+    "state": "idle",
+    "aggroRangePx": 140,
     "leashRangePx": 240,
-    "attackCooldownMs": { "min": 900, "max": 1150 },
-    "preferOpenLane": true,
-    "feintChance": 0.08,
-    "keepDistancePx": 6,
-    "attackWeights": { "slash_cleave": 0.6, "jab_stab": 0.4 }
+    "cooldownUntilMs": 0,
+    "feintChance": 0.18,
+    "attackWeights": { "swipe_light": 1.0 },
+    "cooldownMsRange": { "min": 900, "max": 1300 },
+    "telegraphDebounceMs": 300
   },
   "attacks": [
     {
-      "id": "slash_cleave",
-      "name": "Slash Cleave",
+      "id": "goblin_swipe_light",
+      "name": "Light Swipe",
       "kind": "melee",
-      "windupMs": 300,
-      "activeMs": 85,
-      "recoveryMs": 500,
+      "windupMs": 360,
+      "activeMs": 90,
+      "recoveryMs": 380,
       "cooldownMs": 320,
-      "rangePx": 20,
+      "rangePx": 18,
       "arcDeg": 90,
       "hitbox": { "w": 16, "h": 10, "offsetX": 10, "offsetY": 0 },
-      "damage": { "base": 6, "poiseDamage": 14 },
-      "hitStopMs": { "attacker": 22, "victim": 42 },
-      "knockback": { "px": 10, "direction": "forward" },
-      "telegraph": {
-        "colorToken": "mapping.telegraph.arc.amber",
-        "arcOverlay": true,
-        "flashAtMs": -120
-      },
-      "notes": [
-        "Amber arc sweeps ~90°; clear side-step window if read.",
-        "Baseline attack to teach lane reads; pairs with jab for pressure."
-      ]
-    },
-    {
-      "id": "jab_stab",
-      "name": "Jab Stab",
-      "kind": "melee",
-      "windupMs": 260,
-      "activeMs": 80,
-      "recoveryMs": 480,
-      "cooldownMs": 300,
-      "rangePx": 22,
-      "arcDeg": 50,
-      "hitbox": { "w": 12, "h": 8, "offsetX": 12, "offsetY": 0 },
-      "damage": { "base": 5, "poiseDamage": 12 },
-      "hitStopMs": { "attacker": 22, "victim": 42 },
-      "knockback": { "px": 8, "direction": "forward" },
-      "telegraph": {
-        "colorToken": "mapping.telegraph.arc.amber",
-        "arcOverlay": true,
-        "flashAtMs": -100
-      },
-      "notes": [
-        "Tight arc, forward bias; rewards diagonal dodge.",
-        "Faster tell trains player to react to narrower cones."
-      ]
+      "damage": { "base": 5, "poiseDamage": 10 },
+      "hitStopMs": { "attacker": 20, "victim": 40 },
+      "knockback": { "px": 6, "direction": "forward" },
+      "telegraph": { "colorToken": "mapping.telegraph.arc.amber", "arcOverlay": true, "flashAtMs": -120 },
+      "notes": ["Lane-safe arc ≤110°", "MVP light; readable in tunnels"]
     }
   ],
   "loot": {
-    "table": [
-      { "id": "mat.scrap.copper", "weight": 6, "qty": { "min": 1, "max": 2 } },
-      { "id": "mat.scrap.iron", "weight": 2, "qty": { "min": 1, "max": 1 } }
-    ],
-    "nothingWeight": 14
+    "goldMin": 1,
+    "goldMax": 3,
+    "table": [ { "id": "mat.scrap.copper", "weight": 35 } ],
+    "nothingWeight": 55
   },
-  "notes": [
-    "Prefers Three‑Wide lanes; steps to center before cleave.",
-    "Telegraph overlays use mapping.telegraph.arc.amber; Audio bridge fires sfx.combat.telegraph.swing on TelegraphStart.",
-    "Numbers tuned with Player AP 8 for ~30 s TTK; revisit after sandbox metrics (10+ trials).",
-    "Hitboxes fit 12×12 body; forward offsets keep collisions clean."
-  ]
+  "notes": ["Baseline corridor skirmisher", "Tuned for ~30s solo TTK vs AP 8", "Feints only in first 40% of windup"]
 }
