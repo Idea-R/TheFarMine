@@ -1,41 +1,44 @@
 [
   {
-    "id": "tool.pick.t1.basic",
-    "name": "Basic Pickaxe",
-    "tier": 1,
-    "kind": "pick",
+    "id": "tool.pick.t0.starter",
+    "name": "Starter Pickaxe",
+    "kind": "pickaxe",
+    "tier": 0,
     "miningPower": 4,
-    "miningSpeed": 1.0,
-    "staminaCost": 16,
-    "durabilityMax": 60,
-    "durabilityPerHit": 1,
-    "swingMs": 300,
-    "notes": ["Starter kit; teaches gates 3/4", "Heavier stamina tax"]
+    "miningSpeed": 1.00,
+    "staminaCost": 10,
+    "durability": 160,
+    "swingMs": 320,
+    "repairable": false,
+    "unlockedBy": "known",
+    "notes": ["Starter loadout; teaches copper near doors"]
   },
   {
     "id": "tool.pick.t2.reinforced",
     "name": "Reinforced Pickaxe",
+    "kind": "pickaxe",
     "tier": 2,
-    "kind": "pick",
     "miningPower": 5,
     "miningSpeed": 1.15,
-    "staminaCost": 15,
-    "durabilityMax": 120,
-    "durabilityPerHit": 1,
+    "staminaCost": 11,
+    "durability": 220,
     "swingMs": 300,
-    "notes": ["Iron gate opener", "Smoother cadence vs T1"]
+    "repairable": false,
+    "unlockedBy": "known",
+    "notes": ["Matches data/crafting/recipes.json output id", "Gate to iron veins"]
   },
   {
-    "id": "tool.drill.t3.steam",
+    "id": "tool.pick.t3.steam_drill",
     "name": "Steam Drill",
-    "tier": 3,
     "kind": "drill",
+    "tier": 3,
     "miningPower": 7,
-    "miningSpeed": 1.35,
-    "staminaCost": 12,
-    "durabilityMax": 200,
-    "durabilityPerHit": 1,
-    "swingMs": 220,
-    "notes": ["Requires Steam Core to craft (no runtime fuel in MVP)", "Lower stamina; brisk cadence"]
+    "miningSpeed": 1.40,
+    "staminaCost": 14,
+    "durability": 320,
+    "swingMs": 280,
+    "repairable": false,
+    "unlockedBy": "milestone",
+    "notes": ["Progression preview; not obtainable in Sprint 1"]
   }
 ]
