@@ -6,77 +6,79 @@
   "body": { "w": 12, "h": 12 },
   "attributes": { "attackPower": 6, "defense": 0 },
   "health": { "max": 64 },
-  "stamina": { "max": 60, "regenPerSec": 10 },
+  "stamina": { "max": 40, "regenPerSec": 10 },
   "poise": { "max": 70, "recoverPerSec": 35, "breakDurationMs": 800 },
-  "movement": { "speedPxPerSec": 48, "turnRateDegPerSec": 480 },
+  "movement": { "speedPxPerSec": 60, "turnRateDegPerSec": 540 },
   "ai": {
     "aggroRangePx": 120,
     "leashRangePx": 240,
-    "attackCooldownMs": { "min": 900, "max": 1100 },
+    "attackCooldownMs": { "min": 900, "max": 1150 },
     "preferOpenLane": true,
-    "feintChance": 0.06,
+    "feintChance": 0.08,
     "keepDistancePx": 6,
-    "attackWeights": { "slash_sweep": 0.56, "stab_jab": 0.44 }
+    "attackWeights": { "slash_cleave": 0.6, "jab_stab": 0.4 }
   },
   "attacks": [
     {
-      "id": "slash_sweep",
-      "name": "Slash Sweep",
-      "kind": "melee",
-      "windupMs": 420,
-      "activeMs": 90,
-      "recoveryMs": 520,
-      "cooldownMs": 320,
-      "rangePx": 22,
-      "arcDeg": 100,
-      "hitbox": { "w": 14, "h": 12, "offsetX": 10, "offsetY": 0 },
-      "damage": { "base": 7, "poiseDamage": 16 },
-      "hitStopMs": { "attacker": 22, "victim": 42 },
-      "knockback": { "px": 12, "direction": "forward" },
-      "telegraph": {
-        "colorToken": "mapping.telegraph.arc.amber",
-        "arcOverlay": true,
-        "flashAtMs": -140
-      },
-      "notes": [
-        "Long windup with a wide 100° arc to teach early roll/backstep reads.",
-        "Forward-biased 14x12 hitbox; respects Three-Wide lane rules."
-      ]
-    },
-    {
-      "id": "stab_jab",
-      "name": "Stab Jab",
+      "id": "slash_cleave",
+      "name": "Slash Cleave",
       "kind": "melee",
       "windupMs": 300,
-      "activeMs": 80,
-      "recoveryMs": 420,
-      "cooldownMs": 280,
+      "activeMs": 85,
+      "recoveryMs": 500,
+      "cooldownMs": 320,
       "rangePx": 20,
-      "arcDeg": 70,
-      "hitbox": { "w": 12, "h": 10, "offsetX": 10, "offsetY": 0 },
+      "arcDeg": 90,
+      "hitbox": { "w": 16, "h": 10, "offsetX": 10, "offsetY": 0 },
       "damage": { "base": 6, "poiseDamage": 14 },
       "hitStopMs": { "attacker": 22, "victim": 42 },
       "knockback": { "px": 10, "direction": "forward" },
       "telegraph": {
         "colorToken": "mapping.telegraph.arc.amber",
         "arcOverlay": true,
-        "flashAtMs": -110
+        "flashAtMs": -120
       },
       "notes": [
-        "Faster, narrower punish window; encourages blocking or micro-dodges.",
-        "Forward-biased thrust reduces wall clipping near tight corners."
+        "Amber arc sweeps ~90°; clear side-step window if read.",
+        "Baseline attack to teach lane reads; pairs with jab for pressure."
+      ]
+    },
+    {
+      "id": "jab_stab",
+      "name": "Jab Stab",
+      "kind": "melee",
+      "windupMs": 260,
+      "activeMs": 80,
+      "recoveryMs": 480,
+      "cooldownMs": 300,
+      "rangePx": 22,
+      "arcDeg": 50,
+      "hitbox": { "w": 12, "h": 8, "offsetX": 12, "offsetY": 0 },
+      "damage": { "base": 5, "poiseDamage": 12 },
+      "hitStopMs": { "attacker": 22, "victim": 42 },
+      "knockback": { "px": 8, "direction": "forward" },
+      "telegraph": {
+        "colorToken": "mapping.telegraph.arc.amber",
+        "arcOverlay": true,
+        "flashAtMs": -100
+      },
+      "notes": [
+        "Tight arc, forward bias; rewards diagonal dodge.",
+        "Faster tell trains player to react to narrower cones."
       ]
     }
   ],
   "loot": {
     "table": [
       { "id": "mat.scrap.copper", "weight": 6, "qty": { "min": 1, "max": 2 } },
-      { "id": "mat.scrap.iron", "weight": 3, "qty": { "min": 1, "max": 1 } }
+      { "id": "mat.scrap.iron", "weight": 2, "qty": { "min": 1, "max": 1 } }
     ],
     "nothingWeight": 14
   },
   "notes": [
-    "Three-Wide compliant arcs and forward-biased hitboxes for 12x12 body.",
-    "First-pass tuning targets ~30s solo TTK versus Player with Attributes.attackPower=8."
+    "Prefers Three‑Wide lanes; steps to center before cleave.",
+    "Telegraph overlays use mapping.telegraph.arc.amber; Audio bridge fires sfx.combat.telegraph.swing on TelegraphStart.",
+    "Numbers tuned with Player AP 8 for ~30 s TTK; revisit after sandbox metrics (10+ trials).",
+    "Hitboxes fit 12×12 body; forward offsets keep collisions clean."
   ]
 }
