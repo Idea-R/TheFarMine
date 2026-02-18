@@ -1,92 +1,92 @@
-[
-  {
-    "id": "dlg.tavern.keeper.welcome_first_mug",
-    "speakerId": "npc.tavern.keeper",
-    "speakerName": "Tavern Keeper",
-    "mood": "warm",
-    "text": "Welcome, delver. Hear the Mine hum under the boards? Sip, breathe steady, let the stone know your name.",
-    "tags": ["tutorial.intro", "tavern.welcome"],
-    "audioId": "amb.tavern.loopA"
+{
+  "version": 1,
+  "id": "npc.tavern.keeper",
+  "name": "Tavern Keeper",
+  "meta": {
+    "ambienceBedId": "amb.tavern.loopA",
+    "locationToken": "lore.place.tavern.hearth_and_anvil",
+    "notes": ["Diegetic tutorial anchor; no promises", "MVP static scene; UI-safe copy"]
   },
-  {
-    "id": "dlg.tavern.keeper.three_wide_law",
-    "speakerId": "npc.tavern.keeper",
-    "speakerName": "Tavern Keeper",
-    "mood": "wry",
-    "text": "Mind the Three-Wide Law: keep lanes three across, so panic and falling stone can't pinch a soul.",
-    "tags": ["lore.three_wide", "worldgen.safety"],
-    "audioId": null
-  },
-  {
-    "id": "dlg.tavern.keeper.lamps_spacing",
-    "speakerId": "npc.tavern.keeper",
-    "speakerName": "Tavern Keeper",
-    "mood": "busy",
-    "text": "Lamps at measured spans, like beats on a drum. When brass keeps time, shadows mind their manners.",
-    "tags": ["worldgen.lamps", "safety.proverb"],
-    "audioId": null
-  },
-  {
-    "id": "dlg.tavern.keeper.copper_then_iron",
-    "speakerId": "npc.tavern.keeper",
-    "speakerName": "Tavern Keeper",
-    "mood": "warm",
-    "text": "Copper bites first, iron after. Tools rise as the seam hardens; patience pays.",
-    "tags": ["mining.gates", "crafting.tools"],
-    "audioId": null
-  },
-  {
-    "id": "dlg.tavern.keeper.quartz_whispers",
-    "speakerId": "npc.tavern.keeper",
-    "speakerName": "Tavern Keeper",
-    "mood": "hushed",
-    "text": "Crystal Caverns hum like a choir; deeper quartz keeps its counsel for keener teeth.",
-    "tags": ["biome.crystal_caverns", "lore.crystal_resonance"],
-    "audioId": null
-  },
-  {
-    "id": "dlg.tavern.keeper.guilds_roll_call",
-    "speakerId": "npc.tavern.keeper",
-    "speakerName": "Tavern Keeper",
-    "mood": "warm",
-    "text": "Steamwrights, Stonebinders, Emberwatch—three guilds. My bell ends disputes; your coin ends thirst.",
-    "tags": ["factions.overview", "tavern.law"],
-    "audioId": null
-  },
-  {
-    "id": "dlg.tavern.keeper.goblin_warning",
-    "speakerId": "npc.tavern.keeper",
-    "speakerName": "Tavern Keeper",
-    "mood": "wry",
-    "text": "Goblins swing wide and light; watch the shoulder, not the sneer.",
-    "tags": ["enemy.goblin", "combat.telegraph"],
-    "audioId": null
-  },
-  {
-    "id": "dlg.tavern.keeper.burrower_signs",
-    "speakerId": "npc.tavern.keeper",
-    "speakerName": "Tavern Keeper",
-    "mood": "hushed",
-    "text": "Burrowers—floor trembles, then teeth; give them room to lunge, then clip their courage.",
-    "tags": ["enemy.burrower", "combat.ambush"],
-    "audioId": null
-  },
-  {
-    "id": "dlg.tavern.keeper.crafting_stations",
-    "speakerId": "npc.tavern.keeper",
-    "speakerName": "Tavern Keeper",
-    "mood": "busy",
-    "text": "Workbench for first makes, Forge for iron's temper, Steamworks for brass that breathes.",
-    "tags": ["crafting.stations", "ui.tip"],
-    "audioId": "ui.confirm"
-  },
-  {
-    "id": "dlg.tavern.keeper.neutral_ground",
-    "speakerId": "npc.tavern.keeper",
-    "speakerName": "Tavern Keeper",
-    "mood": "solemn",
-    "text": "The Hearth & Anvil is neutral—songs high, tempers low. Leave feuds at the lintel.",
-    "tags": ["tavern.law", "community.tone"],
-    "audioId": "amb.tavern.loopA"
-  }
-]
+  "lines": [
+    {
+      "id": "line.keeper.welcome",
+      "text": "Hearth & Anvil welcomes you, delver—wipe your boots, wet your throat, and mind the bell.",
+      "tags": ["welcome"],
+      "conditions": { "once": true, "requireFlags": [], "excludeFlags": [] },
+      "sfx": null,
+      "uiHint": null
+    },
+    {
+      "id": "line.keeper.sell_ore_tip",
+      "text": "Pack rattling with ore? Slide it across the counter and I'll weigh it fair, coin for clink.",
+      "tags": ["tutorial", "craft"],
+      "conditions": { "once": false, "requireFlags": [], "excludeFlags": [] },
+      "sfx": null,
+      "uiHint": null
+    },
+    {
+      "id": "line.keeper.smelt_copper",
+      "text": "Copper likes a hot hello; feed your chunks to the smelter before dreaming up fittings.",
+      "tags": ["tutorial", "craft"],
+      "conditions": { "once": false, "requireFlags": [], "excludeFlags": [] },
+      "sfx": null,
+      "uiHint": null
+    },
+    {
+      "id": "line.keeper.reinforced_pick_hook",
+      "text": "Set your sights on a Reinforced Pick—first good friend in the dark. Build steady, not flashy.",
+      "tags": ["progression", "craft"],
+      "conditions": { "once": false, "requireFlags": [], "excludeFlags": [] },
+      "sfx": null,
+      "uiHint": null
+    },
+    {
+      "id": "line.keeper.three_wide_law",
+      "text": "Three-Wide, always: carve a lane a dwarf and his two shadows can share. Stone spares the careful.",
+      "tags": ["safety"],
+      "conditions": { "once": false, "requireFlags": [], "excludeFlags": [] },
+      "sfx": null,
+      "uiHint": null
+    },
+    {
+      "id": "line.keeper.mine_mood_today",
+      "text": "Mine's in Stillshift today—the drips keep even time. Work with the rhythm, take what it gives.",
+      "tags": ["mine_mood", "lore"],
+      "conditions": { "once": false, "requireFlags": [], "excludeFlags": [] },
+      "sfx": null,
+      "uiHint": null
+    },
+    {
+      "id": "line.keeper.guild_murmur",
+      "text": "Guild banners drink here; keep your ears open. Favors flow like ale, and settle slower.",
+      "tags": ["guilds", "lore"],
+      "conditions": { "once": false, "requireFlags": [], "excludeFlags": [] },
+      "sfx": null,
+      "uiHint": null
+    },
+    {
+      "id": "line.keeper.crystal_caverns_blurb",
+      "text": "Past the rattlecut, the Crystal Caverns hum. Quartz keeps a shy song; listen with your teeth.",
+      "tags": ["lore"],
+      "conditions": { "once": false, "requireFlags": [], "excludeFlags": [] },
+      "sfx": null,
+      "uiHint": null
+    },
+    {
+      "id": "line.keeper.lamps_and_spans",
+      "text": "Hang a lamp at measured spans—count your strides like a mason. Light remembers the way back.",
+      "tags": ["safety", "tutorial"],
+      "conditions": { "once": false, "requireFlags": [], "excludeFlags": [] },
+      "sfx": null,
+      "uiHint": null
+    },
+    {
+      "id": "line.keeper.farewell",
+      "text": "Off you go, delver. Stone watch your steps, and this door stays warm for your return.",
+      "tags": ["farewell"],
+      "conditions": { "once": false, "requireFlags": [], "excludeFlags": [] },
+      "sfx": null,
+      "uiHint": null
+    }
+  ]
+}
