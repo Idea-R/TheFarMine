@@ -1,75 +1,186 @@
 {
   "version": 1,
   "id": "enemy.cave.burrower",
-  "name": "Cave Burrower",
-  "archetype": "Enemy",
-  "body": { "w": 12, "h": 12 },
-  "attributes": { "attackPower": 7, "defense": 0 },
-  "health": { "max": 72 },
-  "stamina": { "max": 45, "regenPerSec": 10 },
-  "poise": { "max": 80, "recoverPerSec": 35, "breakDurationMs": 800 },
-  "movement": { "speedPxPerSec": 50, "turnRateDegPerSec": 360 },
+  "meta": {
+    "author": "gamma",
+    "updated": "2026-02-18T00:00:00Z",
+    "notes": [
+      "MVP Cave Burrower config; maps directly to ECS components and CombatTimingService.",
+      "Timings per combat-design.md §13 (Burrower); within clamps §12.",
+      "If characters.burrower.base/accent are unavailable, temporarily fall back to characters.goblin.base/accent.",
+      "Audio ids validated against data/audio/sound-manifest.json."
+    ]
+  },
+  "visuals": {
+    "spriteId": "sprites/enemies/cave_burrower",
+    "tintToken": "characters.burrower.base",
+    "accentToken": "characters.burrower.accent"
+  },
+  "audio": {
+    "telegraphSfxId": "sfx.combat.telegraph.whoosh",
+    "swingLightSfxId": "sfx.combat.swing.whoosh.light",
+    "hitLightSfxId": "sfx.combat.hit.light",
+    "blockImpactSfxId": "sfx.combat.block.impact",
+    "parrySuccessSfxId": "sfx.combat.parry.success",
+    "poiseBreakSfxId": "sfx.combat.poise.break"
+  },
+  "stats": {
+    "health": {
+      "max": 110,
+      "value": 110
+    },
+    "attributes": {
+      "attackPower": 6,
+      "defense": 2
+    },
+    "poise": {
+      "max": 45,
+      "value": 45,
+      "recoverPerSec": 8,
+      "breakDurationMs": 750
+    }
+  },
+  "movement": {
+    "speedPxPerSec": 48,
+    "approachRangePx": 30,
+    "retreatRangePx": 58
+  },
   "ai": {
-    "aggroRangePx": 110,
-    "leashRangePx": 220,
-    "attackCooldownMs": { "min": 1000, "max": 1250 },
-    "preferOpenLane": false,
-    "feintChance": 0.03,
-    "keepDistancePx": 4,
-    "attackWeights": { "lunge_bite": 0.45, "burrow_ambush": 0.55 }
+    "state": "idle",
+    "telegraphDebounceMs": 120,
+    "cooldownMsRange": {
+      "min": 480,
+      "max": 700
+    },
+    "attackWeights": {
+      "burrow_lunge": 1.0
+    }
   },
   "attacks": [
     {
-      "id": "lunge_bite",
-      "name": "Lunge Bite",
-      "kind": "melee",
-      "windupMs": 280,
-      "activeMs": 90,
-      "recoveryMs": 520,
-      "cooldownMs": 340,
-      "rangePx": 20,
-      "arcDeg": 60,
-      "hitbox": { "w": 14, "h": 10, "offsetX": 11, "offsetY": 0 },
-      "damage": { "base": 7, "poiseDamage": 16 },
-      "hitStopMs": { "attacker": 22, "victim": 42 },
-      "knockback": { "px": 9, "direction": "forward" },
-      "telegraph": { "colorToken": "mapping.telegraph.arc.amber", "arcOverlay": true, "flashAtMs": -110 },
-      "notes": [
-        "Tight cone with forward bias; diagonal dodge recommended.",
-        "Occasional feint (≤40% windup) per AI; emits AttackEnd:canceled when faked."
-      ]
-    },
-    {
-      "id": "burrow_ambush",
-      "name": "Burrow Ambush",
-      "kind": "melee",
-      "windupMs": 420,
-      "activeMs": 100,
-      "recoveryMs": 560,
-      "cooldownMs": 600,
-      "rangePx": 16,
-      "arcDeg": 80,
-      "hitbox": { "w": 16, "h": 12, "offsetX": 8, "offsetY": 0 },
-      "damage": { "base": 8, "poiseDamage": 18 },
-      "hitStopMs": { "attacker": 22, "victim": 42 },
-      "knockback": { "px": 10, "direction": "forward" },
-      "telegraph": { "colorToken": "mapping.telegraph.arc.amber", "arcOverlay": true, "flashAtMs": -140 },
-      "notes": [
-        "Surface cone centered ahead; clear pre-flash and dust VFX on emerge.",
-        "Not parry-special-cased in MVP; normal block/parry semantics apply if timed."
-      ]
+      "id": "burrow_lunge",
+      "name": "Burrow Lunge",
+      "damage": {
+        "base": 6
+      },
+      "poiseDamage": 14,
+      "timings": {
+        "windupMs": 380,
+        "activeMs": 90,
+        "recoveryMs": 380,
+        "cooldownMs": 560,
+        "flashAtMs": -120
+      },
+      "geometry": {
+        "rangePx": 22,
+        "arcDeg": 60
+      },
+      "hitStop": {
+        "attackerMs": 16,
+        "victimMs": 32
+      },
+      "telegraph": {
+        "colorToken": "mapping.telegraph.arc.amber",
+        "arcOverlay": true
+      },
+      "onHit": {
+        "knockbackPx": 9
+      },
+      "sfxOverrides": {
+        "swingId": null,
+        "hitId": null
+      }
     }
-  ],
+    ]
+  ,
   "loot": {
     "table": [
-      { "id": "mat.scrap.copper", "weight": 4, "qty": { "min": 1, "max": 2 } },
-      { "id": "mat.crystal.quartz", "weight": 2, "qty": { "min": 1, "max": 1 } }
+      {
+        "id": "coins.copper",
+        "qtyMin": 2,
+        "qtyMax": 6,
+        "weight": 70
+      },
+      {
+        "id": "mat.scrap.metal",
+        "qtyMin": 1,
+        "qtyMax": 2,
+        "weight": 20
+      },
+      {
+        "id": "mat.ore.copper",
+        "qtyMin": 1,
+        "qtyMax": 1,
+        "weight": 10
+      }
     ],
-    "nothingWeight": 15
+    "rolls": 2,
+    "notes": [
+      "Burrowers carry copper flecks"
+    ]
   },
-  "notes": [
-    "Burrows briefly before ambush; AI prefers flanks over center lanes.",
-    "Telegraphs use mapping.telegraph.arc.amber; Audio bridge plays sfx.combat.telegraph.whoosh.",
-    "Tuned with Player AP 8 for ~30–34 s TTK; revisit post-sandbox metrics."
-  ]
+  "acceptance": {
+    "clamps": {
+      "timings": {
+        "windupMs": {
+          "min": 200,
+          "max": 700
+        },
+        "activeMs": {
+          "min": 70,
+          "max": 120
+        },
+        "recoveryMs": {
+          "min": 200,
+          "max": 600
+        },
+        "cooldownMs": {
+          "min": 250,
+          "max": 800
+        },
+        "flashAtMs": {
+          "min": -180,
+          "max": -80
+        }
+      },
+      "geometry": {
+        "rangePx": {
+          "min": 12,
+          "max": 36
+        },
+        "arcDeg": {
+          "min": 30,
+          "max": 120
+        }
+      },
+      "ai": {
+        "telegraphDebounceMs": {
+          "min": 80,
+          "max": 200
+        },
+        "cooldownMsRange": {
+          "min": 300,
+          "max": 1000
+        }
+      },
+      "poise": {
+        "breakDurationMs": {
+          "min": 500,
+          "max": 1500
+        }
+      }
+    },
+    "crossRefs": [
+      "sprites/enemies/cave_burrower",
+      "characters.burrower.base",
+      "characters.burrower.accent",
+      "mapping.telegraph.arc.amber",
+      "sfx.combat.telegraph.whoosh",
+      "sfx.combat.swing.whoosh.light",
+      "sfx.combat.hit.light",
+      "sfx.combat.block.impact",
+      "sfx.combat.parry.success",
+      "sfx.combat.poise.break"
+    ]
+  }
 }
