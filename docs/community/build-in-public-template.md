@@ -1,268 +1,124 @@
-# Build-in-Public — Weekly Update Template (Sprint 1)
+# Build-in-Public — <Week Label> (<YYYY-MM-DD>)
 
-Provenance: owner @theta (Community — Brewmaster Alehart)
+Owner: <Alpha|Beta|Gamma|Delta|Epsilon|Zeta|Eta> — @<owner1> @<owner2>
+Links: [PRs Merged]() • [Branch]() • [Build Hash]() • [Demo Clip]()
+Sprint/Scope: <e.g., Sprint 1 — L1 Vertical Slice>
 
-Cross-refs:
-- Ritual timing: docs/community/engagement-playbook.md
-- Linked channels: data/community/welcome-sequence.json
-- Tag examples: docs/combat-systems/combat-design.md, docs/technology-systems/crafting-design.md, docs/world-generation/cave-gen-algorithm.md
+## What Landed (3–5)
+- Keep ≤100 chars; 1 link per bullet; add acceptance note; use stable IDs/tokens.
+- <desc using ids like ui.hud.pip or sfx.mine.hit.rock.v1> (<link>) — acceptance: <note>
+- <desc> (<link>) — acceptance: <note>
+- <desc> (<link>) — acceptance: <note>
+- <desc> (<link>) — acceptance: <note>
 
----
+## What’s Next (3–4)
+- [<Owner>] <Task> — Done when <clear, testable criterion>.
+- [<Owner>] <Task> — Done when <clear, testable criterion>.
+- [<Owner>] <Task> — Done when <clear, testable criterion>.
+- [<Owner>] <Task> — Done when <clear, testable criterion>.
 
-## Usage Notes
+## Call for Feedback
+- <Prompt 1> → Reply in #feedback-forge thread; tag [combat] [worldgen] [ui] [audio] [lore] [tools] [bugs].
+- <Prompt 2> → Reply in #feedback-forge thread; tag [combat] [worldgen] [ui] [audio] [lore] [tools] [bugs].
 
-A steady pour wins the night. Keep it clear, short, and actionable. Use the Short Post in {{channel.announcements}}, then anchor a Thread Starter in {{channel.build_in_public}} for details and clips. Link the thread in {{channel.tavern_talk}} to pull folks into the tasting lane.
+## Clip/Media Panel
+- 10–30s MP4 or GIF; 1080p preferred; show input overlay if timing-sensitive.
+- Filename: buildinpublic_<YYYYMMDD>_<domain>_<slug>.(mp4|gif)
+- Alt text (≤120 chars): <describe action, key read, and result>
 
-Checklist:
-- Add sprint label and [tags] per bullet
-- Include 1–3 clips/gifs with alt-text (<10s if possible)
-- Pin the thread opener
-- Tag domain owners as needed
-- Add the Reaction Legend in the opener
+## Data & IDs Cross-Refs
+- List all IDs you referenced. Verify against repo manifests.
+- Reference files:
+  - docs/combat-systems/combat-design.md
+  - data/audio/sound-manifest.json
+  - data/visual/color-palette.json
+  - docs/narrative/founding-lore.md
 
-Where/When:
-- Post Summary in {{channel.announcements}} on Tue 18:00 UTC
-- Start Thread in {{channel.build_in_public}} immediately after
-- Cross-link in {{channel.tavern_talk}}
+| ID/token                              | Kind     | Source file                                      |
+|---------------------------------------|----------|--------------------------------------------------|
+| <DamageEvent>                         | event    | docs/combat-systems/combat-design.md             |
+| <sfx.mine.hit.rock.v1>                | sfx id   | data/audio/sound-manifest.json                   |
+| <mapping.telegraph.arc.amber>         | palette  | data/visual/color-palette.json                   |
+| <mood.stillshift>                     | lore id  | docs/narrative/founding-lore.md                  |
+| <ui.hud.stamina.pip>                  | ui id    | docs/combat-systems/combat-design.md             |
 
----
+## Risks/Blockers
+- <risk> — mitigation/ask: <what you need> (@<who>)
 
-## Short Post — Announcements Snippet (discord-ready)
+## Community Spotlight (optional)
+- <shout-out ≤140 chars with link to thread/comment>
 
-Template (copy, fill, and post in {{channel.announcements}}):
-- [{{WEEK}}][{{SPRINT}}] Build-in-Public
-- What shipped:
-  - • {{SHIPPED_1}} [tag]
-  - • {{SHIPPED_2}} [tag]
-  - • {{SHIPPED_3}} [tag]
-- What’s next:
-  - • {{NEXT_1}} [tag]
-  - • {{NEXT_2}} [tag]
-- Join the thread: {{channel.build_in_public}}
-- Drop feedback: {{channel.feedback}} | Sign up: {{channel.playtests}}
-- Tags: [combat] [worldgen] [crafting] [ui] [audio] [lore]
+## Footer
+- [ ] All links resolve (PR/branch/build/clip)
+- [ ] Media under 15 MB or hosted
+- [ ] IDs verified against repo
+- [ ] Feedback thread created in #feedback-forge with tags
+- [ ] Cross-posted to #forge-log if code merged
 
-Example (Sprint 1 — mentions Burrower, Three‑Wide rooms, tools.json):
-- [Week 01][Sprint 1 — MVP Loop] Build-in-Public
-- What shipped:
-  - • Burrower baseline AI + lunge window [combat]
-  - • Three‑Wide room templates pass A [worldgen]
-  - • tools.json seed list (Pick, Torch) [crafting]
-- What’s next:
-  - • Encounter sandbox timing checks [combat]
-  - • Palette polish on copper veins [worldgen]
-- Join the thread: {{channel.build_in_public}}
-- Drop feedback: {{channel.feedback}} | Sign up: {{channel.playtests}}
-- Tags: [combat] [worldgen] [crafting] [ui] [audio] [lore]
+— Brewmaster Alehart (Theta) or domain owner
 
----
-
-## Thread Starter — Long Form (discord thread opener)
-
-### What We Built This Week
-- style-guide.md: first telegraph shapes + palette tokens [ui][combat]
-- enemy-cave-burrower.json: lunge, burrow, surface tick tuned [combat]
-- sound-manifest.json: stub IDs for mine/deny/footfall [audio]
-- room-templates.json: Three‑Wide and Junction V1 [worldgen]
-- combat-timing-service.js: windup/active/recover phases [combat]
-- tools.json: Basic Pickaxe + Torch entries [crafting]
-- Clip PR links attached below; see notes per media
-
-### Clips & Screens
-- {{CLIP_LINK_1}} — Alt: {{ALT_TEXT_1}} (keep under 10s; focus on a single moment)
-- {{CLIP_LINK_2}} — Alt: {{ALT_TEXT_2}} (show input vs. output if timing-related)
-- {{CLIP_LINK_3}} — Alt: {{ALT_TEXT_3}} (use fixed zoom; no shaky pans)
-
-Note: Keep clips <10s where possible. Add clear alt-text for accessibility and async review.
-
-### What’s Next (Up to 7 Days)
-- Wire welcome-sequence bot handoff to channels [ui]
-- ECS Audio bridge stub to manifest events [audio]
-- Encounter sandbox pass for lunge timings [combat]
-- Expand Three‑Wide variants with ore niches [worldgen]
-- Crafting proto hookup: pick durability read [crafting]
-
-### Help Wanted From the Guild
-- Post a 5–10s clip of a mining break with Basic Pickaxe vs rock 3 [playtest]
-- Try dodging Burrower lunge; note readable telegraph or not [feedback]
-- Screenshot a Three‑Wide room that feels too samey [feedback]
-- Audio pass: does deny sound read as “soft fail”? 5s clip [playtest]
-
-### Known Issues (MVP Honesty Board)
-- Telegraph arc opacity spikes on stacked overlaps [combat][ui]
-- Mining deny sound routes UI bus instead of SFX [audio]
-- Burrower surface tick snaps on uneven tiles [combat]
-- Room seams expose void on Z‑pass edges [worldgen]
-- Torch flicker timing drifts after scene load [audio][ui]
-
-### Community Spotlight
-- Shout to @mineshaft for the copper vein color test — crisp and readable at a glance.
-- Nominate next week: drop a link in {{channel.tavern_talk}} with [spotlight].
-
-### How to Test This Build
-1) Grab build: see pinned “Latest Build” in {{channel.build_in_public}} (hash {{BUILD_HASH}} — {{BUILD_DATE}})
-2) Controls: WASD move, Space dodge, Left Click mine, Right Click torch
-3) Try:
-   - Mine copper in a Three‑Wide room; note readability [worldgen]
-   - Dodge Burrower lunge; note timing window clarity [combat]
-4) Report: post in {{channel.feedback}} with tags like [combat] [worldgen] [audio]
-5) Include OS, build hash, and a 5–10s clip or screenshot with alt-text
-
-### Links & References
-- GDD v1.0
-- style-guide.md
-- docs/technology-systems/crafting-design.md
-- docs/combat-systems/combat-design.md
-- sound-manifest.json
 
 ---
 
-## Reaction Legend & Thread Etiquette
+# Example Stub (copy/paste)
 
-Legend:
-- 👍 shipped
-- 🧭 confirmed bug
-- 🧪 testing
-- 💡 idea
-- 🪓 mining
-- 🔧 WIP
-- 🎬 clip
+Build-in-Public — Week 07 (2026-02-18)
 
-Etiquette:
-- Reply in-thread; keep one topic per reply chain
-- Alt-text required for media
-- Keep clips under 10s when possible; stable camera, readable HUD
+Owner: Theta — @brewmaster.aleth
+Links: [PRs Merged]() • [Branch]() • [Build Hash]() • [Demo Clip]()
+Sprint/Scope: Sprint 2 — L1 Mining Loop
 
----
+## What Landed (3–5)
+- Retimed pick cadence to 10 swings/6.0s using DamageEvent (https://git.example/pr/421)
+  — acceptance: 6.0s ±0.1s at 60 fps
+- Telegraph tint: mapping.telegraph.arc.amber applied to L1 (https://git.example/commit/a1b2c3)
+  — acceptance: readable vs lava at 1080p
+- Rock vs copper hits layer sfx.mine.hit.* v1 (https://git.example/pr/430)
+  — acceptance: mix peak ≤ -6 dBFS, no clip
+- HUD pips bound to ui.hud.stamina.pip (https://git.example/pr/433)
+  — acceptance: 5 states map to fatigue thresholds
+- Campfire save event.save.campfire.v1 (https://git.example/commit/d4e5f6)
+  — acceptance: autosave on rest, icon flashes 300 ms
 
-## Fill-in Variables Block
+## What’s Next (3–4)
+- [Theta] Wire sprint toggle HUD — Done when pip flicker <1f @60fps.
+- [Delta] Balance copper HP — Done when 3-hit delta ≤1 across tools.tier.t1.
+- [Beta] Add footstep sfx ids — Done when 6 mats map to sfx.step.* in manifest.
+- [Gamma] Telegraphed sweep VFX — Done when arc color passes WCAG AA over lava.
 
-Copy this block to the top of your thread before posting:
-- WEEK: e.g., Week 02
-- SPRINT: e.g., Sprint 1 — MVP Loop
-- BUILD_HASH: e.g., 1a2b3c4
-- BUILD_DATE: e.g., 2026-02-18
-- CLIP_LINK_1: e.g., https://clips.example/clip1
-- ALT_TEXT_1: e.g., “Burrower windup arc and lunge; player dodges right”
-- CLIP_LINK_2: e.g., https://clips.example/clip2
-- ALT_TEXT_2: e.g., “Mining copper vein in Three‑Wide; sparks and break timing”
-- CLIP_LINK_3: e.g., https://clips.example/clip3
-- ALT_TEXT_3: e.g., “Deny sound on wrong tool; UI hint visible”
-- LINKS:
-  - {{channel.build_in_public}}
-  - {{channel.feedback}}
-  - {{channel.playtests}}
+## Call for Feedback
+- Mining hit feel: rock vs copper — which reads better? → Reply in #feedback-forge; tag [audio] [ui].
+- Telegraph arc timing: 300 ms vs 400 ms — which teaches better? → Reply in #feedback-forge; tag [combat].
 
----
+## Clip/Media Panel
+- 10–30s MP4 or GIF; 1080p preferred; show input overlay if timing-sensitive.
+- Filename: buildinpublic_20260218_theta_mining-cadence.mp4
+- Alt text: Miner swings pick; rock and copper hits differ; stamina pips drop; amber arc warns.
 
-## Examples (Two fully filled samples)
+## Data & IDs Cross-Refs
+- Verified against repo manifests.
 
-Example A — Worldgen + Visuals Focus:
-- Short Post ({{channel.announcements}}):
-  - [Week 02][Sprint 1 — MVP Loop] Build-in-Public
-  - What shipped:
-    - • Three‑Wide room var set + ore niches [worldgen]
-    - • style-guide.md: telegraph shapes pass A [ui][combat]
-    - • Copper vein palette tweak for readability [worldgen]
-  - What’s next:
-    - • Room seam audit + UV pass [worldgen]
-    - • Telegraph contrast check in dark scenes [ui]
-  - Join the thread: {{channel.build_in_public}}
-  - Drop feedback: {{channel.feedback}} | Sign up: {{channel.playtests}}
-  - Tags: [combat] [worldgen] [crafting] [ui] [audio] [lore]
+| ID/token                              | Kind     | Source file                                      |
+|---------------------------------------|----------|--------------------------------------------------|
+| DamageEvent                           | event    | docs/combat-systems/combat-design.md             |
+| sfx.mine.hit.rock.v1                  | sfx id   | data/audio/sound-manifest.json                   |
+| sfx.mine.hit.copper.v1                | sfx id   | data/audio/sound-manifest.json                   |
+| mapping.telegraph.arc.amber           | palette  | data/visual/color-palette.json                   |
+| ui.hud.stamina.pip                    | ui id    | docs/combat-systems/combat-design.md             |
+| event.save.campfire.v1                | event    | docs/combat-systems/combat-design.md             |
+| mood.stillshift                       | lore id  | docs/narrative/founding-lore.md                  |
 
-- Thread Starter ({{channel.build_in_public}}):
-  - What We Built This Week
-    - room-templates.json: Three‑Wide V1.1 + Junction cap [worldgen]
-    - style-guide.md: neutral palette tokens added [ui]
-    - Copper vein sprite mask cleanup pass [worldgen]
-    - Torch falloff curve tweak for walls [ui]
-  - Clips & Screens
-    - https://clips.example/a1 — Alt: Walkthrough of Three‑Wide w/ copper node
-    - https://clips.example/a2 — Alt: Telegraph icon pass on dark tile
-  - What’s Next (Up to 7 Days)
-    - UV seam sweep on junction edges [worldgen]
-    - Telegraphed hazards contrast pass [ui]
-    - Palette test: desat stone on deeplayers [worldgen]
-  - Help Wanted From the Guild
-    - Post a screen of a flat-looking room; mark coords [feedback]
-    - 5–10s clip showing telegraph readability in torchlight [playtest]
-  - Known Issues (MVP Honesty Board)
-    - Room seam shows void on Z‑edge [worldgen]
-    - Telegraph alpha pops on overlap [ui]
-    - Torch flicker drifts post-load [audio][ui]
-  - Community Spotlight
-    - @caver posted a clean ore readability mock. Nominate next in {{channel.tavern_talk}} [spotlight]
-  - How to Test This Build
-    - Pull build {{BUILD_HASH}} — {{BUILD_DATE}} from pin
-    - Walk 3 rooms; find copper; mine once; note palette legibility
-    - Report to {{channel.feedback}} with [worldgen][ui]
-  - Links & References
-    - GDD v1.0, style-guide.md, crafting-design.md, combat-design.md, sound-manifest.json
+## Risks/Blockers
+- Need goblin tint tokens finalized by Wed — @Eta — mitigation: temp map to palette.warn.goblin.
 
-Example B — Combat + Audio Focus:
-- Short Post ({{channel.announcements}}):
-  - [Week 03][Sprint 1 — MVP Loop] Build-in-Public
-  - What shipped:
-    - • Burrower lunge timing in service layer [combat]
-    - • sound-manifest.json hooks for mine/deny [audio]
-    - • tools.json: pick/torch cleanup [crafting]
-  - What’s next:
-    - • Encounter sandbox checks on hit-stop [combat]
-    - • ECS Audio bridge stub to events [audio]
-  - Join the thread: {{channel.build_in_public}}
-  - Drop feedback: {{channel.feedback}} | Sign up: {{channel.playtests}}
-  - Tags: [combat] [worldgen] [crafting] [ui] [audio] [lore]
+## Community Spotlight (optional)
+- Shout-out @orewhisperer for copper timing tests. Log here: https://forum.example/t/7921
 
-- Thread Starter ({{channel.build_in_public}}):
-  - What We Built This Week
-    - combat-timing-service.js: windup/active frames [combat]
-    - enemy-cave-burrower.json: lunge/surface tick tune [combat]
-    - sound-manifest.json: deny/mine SFX IDs [audio]
-    - tools.json: durability field placeholder [crafting]
-  - Clips & Screens
-    - https://clips.example/b1 — Alt: Lunge telegraph → dodge → safe window
-    - https://clips.example/b2 — Alt: Wrong-tool deny sound vs UI hint
-    - https://clips.example/b3 — Alt: Hit-stop feel on strike (WIP)
-  - What’s Next (Up to 7 Days)
-    - Encounter sandbox pass on hit-stop [combat]
-    - Audio bridge stub (ECS → manifest) [audio]
-    - Torch cue sidechain test vs music [audio]
-  - Help Wanted From the Guild
-    - Record a 5–10s dodge vs lunge; did you read windup? [playtest]
-    - Does deny SFX feel “soft fail” not error? Note vibe. [feedback]
-    - Share any stutter in timing service under load [playtest]
-  - Known Issues (MVP Honesty Board)
-    - Lunge arc opacity spikes on overlap [combat][ui]
-    - Deny SFX on UI bus; too bright in mix [audio]
-    - Surface tick snaps on uneven tiles [combat]
-  - Community Spotlight
-    - @pickmaster’s timing grid notes saved a pass. Nominate in {{channel.tavern_talk}} [spotlight]
-  - How to Test This Build
-    - Grab build {{BUILD_HASH}} — {{BUILD_DATE}} from pin
-    - Enter test cave; bait lunge; dodge; rate clarity 1–5
-    - Mine once with wrong tool; note SFX + hint
-    - Report to {{channel.feedback}} with [combat][audio]
-  - Links & References
-    - GDD v1.0, style-guide.md, crafting-design.md, combat-design.md, sound-manifest.json
+## Footer
+- [ ] All links resolve (PR/branch/build/clip)
+- [ ] Media under 15 MB or hosted
+- [ ] IDs verified against repo
+- [ ] Feedback thread created in #feedback-forge with tags
+- [ ] Cross-posted to #forge-log if code merged
 
----
-
-## Posting Checklist (concise)
-- Tue 18:00 UTC confirmed
-- Post Short in {{channel.announcements}}
-- Create Thread in {{channel.build_in_public}}
-- Cross-link in {{channel.tavern_talk}}
-- Pin the thread opener
-- Add Reaction Legend to opener
-- Schedule Thu triage reminder
-
----
-
-## Acceptance Checklist (for this template)
-- Copy-pasteable to Discord with placeholders
-- Includes Short + Long formats
-- Reaction legend present
-- Tags align with engagement-playbook
-- Alt-text guidance included
-- Links use stable {{channel.*}} tokens
+— Brewmaster Alehart (Theta)
