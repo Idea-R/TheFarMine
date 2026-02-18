@@ -1,427 +1,359 @@
-# Crafting & Mining Tech — Gears, Grit, and Steam (Sprint 1)
+# Crafting & Tool Progression — Gears, Grist, and Grind (Sprint 1)
 
 Provenance
 - Owner: @delta (Technology Systems — Gearwright Steamforge)
-- Voice and authority: Gearwright Steamforge, your exacting steward of cogs, contracts, and capability.
+- Author: Gearwright Steamforge, Master of cogs, code, and careful clamps
+- Cross-references:
+  - docs/core-systems/ecs-architecture.md (§Components: Inventory, Tile.hardness)
+  - docs/world-generation/cave-gen-algorithm.md (§3 Hardness bands, §12 Outputs)
+  - docs/audio-systems/audio-design.md (§6 Event Bridge)
+  - docs/visual-systems/style-guide.md (§10 UI-safe iconography)
+  - data/items/tools.json
+  - data/audio/sound-manifest.json (crafting.complete)
+  - forthcoming src/systems/mining-system.js
 
-Cross-references
-- data/core/component-schemas.json (§Inventory, §Tile.hardness)
-- docs/core-systems/ecs-architecture.md (§System Order — MiningSystem)
-- docs/world-generation/cave-gen-algorithm.md (§Hardness bands; Tile.flags)
-- data/world/biome-crystal-caverns.json (rock/ore hardness 3/4/5/7)
-- docs/combat-systems/combat-design.md (§Stamina timings for parity)
-- docs/visual-systems/style-guide.md (§Mining VFX tokens)
-- docs/audio-systems/music-direction.md (§Events & Bridges note references)
-- Future implementation target: src/systems/mining-system.js (adhere to contract herein)
+---
 
+## 1) Intent
 
+By my brass-bound calipers: this specification delivers an implementation-ready Crafting and Tool Progression slice for Sprint 1. It defines tool gates, recipe data, station tiers, and the event bridges that bind to UI/Audio. It is aligned to ECS inventory, worldgen hardness bands, and the MiningSystem handshake.
 
-## 1) MVP Goals & Scope
+---
+
+## 2) Goals & Non-goals (MVP)
 
 Goals
-- 3-step tool progression that meaningfully gates resources by hardness:
-  - Rock (3), Copper (4), Iron (5), Quartz (7)
-- Three starter crafting recipes to bring players through the chain
-- Workbench chain with simple enable gating: Workbench → Forge → Steamworks
-- Clean data contracts:
-  - items/tools.json (ToolDef array)
-  - crafting/recipes.json (RecipeDef array)
-- MiningSystem contract:
-  - Eligibility check vs Tile.hardness
-  - Stamina spend and regen delay on swing
-  - Durability decrement and tool-break behavior
-  - Progress ticks and tile break events
+- a) Meaningful 3-step tool progression across hardness gates 3/4/5/7.
+- b) Simple station tiering: workbench → forge → steamworks.
+- c) Three starter recipes referencing stable ids (authoritative here).
+- d) Deterministic JSON schemas for tools and recipes (key order and clamps).
+- e) Clear event bridges: UI and Audio on craft start/complete/fail.
 
-Out of scope (Sprint 1)
-- Repairs UI flow (may stub or disable)
-- Smelting loop beyond what’s required for the listed recipes
-- Automation miners or background mining behaviors
+Non-goals
+- Smelting/ingot loops and resource refinement chains.
+- Fuel/pressure simulation for drills (no runtime fuel in MVP).
+- Recipe discovery systems beyond default-known flags.
 
+---
 
+## 3) Resource Taxonomy (Authoritative MVP IDs)
 
-## 2) Resource Types (MVP)
+Categories and stable ids used by recipes; these ids must be respected by Inventory and Crafting UI. No data file defined here; authoritative values are below.
 
-Authoritative item ids and notes
-- mat.ore.copper
-  - Acquisition: mine Copper tiles (hardness 4)
-  - Stack: integer ≥0
-- mat.ingot.copper
-  - Acquisition: smelting (may be bypassed in MVP; see note below)
-  - Stack: integer ≥0
-  - Note: MVP may allow using ore directly in recipes in lieu of ingots
-- mat.ore.iron
-  - Acquisition: mine Iron tiles (hardness 5)
-  - Stack: integer ≥0
-- mat.ingot.iron
-  - Acquisition: smelting (may be bypassed in MVP)
-  - Stack: integer ≥0
-- mat.crystal.quartz
-  - Acquisition: mine Quartz veins (hardness 7)
-  - Stack: integer ≥0
-- mat.wood.plank
-  - Acquisition: basic gather/salvage or vendor
-  - Stack: integer ≥0
-- mat.fiber.bundle
-  - Acquisition: gather from flora or loot; used as binding
-  - Stack: integer ≥0
-- mat.steam.core
-  - Acquisition: rare drop or vendor (MVP)
-  - Stack: integer ≥0
-- mat.scrap.copper
-  - Acquisition: goblin loot/salvage; convertible to ingot at Forge if smelting enabled in MVP+1
-  - Stack: integer ≥0
-- mat.scrap.iron
-  - Acquisition: goblin loot/salvage; convertible to ingot at Forge if smelting enabled in MVP+1
-  - Stack: integer ≥0
+- Ores/Crystals
+  - mat.ore.copper
+  - mat.ore.iron
+  - mat.crystal.quartz
+  - Mapping to ore tiles: ore.copper, ore.iron, ore.quartz
+- Components/Scrap
+  - mat.scrap.copper
+- Power
+  - mat.core.steam (Steam Core)
 
-MVP simplification note
-- Where noted, ore may be a direct crafting input in lieu of ingots to avoid blocking on smelting loop in Sprint 1.
+Notes
+- Worldgen hardness mapping (Level 1), per cave-gen-algorithm.md §3:
+  - rock = 3
+  - ore.copper = 4
+  - ore.iron = 5
+  - ore.quartz = 7
+  - These teach our hardness gates and are mirrored by MiningSystem.
+- Future: mat.ingot.* reserved; excluded from MVP.
 
+---
 
+## 4) Stations & Tiers (MVP Mechanics)
 
-## 3) Stations & Workbench Mechanics
+Stations (stable ids and baselines)
+- station.workbench.t1 — Tier 1: basic assembly; 1-slot queue; craft time baseline 1.2–1.8 s per recipe.
+- station.forge.t2 — Tier 2: metalwork; 1-slot queue; craft time baseline 1.8–2.4 s; required for iron-tier tools.
+- station.steamworks.t3 — Tier 3: steam/mech assembly; 1-slot queue; craft time baseline 2.2–3.0 s; required for Steam Drill.
 
-Stations and ids
-- station.workbench.t1
-  - Basic assembly
-  - Availability: Tavern/workshop at start
-- station.forge.t2
-  - Metalworking and reinforcement
-  - Unlock: after first delve return (flag) or via placed Forge prop
-- station.steamworks.t3
-  - Advanced mechanistry
-  - Unlock: mid-MVP by flag or debug toggle for balance
-  - Consumes mat.steam.core in recipes (no runtime fuel drain)
+UI/UX (MVP)
+- Stations present a simple recipe list filtered by station tier and known recipes.
+- Disabled entries show exact unmet constraints (missing items, wrong station, insufficient qty).
+- Emit mining.Deny sounds only in mining; crafting uses ui.error/confirm per audio spec.
+- On craft start: deduct inputs atomically; on completion: deliver outputs; emit crafting.complete.
 
-Station interaction rules (MVP)
-- Each recipe declares a required station id; UI filters by available stations
-- No sub-slot complexities; instant craft on click if ingredients present
-- Error/disabled states:
-  - "Missing station" — player lacks access to required station
-  - "Insufficient materials" — inventory missing inputs
-  - "Output inventory full" — optional string if inventory capacity blocks output (UI discretion, not required by contract)
+Audio bridge
+- crafting.complete → ui.craft.complete (data/audio/sound-manifest.json).
+- Clicks/confirm/error map to ui.click/ui.confirm/ui.error.
 
+---
 
+## 5) Tools & Hardness Gates (Authoritative Mapping)
 
-## 4) Tool Tiers & Gates (Authoritative Numbers)
+Tool ids and fields per data/items/tools.json (already shipped)
+- tool.pick.t1.basic — tier 1; kind=pick; miningPower 4 (eligible: rock 3, copper 4); miningSpeed 1.0; staminaCost 16; durabilityMax 60; swingMs 300.
+- tool.pick.t2.reinforced — tier 2; kind=pick; miningPower 5 (adds iron 5); miningSpeed 1.15; staminaCost 15; durabilityMax 120; swingMs 300.
+- tool.drill.t3.steam — tier 3; kind=drill; miningPower 7 (adds quartz 7); miningSpeed 1.35; staminaCost 12; durabilityMax 200; swingMs 220.
+  - Notes: requires Steam Core; no runtime fuel in MVP.
+- Eligibility rule (mirrored by MiningSystem): tool.miningPower >= Tile.hardness.
+- Feel targets: T2 swing ≈15% faster than T1; T3 drill bites faster again with lower stamina per progress.
 
-Eligibility rule (authoritative)
-- A tool may attempt a mining action only if tool.miningPower ≥ target Tile.hardness
+---
+
+## 6) JSON Schemas (Authoritative, key order and clamps)
+
+tools.json (reference parity; already implemented)
+- File: data/items/tools.json
+- Structure: JSON array of ToolDef with exact key order:
+  - id
+  - name
+  - tier
+  - kind
+  - miningPower
+  - miningSpeed
+  - staminaCost
+  - durabilityMax
+  - durabilityPerHit
+  - swingMs
+  - notes
+- Constraints:
+  - tier ∈ {1,2,3}
+  - kind ∈ {"pick","drill"}
+  - miningPower ≥ 0
+  - miningSpeed > 0
+  - staminaCost ≥ 0
+  - durabilityMax ≥ 1
+  - durabilityPerHit ≥ 0
+  - swingMs > 0
+- Ensure parity with data/items/tools.json for authoritative values.
+
+recipes.json (authoritative)
+- File: data/crafting/recipes.json
+- Top-level: strict JSON array of RecipeDef objects.
+- Each RecipeDef uses this exact key order:
+  1) id (string)
+  2) name (string)
+  3) stationId (string)
+  4) stationTier (int)
+  5) timeMs (int)
+  6) inputs (array of { id: string, qty: int })
+  7) outputs (array of { id: string, qty: int })
+  8) unlock (object { knownByDefault: boolean })
+- Clamps:
+  - id, stationId non-empty strings.
+  - timeMs ≥ 0.
+  - inputs length ≥ 1; outputs length ≥ 1.
+  - All qty ≥ 1.
+  - stationTier ∈ {1,2,3} and must match the tier of stationId.
+- Relations:
+  - outputs reference existing item ids (e.g., tool.* from data/items/tools.json).
+  - inputs reference material ids defined in §3.
+
+Sample shape (illustrative only):
+```json
+{
+  "id": "recipe.example.id",
+  "name": "Display Name",
+  "stationId": "station.workbench.t1",
+  "stationTier": 1,
+  "timeMs": 1500,
+  "inputs": [ { "id": "mat.ore.copper", "qty": 1 } ],
+  "outputs": [ { "id": "tool.pick.t1.basic", "qty": 1 } ],
+  "unlock": { "knownByDefault": true }
+}
+```
+
+Implementation clamps (loader)
+- Validate key order when serializing; preserve insertion order when emitting to disk.
+- Enforce station tier mapping table:
+  - station.workbench.t1 → 1
+  - station.forge.t2 → 2
+  - station.steamworks.t3 → 3
+- On parse failure, surface a structured error with path and reason; do not partially register recipes.
+
+---
+
+## 7) Starter Recipes (MVP — exact definitions)
+
+Place the following exact array into data/crafting/recipes.json. Preserve key order and spacing as shown (order matters; spacing is flexible but recommended for diffs).
+
+```json
+[
+  {
+    "id": "recipe.tool.pick.t1.basic",
+    "name": "Forge Basic Pickaxe",
+    "stationId": "station.workbench.t1",
+    "stationTier": 1,
+    "timeMs": 1500,
+    "inputs": [
+      { "id": "mat.ore.copper", "qty": 8 },
+      { "id": "mat.scrap.copper", "qty": 2 }
+    ],
+    "outputs": [
+      { "id": "tool.pick.t1.basic", "qty": 1 }
+    ],
+    "unlock": { "knownByDefault": true }
+  },
+  {
+    "id": "recipe.tool.pick.t2.reinforced",
+    "name": "Forge Reinforced Pickaxe",
+    "stationId": "station.forge.t2",
+    "stationTier": 2,
+    "timeMs": 2000,
+    "inputs": [
+      { "id": "mat.ore.iron", "qty": 8 },
+      { "id": "mat.ore.copper", "qty": 4 }
+    ],
+    "outputs": [
+      { "id": "tool.pick.t2.reinforced", "qty": 1 }
+    ],
+    "unlock": { "knownByDefault": false }
+  },
+  {
+    "id": "recipe.tool.drill.t3.steam",
+    "name": "Assemble Steam Drill",
+    "stationId": "station.steamworks.t3",
+    "stationTier": 3,
+    "timeMs": 2400,
+    "inputs": [
+      { "id": "mat.ore.iron", "qty": 6 },
+      { "id": "mat.crystal.quartz", "qty": 2 },
+      { "id": "mat.core.steam", "qty": 1 }
+    ],
+    "outputs": [
+      { "id": "tool.drill.t3.steam", "qty": 1 }
+    ],
+    "unlock": { "knownByDefault": false }
+  }
+]
+```
+
+Rationale
+- T1 builds from nearby copper and scrap.
+- T2 demands iron (new hardness gate) plus some copper.
+- T3 introduces quartz + a Steam Core to sell the tech jump.
+- No upgrade-consume of prior tool in MVP to keep logic simple.
+
+---
+
+## 8) Craft Flow & ECS Integration
+
+Inventory ownership (ECS)
+- Inventory component shape: Inventory { slots: [ItemStack], selectedIndex }
+  - ItemStack: { id: string, qty: int } with qty ≥ 0.
+- Craft system reads/writes Inventory; all qty clamped ≥ 0 after operations.
+
+Action path (client-local MVP)
+1) Player opens a station entity (has Station { id, tier }).
+2) UI lists recipes filtered by station.tier and unlock.knownByDefault.
+3) On selection, validate:
+   - Station tier matches recipe.stationTier.
+   - All inputs present with sufficient qty in Inventory.
+4) On success:
+   - Emit crafting.Start.
+   - Deduct inputs immediately and atomically from Inventory.
+   - Start a client-local craft timer for recipe.timeMs. Queue size = 1 per station; no background queue.
+5) On completion:
+   - Grant outputs into Inventory (stack into existing slots if possible).
+   - Emit crafting.Complete (Audio: ui.craft.complete).
+6) On failure:
+   - Do not deduct anything; emit crafting.Fail with reason and route UI error.
+
+Events (emit on bus)
+- crafting.Start { playerId, stationId, recipeId, timeMs }
+- crafting.Complete { playerId, stationId, recipeId, outputs:[{id,qty}] } → Audio maps to ui.craft.complete
+- crafting.Fail { playerId, stationId, recipeId, reason:"no_inputs"|"wrong_station"|"unknown" } → UI maps to ui.error
+
+UI bridges
+- Badge stationTier on recipe list.
+- Grey-out unmet with reasons:
+  - “Need station tier X” when station mismatch.
+  - “Missing: <item id> ×<qty>” for each deficit.
+- Hover shows resource deltas (+/−) pre- and post-craft (predictive).
+- Use UI-safe icons per style-guide §10.
+
+---
+
+## 9) MiningSystem Handshake (for context)
+
+- Eligibility rule: tool.miningPower >= Tile.hardness (3/4/5/7), per worldgen doc.
+- Mining performance:
+  - miningSpeed multiplier and staminaCost per data/items/tools.json.
+  - Durability decremented by durabilityPerHit on successful progress tick.
+- Events per audio-design.md:
+  - mining.Swing (per kind: pick/drill)
+  - mining.Progress (material-specific hit feedback)
+  - mining.Break (tile destroyed)
+  - mining.Deny (wrong tool power or stamina)
+- Audio mapping examples:
+  - mining.Swing.pick → sfx.mine.pick.swing
+  - mining.Progress.ore.copper → sfx.mine.hit.ore.copper
+  - mining.Break.ore → sfx.mine.break.ore
+  - Deny routes per reason (insufficient power/stamina).
+
+Note: forthcoming src/systems/mining-system.js must mirror the eligibility rule and feel targets from §5.
+
+---
+
+## 10) Balancing Notes & Dials
+
+Adjustable dials
+- recipe timeMs ±300 ms
+- material qty ±2
+- miningSpeed ±0.05
+- staminaCost ±2
+
+Targets
+- T1 viable but stamina-taxing.
+- T2 noticeably smoother (≈15% faster effective pace).
+- T3 breezy on hardness 3/4/5; fair challenge on 7 (quartz).
+
+Playtime intent
+- First Steam Drill acquisition ≈ 25–40 minutes from fresh seed with average luck.
+- Adjust via Steam Core rarity later (out of scope here).
+
+---
+
+## 11) Acceptance Checklist
+
+- data/items/tools.json present and parses (3 entries; ids match §5).
+- data/crafting/recipes.json parses; three recipes exactly as §7; key order matches §6 schema; stationTier aligns with stationId.
+- Crafting UI can render stations and recipes; disabled states communicate unmet constraints clearly.
+- Audio bridge: crafting.complete fires on success; ui.error on fail; ui.click/confirm on interactions.
+- Mining gates align: tool.miningPower vs Tile.hardness per worldgen doc; player can feel progression across 3 tiers.
+
+---
+
+## 12) Future Hooks (Post-MVP)
+
+- Smelting/refinement (ingots).
+- Repair kits vs durability; workstation repair actions.
+- Partial refunds on cancel.
+- Tool mods (heads/hafts), sockets, and set bonuses.
+- Blueprint discovery/tech tree gating.
+- Station upgrades: multiple slots, parallel queues, automation modules.
+- Pressure/fuel loop for advanced drills (steam/coal tanks, regulators).
+
+---
+
+## Appendix A) IDs Index (for engineers/UI)
 
 Tools
-- tool.pick.t1.basic — Tier 1 Pickaxe
-  - miningPower: 4 (mines Rock 3, Copper 4)
-  - miningSpeed: 1.00×
-  - staminaCostPerSwing: 16
-  - durabilityMax: 60
-  - durabilityPerHit: 1
-  - swingMs: 300
-  - Notes: [TUNE] values for cadence
-- tool.pick.t2.reinforced — Tier 2 Reinforced Pickaxe
-  - miningPower: 5 (adds Iron 5)
-  - miningSpeed: 1.15×
-  - staminaCostPerSwing: 15
-  - durabilityMax: 120
-  - durabilityPerHit: 1
-  - swingMs: 300
-  - Notes: [TUNE]
-- tool.drill.t3.steam — Tier 3 Steam Drill
-  - miningPower: 7 (adds Quartz 7)
-  - miningSpeed: 1.35×
-  - staminaCostPerSwing: 12 per bite
-  - durabilityMax: 200
-  - durabilityPerHit: 1
-  - swingMs: 220
-  - Crafting requirement: mat.steam.core per craft
-  - Runtime fuel drain: none in MVP
-  - Notes: [TUNE]
-
-Hardness gates (from world-gen, locked for Sprint 1)
-- Rock: 3
-- Copper: 4
-- Iron: 5
-- Quartz: 7
-
-
-
-## 5) Items/Tools Data Contract (data/items/tools.json)
-
-File shape
-- Strict JSON array of ToolDef objects.
-- Each ToolDef requires keys in exact order as listed.
-- Constraints
-  - ids unique
-  - numeric fields ≥0
-  - tier ∈ {1,2,3}
-  - miningPower integer
-  - Aligns with MiningSystem contract
-
-ToolDef object (exact key order and meaning)
-- id: string (e.g., "tool.pick.t1.basic")
-- name: string (display name)
-- tier: int (1..3)
-- kind: enum "pick" | "drill"
-- miningPower: int (gate vs Tile.hardness)
-- miningSpeed: number (1.0 baseline multiplier)
-- staminaCost: int (per swing/bite)
-- durabilityMax: int (max durability)
-- durabilityPerHit: int (decrement per successful progress tick; default 1 if omitted, but include explicitly in MVP)
-- swingMs: int (animation timing hint; ~300 pick, ~220 drill)
-- notes: array of string (may be empty)
-
-Authoritative ToolDefs to include (values from §4)
 - tool.pick.t1.basic
-  - name: "Basic Pickaxe"
-  - tier: 1
-  - kind: "pick"
-  - miningPower: 4
-  - miningSpeed: 1.0
-  - staminaCost: 16
-  - durabilityMax: 60
-  - durabilityPerHit: 1
-  - swingMs: 300
-  - notes: []
 - tool.pick.t2.reinforced
-  - name: "Reinforced Pickaxe"
-  - tier: 2
-  - kind: "pick"
-  - miningPower: 5
-  - miningSpeed: 1.15
-  - staminaCost: 15
-  - durabilityMax: 120
-  - durabilityPerHit: 1
-  - swingMs: 300
-  - notes: []
 - tool.drill.t3.steam
-  - name: "Steam Drill"
-  - tier: 3
-  - kind: "drill"
-  - miningPower: 7
-  - miningSpeed: 1.35
-  - staminaCost: 12
-  - durabilityMax: 200
-  - durabilityPerHit: 1
-  - swingMs: 220
-  - notes: [ "Consumes mat.steam.core on craft", "No runtime fuel drain (MVP)" ]
 
+Stations
+- station.workbench.t1
+- station.forge.t2
+- station.steamworks.t3
 
+Materials
+- mat.ore.copper
+- mat.ore.iron
+- mat.crystal.quartz
+- mat.scrap.copper
+- mat.core.steam
 
-## 6) MiningSystem Contract (Authoritative MVP Behavior)
-
-Eligibility
-- If tool.miningPower < target.Tile.hardness: deny action
-- Emit mining.Deny with reason "insufficient_power"
-
-Progress model
-- On each confirmed mining action tick:
-  - baseProgress = 1 unit per eligible hit (constant)
-  - addedProgress = baseProgress × tool.miningSpeed
-  - Accumulate progress per tile; when cumulative progress ≥ Tile.hardness, the tile breaks
-- Multiple players can contribute; progress is per-tile accumulator (MVP: local to the instigator only if shared state is non-trivial; choose per implementation complexity — default single-player accumulator for Sprint 1)
-
-Costs and decrements
-- Stamina
-  - On action start, spend tool.staminaCost
-  - If insufficient stamina: deny with reason "no_stamina"
-  - Apply Stamina.regenDelay += 600 ms (parity with combat doc) [TUNE]
-- Durability
-  - On each successful progress tick, decrement durability by durabilityPerHit
-  - If durability reaches 0, emit item.DurabilityZero; cancel further mining with that tool until repaired/replaced
-- Tile break
-  - When cumulative progress ≥ Tile.hardness:
-    - Emit mining.Break (tile), drop resolved by tileType/oreType
-    - Reset tile progress accumulator and mark tile destroyed/replaced (world rules)
-
-Action range
-- If target out of permissible range/arc: deny with reason "out_of_range" (range constant shared with melee swing reach; see combat parity as reference)
-
-Events (emit via bridges similar to combat)
+Events
+- crafting.Start
+- crafting.Complete
+- crafting.Fail
 - mining.Swing
-  - { playerId:int, toolId:string, tileX:int, tileY:int, eligible:bool }
 - mining.Progress
-  - { playerId:int, toolId:string, tileX:int, tileY:int, added:int, total:int, threshold:int }
 - mining.Break
-  - { playerId:int, toolId:string, tileX:int, tileY:int, tileType:string, oreType:string }
 - mining.Deny
-  - { playerId:int, toolId:string, tileX:int, tileY:int, reason:"insufficient_power"|"no_stamina"|"out_of_range" }
 
-Audio/VFX hooks
-- Map events to sfx ids:
-  - mining.Swing (eligible true): sfx.mine.pick.hit or sfx.mine.drill.bite by kind
-  - mining.Swing (eligible false): sfx.mine.dull.thud
-  - mining.Progress: sfx.mine.chip.rockA/B by surface
-  - mining.Break: sfx.mine.rock.break (subtype by ore)
-- VFX tokens per style guide:
-  - effects.debris.rockA / effects.debris.rockB
-  - Optional ore tint variants (effects.debris.copper, iron, quartz) if tokens exist; otherwise default rock
-
-ECS touchpoints
-- Reads
-  - Player.Inventory (selectedIndex, tool item with durability extension)
-  - Tile component (tileType, hardness, oreType, flags)
-  - Player position/aim for range validation
-- Writes
-  - Stamina (value, regenDelay)
-  - Tile state (progress accumulator, removal/replacement on break)
-  - Events to Audio/UI bridges
-- Tool durability storage
-  - Track as Item extension metadata; UI exposure is sufficient for MVP if not fully componentized
-
-
-
-## 7) Starter Recipes (data/crafting/recipes.json + Concrete 3)
-
-File shape
-- Strict JSON array of RecipeDef objects.
-- Each RecipeDef uses the exact key order below.
-
-RecipeDef object (exact key order and meaning)
-- id: string (e.g., "recipe.tool.pick.t1.basic")
-- name: string (display)
-- station: string (station.* id)
-- inputs: array of { itemId:string, qty:int }
-- output: { itemId:string, qty:int }
-- notes: array of string
-
-Concrete recipes (authoritative for MVP)
-- recipe.tool.pick.t1.basic
-  - name: "Basic Pickaxe"
-  - station: station.workbench.t1
-  - inputs:
-    - { itemId: mat.wood.plank, qty: 4 }
-    - { itemId: mat.fiber.bundle, qty: 2 }
-    - Prefer one of:
-      - { itemId: mat.scrap.copper, qty: 2 }
-      - or { itemId: mat.ore.copper, qty: 1 }
-  - output:
-    - { itemId: tool.pick.t1.basic, qty: 1 }
-  - notes:
-    - "Scrap copper or raw copper ore acceptable (choose one set)"
-    - "No smelting required in MVP"
-- recipe.tool.pick.t2.reinforced
-  - name: "Reinforced Pickaxe"
-  - station: station.forge.t2
-  - inputs:
-    - Primary metals:
-      - { itemId: mat.ore.iron, qty: 3 }
-      - or { itemId: mat.ingot.iron, qty: 2 }
-    - Alloying/supplement:
-      - { itemId: mat.ore.copper, qty: 2 }
-    - Binding:
-      - { itemId: mat.fiber.bundle, qty: 2 }
-  - output:
-    - { itemId: tool.pick.t2.reinforced, qty: 1 }
-  - notes:
-    - "Either iron ore or ingots acceptable (not both required)"
-- recipe.tool.drill.t3.steam
-  - name: "Steam Drill"
-  - station: station.steamworks.t3
-  - inputs:
-    - { itemId: mat.steam.core, qty: 1 }
-    - { itemId: mat.ingot.iron, qty: 4 } or { itemId: mat.ore.iron, qty: 6 }
-    - { itemId: mat.crystal.quartz, qty: 2 }
-  - output:
-    - { itemId: tool.drill.t3.steam, qty: 1 }
-  - notes:
-    - "Consumes one steam core at craft time"
-    - "Iron ore may substitute for ingots in MVP"
-
-UI notes
-- Show unavailable recipes grayed with:
-  - Missing inputs explicitly listed with counts
-  - Station gating message per §3: "Missing station"
-- If alternative inputs exist, show a toggle/chooser or an “either/or” indicator in the recipe details panel
-
-
-
-## 8) Acceptance & Balancing Notes
-
-Acceptance
-- JSON in items/tools.json and crafting/recipes.json parses cleanly
-- Schemas follow defined key order and types
-- Tool progression aligns with biome hardness gates (3/4/5/7) and feels meaningful
-- MiningSystem contract implemented and testable end-to-end
-- Stamina spend, regen delay, and durability interactions are clear and visible in UI
-
-Initial balance targets [TUNE]
-- Time-to-quartz access: 15–25 minutes for a skilled player following intended loop
-- Durability longevity:
-  - T1 ≈ 50–60 eligible hits (durabilityMax 60, per-hit cost 1)
-  - T2 ≈ 120 hits
-  - T3 ≈ 200 hits
-- Stamina cadence:
-  - Per swing/bite: 16/15/12
-  - RegenDelay: +600 ms to keep mining distinct from combat actions
-
-
-
-## 9) Data Examples (Inline, non-authoritative)
-
-Example ToolDef (field order illustration, not a JSON block)
-- id: "tool.pick.t1.basic"
-- name: "Basic Pickaxe"
-- tier: 1
-- kind: "pick"
-- miningPower: 4
-- miningSpeed: 1.0
-- staminaCost: 16
-- durabilityMax: 60
-- durabilityPerHit: 1
-- swingMs: 300
-- notes: []
-
-Example RecipeDef (field order illustration, not a JSON block)
-- id: "recipe.tool.pick.t1.basic"
-- name: "Basic Pickaxe"
-- station: "station.workbench.t1"
-- inputs: [{ mat.wood.plank ×4 }, { mat.fiber.bundle ×2 }, plus either { mat.scrap.copper ×2 } or { mat.ore.copper ×1 }]
-- output: { tool.pick.t1.basic ×1 }
-- notes: ["Either scrap copper or copper ore acceptable"]
-
-
-
-## 10) Integration & Testing Plan
-
-Unit tests (names only)
-- test_toolTier_gating()
-- test_stamina_spend_and_regen_delay()
-- test_durability_decrement_and_break()
-- test_vein_depletion_threshold()
-
-Bridges and event handshake
-- Coordinate with AudioEventBridge and UI to confirm mining.* payloads as defined in §6
-- Map sfx ids and VFX tokens per style guide; confirm fallbacks for missing ore variants
-- Verify UI error strings for station/mats and out_of_range handling
-
-World-gen dependency
-- Confirm Tile.hardness per biome is stable and exposed via Tile component
-- Locked for Sprint 1:
-  - Rock 3, Copper 4, Iron 5, Quartz 7
-
-
-
-## 11) Risks & Future Dials
-
-Risks
-- Missing smelt loop may compress T2 progression; resource value curve could flatten
-- Repair loop TBD; tool attrition may feel punitive without clear recovery path
-- Steam Drill without runtime fuel drain may feel overly generous at Tier 3
-
-Future dials (safe ranges for iteration)
-- miningSpeed: ±0.10
-- staminaCost: ±2
-- durabilityMax: ±20%
-- recipe costs: ±1–2 units per input
-- regenDelay: ±100–200 ms if combat cadence updates
-
-
-
-## 12) Acceptance Checklist
-
-- items/tools.json and crafting/recipes.json schemas defined and stable (key order enforced)
-- Tool tiers and miningPower align with biome hardness gates (3/4/5/7)
-- MiningSystem event payloads and cost semantics explicit and implemented
-- Three starter recipes present, gated by stations, and sensible for MVP pacing
-
-— Signed in soot and brass,
-Gearwright Steamforge, Technology Systems
+By gear and grit, this spec is ready to bolt into the codebase. Keep key orders true, gates tight, and the audio valves hissing on completion.
