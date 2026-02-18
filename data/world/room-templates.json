@@ -2,117 +2,111 @@
   "version": 1,
   "templates": [
     {
-      "id": "room.tunnel.straight",
-      "name": "Straight Tunnel (3‑Wide)",
+      "id": "room.tunnel.3w.straight",
+      "name": "Straight 3-wide Tunnel",
       "kind": "tunnel",
-      "rotate": true,
-      "weight": 4,
-      "size": { "w": 19, "h": 7 },
-      "charset": [ "#", ".", "D", "O" ],
-      "doorRules": {
-        "width": 3,
-        "sides": {
-          "N": false,
-          "E": true,
-          "S": false,
-          "W": true
-        },
-        "min": 2,
-        "max": 2
+      "weight": 10,
+      "rotate": [0, 90, 180, 270],
+      "size": { "w": 11, "h": 9 },
+      "legend": {
+        "#": "rock",
+        ".": "floor",
+        "D": "door_band",
+        "O": "ore_pref",
+        " ": "void"
       },
       "grid": [
-        "###################",
-        "#########.#########",
-        "D.................D",
-        "D.................D",
-        "D.................D",
-        "#######.###########",
-        "###################"
+        "####DDD####",
+        "####...####",
+        "####...####",
+        "####...####",
+        "####...####",
+        "####...####",
+        "####...####",
+        "####...####",
+        "###########"
       ],
-      "meta": {
-        "threeWideCompliant": true,
-        "notes": [ "Canonical 3‑wide corridor; ensures Three‑Wide approaches at both doors." ]
-      }
+      "doors": [
+        { "side": "N", "cells": [ { "x": 4, "y": 0 }, { "x": 5, "y": 0 }, { "x": 6, "y": 0 } ] }
+      ],
+      "notes": [
+        "Narrow straight 3-wide approach extending deep; single 3-cell door band on the north edge.",
+        "1-tile rock rim maintained on all other edges; no ore markers present."
+      ]
     },
     {
-      "id": "room.cavern.medium",
-      "name": "Medium Cavern",
+      "id": "room.cavern.basic",
+      "name": "Basic Cavern",
       "kind": "cavern",
-      "rotate": true,
-      "weight": 5,
-      "size": { "w": 25, "h": 17 },
-      "charset": [ "#", ".", "D", "O" ],
-      "doorRules": {
-        "width": 3,
-        "sides": {
-          "N": true,
-          "E": true,
-          "S": true,
-          "W": true
-        },
-        "min": 2,
-        "max": 3
+      "weight": 8,
+      "rotate": [0, 90, 180, 270],
+      "size": { "w": 15, "h": 13 },
+      "legend": {
+        "#": "rock",
+        ".": "floor",
+        "D": "door_band",
+        "O": "ore_pref",
+        " ": "void"
       },
       "grid": [
-        "###########DDD###########",
-        "###########...###########",
-        "#########.......#########",
-        "########.........########",
-        "#######...........#######",
-        "#####...............#####",
-        "####.................####",
-        "D.......................D",
-        "D.......................D",
-        "D.......................D",
-        "####.................####",
-        "#####...............#####",
-        "#######...........#######",
-        "########.........########",
-        "#########.......#########",
-        "###########...###########",
-        "#########################"
-      ],
-      "meta": {
-        "threeWideCompliant": true,
-        "notes": [ "Primary chamber; three mouths in base orientation (N,E,W)." ]
-      }
-    },
-    {
-      "id": "room.pocket.ore_vein",
-      "name": "Ore Pocket (Vein Alcove)",
-      "kind": "ore_vein",
-      "rotate": true,
-      "weight": 3,
-      "size": { "w": 15, "h": 11 },
-      "charset": [ "#", ".", "D", "O" ],
-      "doorRules": {
-        "width": 3,
-        "sides": {
-          "N": false,
-          "E": true,
-          "S": false,
-          "W": true
-        },
-        "min": 1,
-        "max": 2
-      },
-      "grid": [
-        "###############",
-        "###############",
-        "###############",
-        "#O........O####",
-        "D..........O###",
-        "D.........O####",
-        "D.......O######",
-        "#O.....########",
-        "###############",
-        "###############",
+        "######DDD######",
+        "######...######",
+        "#####.....#####",
+        "####.......####",
+        "###.........###",
+        "##...........##",
+        "##...........##",
+        "##...........##",
+        "###.........###",
+        "####.......####",
+        "#####.....#####",
+        "######...######",
         "###############"
       ],
-      "meta": {
-        "threeWideCompliant": true,
-        "notes": [ "Seeds ore-friendly lobes; O markers guide Phase 5 clustering." ]
-      }
+      "doors": [
+        { "side": "N", "cells": [ { "x": 6, "y": 0 }, { "x": 7, "y": 0 }, { "x": 8, "y": 0 } ] }
+      ],
+      "notes": [
+        "Bulbous cavern with centered 3-wide door band on the north edge.",
+        "Three-Wide Law pad: 3x3 floor immediately inside the door, with broader organic interior.",
+        "At least 1-tile rock moat to all template edges except the door band; no ore markers."
+      ]
+    },
+    {
+      "id": "room.ore_pocket.copperish",
+      "name": "Copperish Ore Pocket",
+      "kind": "ore_vein",
+      "weight": 4,
+      "rotate": [0, 90, 180, 270],
+      "size": { "w": 13, "h": 11 },
+      "legend": {
+        "#": "rock",
+        ".": "floor",
+        "D": "door_band",
+        "O": "ore_pref",
+        " ": "void"
+      },
+      "grid": [
+        "#####DDD#####",
+        "####O...O####",
+        "###OO...OO###",
+        "####O...O####",
+        "####OOOOO####",
+        "#####OOO#####",
+        "####OOOOO####",
+        "###OOO#OOO###",
+        "####OO#OO####",
+        "#####O#O#####",
+        "#############"
+      ],
+      "doors": [
+        { "side": "N", "cells": [ { "x": 5, "y": 0 }, { "x": 6, "y": 0 }, { "x": 7, "y": 0 } ] }
+      ],
+      "notes": [
+        "Compact ore-biased nook: only a 3x3 landing beyond the 3-wide door band; no additional floor.",
+        "Ore preference markers (O) surround the landing in rock to bias copper clustering.",
+        "1-tile rock boundary moat elsewhere; O never overlaps floor or door."
+      ]
     }
   ]
 }
