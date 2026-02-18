@@ -1,95 +1,89 @@
 {
   "version": 1,
-  "meta": {
-    "owner": "@theta",
-    "updated": "2026-02-17",
-    "notes": "IDs to be replaced with live Discord IDs before go-live."
-  },
-  "messages": [
+  "sequence": [
     {
-      "id": "welcome",
-      "channelId": "CHAN_WELCOME",
-      "sendAs": "bot",
-      "mode": "post",
-      "delaySeconds": 0,
-      "pin": true,
-      "rolesToMention": ["ROLE_BREWMASTER", "ROLE_MODS"],
-      "reactions": [":beer:", ":wave:"],
-      "content": {
-        "title": "Welcome to Claim’s Mouth!",
-        "body": "Ho there, traveler! I’m Brewmaster Alehart, keeper of taps and threads. Step into Claim’s Mouth and say hello below. Choose your guild vibe—Brassbound (tinkerers), Emberforge (fighters), or Ordinate (planners). Reaction-roles are optional if the kegs are set; no pressure. Grab a stool, meet the crew, and ask for a tour if you fancy.",
-        "links": [
-          { "label": "House Rules", "url": "#CHAN_WELCOME_RULES_PIN" }
-        ]
+      "id": "welcome.step1.warm_greeting",
+      "delaySec": 0,
+      "channelId": "{{channel.tavern_talk}}",
+      "content": "Ho there, new delver! I'm Brewmaster Alehart, Keeper of the Far Mine tavern. The Far Mine is a cozy dwarf-made sim about digging, tinkering, and tales. Step to the hearth - say hello and share a favorite mining game or comfy sim you enjoy.",
+      "embeds": [],
+      "reactions": ["🍻","👋"],
+      "mentions": {
+        "roleIds": [],
+        "userIds": []
+      },
+      "cta": {
+        "label": "Say hello",
+        "url": null,
+        "action": "open_thread"
       }
     },
     {
-      "id": "rules",
-      "channelId": "CHAN_WELCOME",
-      "sendAs": "bot",
-      "mode": "post",
-      "delaySeconds": 3,
-      "pin": true,
-      "rolesToMention": [],
-      "reactions": [":scroll:"],
-      "content": {
-        "title": "House Rules — The Three‑Wide Law",
-        "body": "- Be kind; lift each other’s craft.\n- Actionable critique: goal, issue, suggestion.\n- Spoilers in threads; tag builds and plot.\n- No NSFW, slurs, or harassment.\n- Keep lanes clear: no dogpiles; let mods steer.\n- Use channels, not unsolicited DMs. Mods uphold a gentle nudge → warn → mute → ban.",
-        "links": []
+      "id": "welcome.step2.house_rules",
+      "delaySec": 15,
+      "channelId": "{{channel.tavern_talk}}",
+      "content": "House rules: be kind, keep it SFW, get consent and give credit. Spoilers go in threads with a clear tag. Add alt text to images and gifs. Full rules live in {{channel.announcements}}. Action: read them and react on the rules post.",
+      "embeds": [],
+      "reactions": ["📜"],
+      "mentions": {
+        "roleIds": [],
+        "userIds": []
+      },
+      "cta": {
+        "label": "Read the rules",
+        "url": null,
+        "action": "open_thread"
       }
     },
     {
-      "id": "contribute",
-      "channelId": "CHAN_TAVERN",
-      "sendAs": "bot",
-      "mode": "post",
-      "delaySeconds": 6,
-      "pin": false,
-      "rolesToMention": [],
-      "reactions": [":pick:", ":sparkles:"],
-      "content": {
-        "title": "How to Pitch In",
-        "body": "Want to lend a hand? Drop shiny shots in #screenshots, ideas in #feedback-mine (use the template), and bugs in #bug-reports. Lore banter lives in #lore-codex. First step: say hello, then share a screenshot or answer the weekly tavern poll. Small swings deepen the mine!",
-        "links": [
-          { "label": "Screenshots", "url": "#CHAN_SCREENSHOTS" },
-          { "label": "Feedback Mine", "url": "#CHAN_FEEDBACK" },
-          { "label": "Bug Reports", "url": "#CHAN_BUGS" }
-        ]
+      "id": "welcome.step3.how_to_contribute",
+      "delaySec": 25,
+      "channelId": "{{channel.build_in_public}}",
+      "content": "We build in public. Share WIPs in this hall: {{channel.build_in_public}}. A fresh weekly thread opens Fri 17:00 UTC. Start a subthread for your post; devs reply in threads to keep tidy. Action: drop your first reaction on the latest weekly thread.",
+      "embeds": [],
+      "reactions": ["🛠️","✨"],
+      "mentions": {
+        "roleIds": [],
+        "userIds": []
+      },
+      "cta": {
+        "label": "Visit weekly thread",
+        "url": null,
+        "action": "open_thread"
       }
     },
     {
-      "id": "current_sprint",
-      "channelId": "CHAN_ANNOUNCEMENTS",
-      "sendAs": "bot",
-      "mode": "post",
-      "delaySeconds": 9,
-      "pin": true,
-      "rolesToMention": [],
-      "reactions": [":hammer_and_pick:"],
-      "content": {
-        "title": "Sprint 1 — Brass Rims and First Lamps",
-        "body": "• Single level: Claim’s Mouth upper shafts\n• Foes: goblin scout + burrower\n• Crafting: 3 starter recipes\n• Hub: Tavern for quests/loadout\nTrack progress in the weekly #build-in-public thread and the midweek Clip & Peek. Want in on tests? Opt in via #playtest-queue.",
-        "links": [
-          { "label": "Build in Public", "url": "#CHAN_BUILD_PUBLIC" },
-          { "label": "Playtest Queue", "url": "#CHAN_PLAYTEST" }
-        ]
+      "id": "welcome.step4.current_sprint",
+      "delaySec": 35,
+      "channelId": "{{channel.patch_notes}}",
+      "content": "Sprint 1: single mine level, basic mining and combat, 2 enemies, 3 crafting recipes, plus the tavern hub. See notes and tiny clips in {{channel.patch_notes}}. Action: skim the pinned sprint post so you know what's in-bounds.",
+      "embeds": [],
+      "reactions": ["🗒️","⛏️"],
+      "mentions": {
+        "roleIds": [],
+        "userIds": []
+      },
+      "cta": {
+        "label": "Open sprint post",
+        "url": null,
+        "action": "open_thread"
       }
     },
     {
-      "id": "feedback_playtest",
-      "channelId": "CHAN_FEEDBACK",
-      "sendAs": "bot",
-      "mode": "post",
-      "delaySeconds": 12,
-      "pin": true,
-      "rolesToMention": [],
-      "reactions": [":pick:", ":memo:"],
-      "content": {
-        "title": "Feedback & Playtests — 48h Ack",
-        "body": "Use our intake templates: Feature Card (what/why), UX Note (flow/pain), and Balance Nudge (numbers/feel). We acknowledge within 48h and set disposition within 7d. Triage updates land in #announcements summaries and a #dev-cabinet note. See the pinned templates to paste, then post in #feedback-mine.",
-        "links": [
-          { "label": "Templates (Pinned)", "url": "#CHAN_FEEDBACK_TEMPLATES_PIN" }
-        ]
+      "id": "welcome.step5.feedback_and_bugs",
+      "delaySec": 45,
+      "channelId": "{{channel.feedback_mine}}",
+      "content": "Feedback welcome! Tags: [ui],[combat],[worldgen],[crafting],[audio],[lore]. Bug mini-format: version, seed, expected vs actual, clip if possible. We'll acknowledge within 48h. For repros, visit {{channel.bug_reports}}. Action: share one insight or bug.",
+      "embeds": [],
+      "reactions": ["💡","🪓"],
+      "mentions": {
+        "roleIds": [],
+        "userIds": []
+      },
+      "cta": {
+        "label": "Submit feedback",
+        "url": null,
+        "action": "open_form"
       }
     }
   ]
