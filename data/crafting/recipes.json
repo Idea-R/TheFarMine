@@ -1,78 +1,104 @@
-[
-  {
-    "id": "recipe.workbench.wood_shaft",
-    "name": "Carve Wood Shaft",
-    "station": "workbench",
-    "stationTier": 1,
-    "timeMs": 1200,
-    "unlockedBy": "known",
-    "inputs": [
-      {
-        "id": "mat.wood.log",
-        "qty": 1
-      }
-    ],
-    "output": {
-      "id": "mat.wood.shaft",
-      "qty": 1
-    },
+{
+  "version": 1,
+  "meta": {
+    "author": "delta",
+    "updated": "2026-02-18T00:00:00Z",
     "notes": [
-      "Base handle for early tools"
+      "MVP path: starter → binding → T1 → T2",
+      "All recipes at tier 1 for MVP",
+      "Durations per crafting spec §7",
+      "IDs aligned with planned item manifests"
     ]
   },
-  {
-    "id": "recipe.workbench.copper_binding",
-    "name": "Forge Copper Binding",
-    "station": "workbench",
-    "stationTier": 1,
-    "timeMs": 1600,
-    "unlockedBy": "discovery",
-    "inputs": [
-      {
-        "id": "mat.ore.copper",
-        "qty": 3
-      },
-      {
-        "id": "mat.scrap.metal",
-        "qty": 1
-      }
-    ],
-    "output": {
-      "id": "mat.binding.copper",
-      "qty": 1
+  "recipes": [
+    {
+      "id": "recipe.binding.copper",
+      "name": "Copper Binding",
+      "workstation": "workbench",
+      "requiresTier": 1,
+      "inputs": [
+        {
+          "id": "mat.scrap.metal",
+          "qty": 2
+        },
+        {
+          "id": "mat.ore.copper",
+          "qty": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "mat.binding.copper",
+          "qty": 1
+        }
+      ],
+      "time_sec": 2.0,
+      "notes": [
+        "Workbench assembly from scrap + copper ore.",
+        "Produces mat.binding.copper for tool crafting."
+      ]
     },
-    "notes": [
-      "Stand-in for smelt/ingot loop; reduces surface friction in MVP"
-    ]
-  },
-  {
-    "id": "recipe.forge.reinforced_pickaxe",
-    "name": "Craft Reinforced Pickaxe",
-    "station": "forge",
-    "stationTier": 1,
-    "timeMs": 3000,
-    "unlockedBy": "discovery",
-    "inputs": [
-      {
-        "id": "mat.binding.copper",
-        "qty": 2
-      },
-      {
-        "id": "mat.wood.shaft",
-        "qty": 1
-      },
-      {
-        "id": "mat.ore.copper",
-        "qty": 4
-      }
-    ],
-    "output": {
-      "id": "tool.pick.t2.reinforced",
-      "qty": 1
+    {
+      "id": "recipe.tool.pick.t1.copper",
+      "name": "Copper Pickaxe (T1)",
+      "workstation": "forge",
+      "requiresTier": 1,
+      "inputs": [
+        {
+          "id": "mat.ore.copper",
+          "qty": 8
+        },
+        {
+          "id": "mat.binding.copper",
+          "qty": 1
+        },
+        {
+          "id": "mat.shaft.wood",
+          "qty": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "tool.pick.t1.copper",
+          "qty": 1
+        }
+      ],
+      "time_sec": 5.0,
+      "notes": [
+        "Forged from copper ore; add wooden shaft and binding.",
+        "MVP allows direct ore input (no smelting stage)."
+      ]
     },
-    "notes": [
-      "Gates iron access via Reinforced Pick",
-      "Subject to rebalance if ingot loop lands early"
-    ]
-  }
-]
+    {
+      "id": "recipe.tool.pick.t2.reinforced",
+      "name": "Reinforced Pickaxe (T2)",
+      "workstation": "forge",
+      "requiresTier": 1,
+      "inputs": [
+        {
+          "id": "tool.pick.t1.copper",
+          "qty": 1
+        },
+        {
+          "id": "mat.ore.iron",
+          "qty": 6
+        },
+        {
+          "id": "mat.binding.copper",
+          "qty": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "tool.pick.t2.reinforced",
+          "qty": 1
+        }
+      ],
+      "time_sec": 6.0,
+      "notes": [
+        "Upgrades and consumes T1 copper pick.",
+        "Adds iron reinforcement; requires copper binding."
+      ]
+    }
+  ]
+}
