@@ -2,851 +2,549 @@
   "version": 1,
   "meta": {
     "author": "alpha",
-    "updated": "2026-02-18T12:00:00Z",
-    "notes": [
-      "All numeric clamps are inclusive. In DEV builds, validators reject on violation; in PROD, loaders clamp then warn.",
-      "This file is authoritative for shapes, defaults, enums, and clamps. Eid iteration determinism is handled by the ECS registry, not by this schema.",
-      "Transient components (transient=true) are excluded from save serialization by default.",
-      "Renderable.tintToken, when non-null, should map to an entry in data/visual/color-palette.json (loader cross-check optional for MVP).",
-      "Tile invariants: hardness must equal the band for the tileType (rock=3, floor=0, ore.copper=4, ore.iron=5, ore.quartz=7).",
-      "Tile.flags must be non-negative and only set known TILE_FLAGS bits.",
-      "Inventory.items length must be ≤ capacity; on overflow, the loader trims items from the end with a warning.",
-      "AI.cooldownMsRange.max must be ≥ min; when both are 0, systems may substitute per-enemy defaults.",
-      "position.dirDeg is normalized to [0..359] with wrap semantics (mod 360).",
-      "attack_intent.attackId must be a non-empty string when spawned; empty is invalid.",
-      "Combat baselines (examples, not schema defaults): Player: health.max≈100, stamina.max≈100, poise.max≈50; Grunts: health.max≈30–50, stamina.max≈40–60, poise.max≈20–35."
-    ]
+    "date": "2026-02-19T00:00:00Z",
+    "notes": "MVP ECS component schemas for Sprint 1"
+  },
+  "units": {
+    "tile_size_px": 16,
+    "world_unit_per_tile": 1.0
+  },
+  "validation": {
+    "required_component_keys": [
+      "position",
+      "velocity",
+      "collider",
+      "tile",
+      "ore_vein",
+      "health",
+      "stamina",
+      "damageable",
+      "inventory",
+      "tool",
+      "faction",
+      "sprite_ref",
+      "light",
+      "sound_emitter",
+      "ui_state"
+    ],
+    "number_clamps_default": {
+      "min": -1000000000,
+      "max": 1000000000
+    },
+    "id_pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"
   },
   "components": {
-    "position": {
-      "id": "position",
-      "transient": false,
-      "description": "Grid-space position and facing.",
-      "fields": [
-        {
-          "name": "x",
-          "type": "int",
-          "default": 0,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Tile-space X coordinate (integer grid)."
-          ]
+    "collider": {
+      "id": "collider",
+      "doc": "Axis-aligned bounding box collider (tiles). Offsets relative to position center.",
+      "type": "object",
+      "required": [
+        "w",
+        "h",
+        "is_solid"
+      ],
+      "properties": {
+        "w": {
+          "type": "number",
+          "min": 0
         },
-        {
-          "name": "y",
-          "type": "int",
-          "default": 0,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Tile-space Y coordinate (integer grid)."
-          ]
+        "h": {
+          "type": "number",
+          "min": 0
         },
-        {
-          "name": "dirDeg",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": 359,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Facing in degrees; normalized with wrap=true as per enums.dirDeg."
-          ]
+        "offset_x": {
+          "type": "number"
+        },
+        "offset_y": {
+          "type": "number"
+        },
+        "is_solid": {
+          "type": "boolean"
+        },
+        "is_sensor": {
+          "type": "boolean"
+        },
+        "category": {
+          "type": "integer",
+          "min": 0
+        },
+        "mask": {
+          "type": "integer",
+          "min": 0
         }
-      ]
+      },
+      "defaults": {
+        "offset_x": 0,
+        "offset_y": 0,
+        "is_solid": true,
+        "is_sensor": false,
+        "category": 1,
+        "mask": 4294967295
+      },
+      "clamps": {
+        "w": {
+          "min": 0,
+          "max": 64
+        },
+        "h": {
+          "min": 0,
+          "max": 64
+        }
+      }
     },
-    "velocity": {
-      "id": "velocity",
-      "transient": false,
-      "description": "Continuous velocity and speed constraint.",
-      "fields": [
-        {
-          "name": "vx",
-          "type": "number",
-          "default": 0,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Horizontal velocity in pixels per second."
-          ]
+    "damageable": {
+      "id": "damageable",
+      "doc": "Damage & poise tuning knobs",
+      "type": "object",
+      "required": [
+        "defense"
+      ],
+      "properties": {
+        "defense": {
+          "type": "integer",
+          "min": 0
         },
-        {
-          "name": "vy",
-          "type": "number",
-          "default": 0,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Vertical velocity in pixels per second."
-          ]
+        "poise_max": {
+          "type": "integer",
+          "min": 0
         },
-        {
-          "name": "maxSpeed",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Upper bound on movement speed magnitude; movement systems clamp resultant speed to this value if > 0."
-          ]
+        "poise_current": {
+          "type": "integer",
+          "min": 0
+        },
+        "poise_recover_per_sec": {
+          "type": "number",
+          "min": 0
+        },
+        "poise_break_stun_ms": {
+          "type": "integer",
+          "min": 0
         }
-      ]
+      },
+      "defaults": {
+        "defense": 0,
+        "poise_max": 0,
+        "poise_current": 0,
+        "poise_recover_per_sec": 0,
+        "poise_break_stun_ms": 0
+      }
+    },
+    "faction": {
+      "id": "faction",
+      "doc": "Faction alignment token",
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"
+        }
+      }
     },
     "health": {
       "id": "health",
-      "transient": false,
-      "description": "Hit points pool.",
-      "fields": [
-        {
-          "name": "max",
-          "type": "int",
-          "default": 1,
-          "min": 1,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Maximum health; must be ≥ 1."
-          ]
+      "doc": "Health pool",
+      "type": "object",
+      "required": [
+        "current",
+        "max"
+      ],
+      "properties": {
+        "current": {
+          "type": "integer",
+          "min": 0
         },
-        {
-          "name": "value",
-          "type": "int",
-          "default": 1,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Clamped to [0..health.max] by loaders/validators."
-          ]
-        }
-      ]
-    },
-    "stamina": {
-      "id": "stamina",
-      "transient": false,
-      "description": "Action stamina with regen and cooldown gating.",
-      "fields": [
-        {
-          "name": "max",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Maximum stamina; must be ≥ 0."
-          ]
+        "max": {
+          "type": "integer",
+          "min": 1
         },
-        {
-          "name": "value",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Clamped to [0..stamina.max] by loaders/validators."
-          ]
-        },
-        {
-          "name": "regenPerSec",
+        "regen_per_sec": {
           "type": "number",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Passive regeneration rate in stamina points per second; must be ≥ 0."
-          ]
-        },
-        {
-          "name": "regenDelayAfterActionMs",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Delay after an action before regen resumes (milliseconds)."
-          ]
-        },
-        {
-          "name": "regenCooldownUntilMs",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Absolute game time (ms) until which stamina regen is suppressed; 0 means not cooling down."
-          ]
+          "min": 0
         }
-      ]
-    },
-    "poise": {
-      "id": "poise",
-      "transient": false,
-      "description": "Stagger resistance (break and recovery timings).",
-      "fields": [
-        {
-          "name": "max",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Maximum poise; must be ≥ 0."
-          ]
+      },
+      "defaults": {
+        "regen_per_sec": 0
+      },
+      "clamps": {
+        "current": {
+          "min": 0
         },
-        {
-          "name": "value",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Clamped to [0..poise.max] by loaders/validators."
-          ]
-        },
-        {
-          "name": "recoverPerSec",
-          "type": "number",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Passive poise recovery per second; must be ≥ 0."
-          ]
-        },
-        {
-          "name": "breakDurationMs",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Duration of 'broken' state after poise depletes (milliseconds)."
-          ]
-        },
-        {
-          "name": "brokenUntilMs",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Absolute game time (ms) until which entity remains broken; 0 means not broken."
-          ]
+        "max": {
+          "min": 1
         }
-      ]
-    },
-    "attributes": {
-      "id": "attributes",
-      "transient": false,
-      "description": "Core combat attributes.",
-      "fields": [
-        {
-          "name": "attackPower",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Base attack power used in damage calculations; must be ≥ 0."
-          ]
-        },
-        {
-          "name": "defense",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Base defense used in mitigation calculations; must be ≥ 0."
-          ]
-        }
-      ]
+      }
     },
     "inventory": {
       "id": "inventory",
-      "transient": false,
-      "description": "Simple capacity-gated item list.",
-      "fields": [
-        {
-          "name": "capacity",
-          "type": "int",
-          "default": 0,
+      "doc": "Simple slot-based inventory container",
+      "type": "object",
+      "required": [
+        "slots"
+      ],
+      "properties": {
+        "slots": {
+          "type": "integer",
           "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Maximum number of item stacks; must be ≥ 0."
-          ]
+          "max": 64
         },
-        {
-          "name": "items",
+        "items": {
           "type": "array",
-          "default": [],
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": {
+          "items": {
             "type": "object",
-            "min": null,
-            "max": null,
-            "enum": [],
-            "objectShape": {
+            "required": [
+              "id",
+              "qty"
+            ],
+            "properties": {
               "id": {
                 "type": "string",
-                "min": null,
-                "max": null,
-                "enum": [],
-                "notes": [
-                  "Item identifier; non-empty; should resolve via content registry."
-                ]
+                "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"
               },
               "qty": {
-                "type": "int",
-                "min": 1,
-                "max": null,
-                "enum": [],
-                "notes": [
-                  "Stack size; must be ≥ 1."
-                ]
+                "type": "integer",
+                "min": 1
+              },
+              "meta": {
+                "type": "object",
+                "nullable": true
               }
             }
-          },
-          "objectShape": null,
-          "notes": [
-            "Array length must be ≤ capacity; overflow entries are trimmed (end-first) with a warning."
-          ]
-        }
-      ]
-    },
-    "renderable": {
-      "id": "renderable",
-      "transient": false,
-      "description": "Sprite reference and tinting.",
-      "fields": [
-        {
-          "name": "spriteId",
-          "type": "nullable_string",
-          "default": null,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Sprite atlas/frame identifier; null to hide."
-          ]
+          }
         },
-        {
-          "name": "tintToken",
-          "type": "nullable_string",
-          "default": null,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Optional palette token; when non-null, should exist in data/visual/color-palette.json."
-          ]
-        },
-        {
-          "name": "z",
-          "type": "int",
-          "default": 0,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Z-order layer for rendering."
-          ]
+        "weight_capacity": {
+          "type": "number",
+          "min": 0
         }
-      ]
+      },
+      "defaults": {
+        "items": [],
+        "weight_capacity": 0
+      },
+      "notes": "Runtime may manage items externally; array here is allowed for data-driven actors/tools and tests."
     },
-    "collider": {
-      "id": "collider",
-      "transient": false,
-      "description": "Axis-aligned collision bounds in pixels.",
-      "fields": [
-        {
-          "name": "w",
-          "type": "int",
-          "default": 0,
+    "light": {
+      "id": "light",
+      "doc": "Point light parameters",
+      "type": "object",
+      "required": [
+        "radius",
+        "intensity"
+      ],
+      "properties": {
+        "radius": {
+          "type": "number",
+          "min": 0
+        },
+        "intensity": {
+          "type": "number",
           "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Width in pixels; must be ≥ 0."
-          ]
+          "max": 1
         },
-        {
-          "name": "h",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Height in pixels; must be ≥ 0."
-          ]
-        },
-        {
-          "name": "offsetX",
-          "type": "int",
-          "default": 0,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Offset from entity origin (pixels)."
-          ]
-        },
-        {
-          "name": "offsetY",
-          "type": "int",
-          "default": 0,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Offset from entity origin (pixels)."
-          ]
-        },
-        {
-          "name": "solid",
-          "type": "boolean",
-          "default": true,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "When true, blocks movement."
-          ]
-        }
-      ]
-    },
-    "ai": {
-      "id": "ai",
-      "transient": false,
-      "description": "Behavioral state and tunables.",
-      "fields": [
-        {
-          "name": "state",
+        "color_token": {
           "type": "string",
-          "default": "idle",
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Arbitrary FSM state label."
-          ]
-        },
-        {
-          "name": "telegraphDebounceMs",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Prevents rapid re-telegraphing within this window (milliseconds)."
-          ]
-        },
-        {
-          "name": "cooldownMsRange",
-          "type": "object",
-          "default": {
-            "min": 0,
-            "max": 0
-          },
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": {
-            "min": {
-              "type": "int",
-              "min": 0,
-              "max": null,
-              "enum": [],
-              "notes": [
-                "Lower bound on decision/action cooldown (ms); must be ≥ 0."
-              ]
-            },
-            "max": {
-              "type": "int",
-              "min": 0,
-              "max": null,
-              "enum": [],
-              "notes": [
-                "Upper bound on decision/action cooldown (ms); must be ≥ min."
-              ]
-            }
-          },
-          "notes": [
-            "When both min and max are 0, systems may inject per-enemy defaults.",
-            "Validator enforces max ≥ min."
-          ]
-        },
-        {
-          "name": "approachRangePx",
-          "type": "nullable_int",
-          "default": null,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "If set, AI tries to approach until within this pixel range; null -> use system default."
-          ]
-        },
-        {
-          "name": "retreatRangePx",
-          "type": "nullable_int",
-          "default": null,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "If set, AI tries to keep at least this pixel range; null -> use system default."
-          ]
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"
         }
-      ]
+      },
+      "defaults": {
+        "intensity": 1
+      }
     },
-    "player_tag": {
-      "id": "player_tag",
-      "transient": false,
-      "description": "Marker component identifying the player entity.",
-      "fields": []
-    },
-    "enemy_tag": {
-      "id": "enemy_tag",
-      "transient": false,
-      "description": "Marker for hostile NPCs.",
-      "fields": [
-        {
-          "name": "kind",
-          "type": "nullable_string",
-          "default": null,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Optional enemy sub-type identifier; null for generic."
-          ]
+    "ore_vein": {
+      "id": "ore_vein",
+      "doc": "Mineable ore vein metadata",
+      "type": "object",
+      "required": [
+        "ore_id",
+        "richness"
+      ],
+      "properties": {
+        "ore_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"
+        },
+        "richness": {
+          "type": "integer",
+          "min": 0
+        },
+        "respawn_sec": {
+          "type": "integer",
+          "min": 0,
+          "nullable": true
         }
-      ]
+      },
+      "defaults": {
+        "respawn_sec": null
+      }
+    },
+    "position": {
+      "id": "position",
+      "doc": "World position in tiles (1.0 = 1 tile)",
+      "type": "object",
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      },
+      "defaults": {
+        "x": 0,
+        "y": 0
+      },
+      "clamps": {
+        "x": {
+          "min": -1000000,
+          "max": 1000000
+        },
+        "y": {
+          "min": -1000000,
+          "max": 1000000
+        }
+      }
+    },
+    "sound_emitter": {
+      "id": "sound_emitter",
+      "doc": "Sound trigger parameters (ambient or one-shots)",
+      "type": "object",
+      "required": [
+        "sfx_tag",
+        "loop",
+        "cooldown_ms"
+      ],
+      "properties": {
+        "sfx_tag": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"
+        },
+        "loop": {
+          "type": "boolean"
+        },
+        "cooldown_ms": {
+          "type": "integer",
+          "min": 0
+        }
+      },
+      "defaults": {
+        "loop": false,
+        "cooldown_ms": 0
+      }
+    },
+    "sprite_ref": {
+      "id": "sprite_ref",
+      "doc": "Sprite/art reference and draw hints",
+      "type": "object",
+      "required": [
+        "sprite_id"
+      ],
+      "properties": {
+        "sprite_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"
+        },
+        "z": {
+          "type": "integer"
+        },
+        "flip_x": {
+          "type": "boolean"
+        },
+        "flip_y": {
+          "type": "boolean"
+        },
+        "tint_token": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$",
+          "nullable": true
+        }
+      },
+      "defaults": {
+        "z": 0,
+        "flip_x": false,
+        "flip_y": false,
+        "tint_token": null
+      }
+    },
+    "stamina": {
+      "id": "stamina",
+      "doc": "Stamina pool for actions",
+      "type": "object",
+      "required": [
+        "current",
+        "max"
+      ],
+      "properties": {
+        "current": {
+          "type": "number",
+          "min": 0
+        },
+        "max": {
+          "type": "number",
+          "min": 0
+        },
+        "regen_per_sec": {
+          "type": "number",
+          "min": 0
+        },
+        "drain_mult": {
+          "type": "number",
+          "min": 0
+        }
+      },
+      "defaults": {
+        "regen_per_sec": 10,
+        "drain_mult": 1
+      },
+      "clamps": {
+        "current": {
+          "min": 0
+        },
+        "max": {
+          "min": 0,
+          "max": 10000
+        }
+      }
     },
     "tile": {
       "id": "tile",
-      "transient": false,
-      "description": "Tile cell data: type, hardness band, and flags.",
-      "fields": [
-        {
-          "name": "tileType",
+      "doc": "Tile marker for static world cells or embedded entity tiles",
+      "type": "object",
+      "required": [
+        "tile_id",
+        "solid"
+      ],
+      "properties": {
+        "tile_id": {
           "type": "string",
-          "default": "rock",
-          "min": null,
-          "max": null,
-          "enum": [
-            "rock",
-            "floor",
-            "ore.copper",
-            "ore.iron",
-            "ore.quartz"
-          ],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Tile material/type. See enums.tileType.",
-            "Invariant: tile.hardness must match this type's band."
-          ]
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"
         },
-        {
-          "name": "hardness",
-          "type": "int",
-          "default": 3,
-          "min": null,
-          "max": null,
-          "enum": [
-            0,
-            3,
-            4,
-            5,
-            7
-          ],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Hardness band for mining. Must equal the band for tileType:",
-            "rock=3, floor=0, ore.copper=4, ore.iron=5, ore.quartz=7."
-          ]
+        "solid": {
+          "type": "boolean"
         },
-        {
-          "name": "flags",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Bitfield of TILE_FLAGS; must be non-negative and only set known bits."
-          ]
-        }
-      ]
-    },
-    "attack_intent": {
-      "id": "attack_intent",
-      "transient": true,
-      "description": "One-frame signal to initiate an attack by id.",
-      "fields": [
-        {
-          "name": "requestedAtMs",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Timestamp (ms) when the intent was requested; monotonic game time."
-          ]
-        },
-        {
-          "name": "attackId",
+        "material": {
           "type": "string",
-          "default": "",
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Attack definition id; must be a non-empty string.",
-            "DEV: reject empty; PROD: clamp is not applicable—emit warning and drop component."
-          ]
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"
+        },
+        "hardness": {
+          "type": "number",
+          "min": 0
         }
-      ]
+      },
+      "defaults": {
+        "material": "mat.rock.generic",
+        "hardness": 1
+      }
     },
-    "hitbox": {
-      "id": "hitbox",
-      "transient": true,
-      "description": "Ephemeral damage/interaction box in pixels.",
-      "fields": [
-        {
-          "name": "w",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Width in pixels; must be ≥ 0."
-          ]
+    "tool": {
+      "id": "tool",
+      "doc": "Equipped tool metadata",
+      "type": "object",
+      "required": [
+        "tool_id",
+        "tier"
+      ],
+      "properties": {
+        "tool_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"
         },
-        {
-          "name": "h",
-          "type": "int",
-          "default": 0,
-          "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Height in pixels; must be ≥ 0."
-          ]
+        "tier": {
+          "type": "integer",
+          "min": 0
         },
-        {
-          "name": "offsetX",
-          "type": "int",
-          "default": 0,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Offset from entity origin (pixels)."
-          ]
+        "durability": {
+          "type": "integer",
+          "min": 0
         },
-        {
-          "name": "offsetY",
-          "type": "int",
-          "default": 0,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Offset from entity origin (pixels)."
-          ]
+        "durability_max": {
+          "type": "integer",
+          "min": 0
         },
-        {
-          "name": "active",
-          "type": "boolean",
-          "default": false,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "If false, hitbox does not interact this frame."
-          ]
+        "mining_power": {
+          "type": "number",
+          "min": 0
+        },
+        "attack_power": {
+          "type": "number",
+          "min": 0
         }
-      ]
+      },
+      "defaults": {
+        "durability": 0,
+        "durability_max": 0,
+        "mining_power": 0,
+        "attack_power": 0
+      }
     },
-    "audio_emitter": {
-      "id": "audio_emitter",
-      "transient": true,
-      "description": "Event-based audio trigger cooldown tracking.",
-      "fields": [
-        {
-          "name": "lastEventId",
-          "type": "nullable_string",
-          "default": null,
-          "min": null,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Most recent emitted audio event id; null if none."
-          ]
+    "ui_state": {
+      "id": "ui_state",
+      "doc": "Minimal UI state hooks for entities or global proxy entity",
+      "type": "object",
+      "required": [],
+      "properties": {
+        "panel": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$",
+          "nullable": true
         },
-        {
-          "name": "coolUntilMs",
-          "type": "int",
-          "default": 0,
+        "hotbar_selection": {
+          "type": "integer",
           "min": 0,
-          "max": null,
-          "enum": [],
-          "itemSchema": null,
-          "objectShape": null,
-          "notes": [
-            "Absolute game time (ms) until which new audio events are suppressed; must be ≥ 0."
-          ]
+          "max": 9
+        },
+        "minimap_enabled": {
+          "type": "boolean"
         }
-      ]
+      },
+      "defaults": {
+        "panel": null,
+        "hotbar_selection": 0,
+        "minimap_enabled": true
+      }
+    },
+    "velocity": {
+      "id": "velocity",
+      "doc": "World velocity in tiles/sec",
+      "type": "object",
+      "required": [
+        "vx",
+        "vy"
+      ],
+      "properties": {
+        "vx": {
+          "type": "number"
+        },
+        "vy": {
+          "type": "number"
+        },
+        "max_speed": {
+          "type": "number"
+        }
+      },
+      "defaults": {
+        "vx": 0,
+        "vy": 0
+      },
+      "clamps": {
+        "vx": {
+          "min": -1000,
+          "max": 1000
+        },
+        "vy": {
+          "min": -1000,
+          "max": 1000
+        },
+        "max_speed": {
+          "min": 0,
+          "max": 1000
+        }
+      }
     }
-  },
-  "enums": {
-    "tileType": [
-      "rock",
-      "floor",
-      "ore.copper",
-      "ore.iron",
-      "ore.quartz"
-    ],
-    "dirDeg": {
-      "min": 0,
-      "max": 359,
-      "wrap": true
-    }
-  },
-  "flags": {
-    "TILE_FLAGS": {
-      "ROOM_FLOOR": 1,
-      "DOOR_BAND": 2,
-      "ORE_PREF": 4,
-      "LAMP_ANCHOR": 8,
-      "APPROACH3W_PROTECT": 16
-    },
-    "mask_notes": [
-      "Only bits defined in TILE_FLAGS may be set; others must remain 0.",
-      "DOOR_BAND applies only to floor cells adjacent to candidate door openings.",
-      "ROOM_FLOOR marks carved/valid floor cells for room placement and metrics.",
-      "ORE_PREF biases cellular automata or placer toward ore retention in flagged cells.",
-      "LAMP_ANCHOR designates cells valid for lamp placement; not all floor cells qualify.",
-      "APPROACH3W_PROTECT marks approach corridors against over-smoothing during CA passes.",
-      "Tile.flags must be non-negative."
-    ]
   }
 }
