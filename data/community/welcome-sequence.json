@@ -2,150 +2,218 @@
   "version": 1,
   "meta": {
     "author": "theta",
-    "date": "2026-02-18T00:00:00Z",
-    "notes": "Discord newcomer welcome sequence v1 for The Far Mine; single-locale, 5-step DM flow with gentle dwarven tavern tone."
+    "date": "2026-02-19T12:00:00Z",
+    "notes": "Initial welcome sequence v1",
+    "locale": "en-US"
   },
-  "config": {
-    "enabled": true,
-    "dm_fallback_channel_id": "<TBD>",
-    "throttle_sec": 5,
-    "locale_default": "en-US",
+  "flow": {
+    "id": "welcome.flow.v1",
+    "name": "Welcome Sequence v1",
+    "default_delay_sec": 15,
     "retry_policy": {
-      "attempts": 3,
-      "backoff_sec": 20
-    },
-    "analytics": {
-      "cohort_tag": "onb-v1-2026w08",
-      "utm_base": "https://thefarmine.game/?utm_source=discord&utm_medium=welcome"
+      "retries": 3,
+      "backoff_sec": 10
     }
+  },
+  "steps": [
+    {
+      "id": "welcome.step.001",
+      "title": "Welcome to The Far Mine!",
+      "body": [
+        "Ho there, traveler! I'm Brewmaster Alehart. Grab a stool and a mug—ye're among kin.",
+        "We keep the hearth warm and the banter warmer. Drop a quick wave in #tavern-talk so the clan can toast ye.",
+        "React with :beers: to let me know ye've arrived, or just say aye."
+      ],
+      "cta": {
+        "label": "Raise a mug",
+        "action": "react",
+        "payload": ":beers:",
+        "optional_secondary": {
+          "label": "I'm here",
+          "action": "ack",
+          "payload": ""
+        }
+      },
+      "deliver_to": "dm",
+      "channel_token": null,
+      "delay_sec": 0,
+      "conditions": {
+        "requires_roles": [],
+        "excludes_roles": [],
+        "once": true
+      },
+      "tracking": {
+        "event": "welcome.view.001",
+        "properties": {
+          "step": "001",
+          "surface": "dm",
+          "cta_action": "react",
+          "cta_payload": ":beers:"
+        }
+      }
+    },
+    {
+      "id": "welcome.step.002",
+      "title": "House Rules: Short and Sweet",
+      "body": [
+        "We mine for fun, not fights. Be kind, assume good intent, and keep feedback constructive—specific, actionable, and about the work.",
+        "Hate speech, harassment, and spam get the boot; report issues early.",
+        "Full rules live on the bulletin. Read 'em before ye swing your pick."
+      ],
+      "cta": {
+        "label": "Open full rules",
+        "action": "open_link",
+        "payload": "https://thefarmine.example.com/rules",
+        "optional_secondary": {
+          "label": "Got it",
+          "action": "ack",
+          "payload": ""
+        }
+      },
+      "deliver_to": "dm",
+      "channel_token": null,
+      "delay_sec": 15,
+      "conditions": {
+        "requires_roles": [],
+        "excludes_roles": [],
+        "once": true
+      },
+      "tracking": {
+        "event": "welcome.view.002",
+        "properties": {
+          "step": "002",
+          "surface": "dm",
+          "cta_action": "open_link",
+          "cta_payload": "https://thefarmine.example.com/rules"
+        }
+      }
+    },
+    {
+      "id": "welcome.step.003",
+      "title": "Choose Your Path: Prospector",
+      "body": [
+        "Prospectors are our bold playtesters—first into new tunnels, first to spot loose stone.",
+        "Want the @Prospector role? React with :pick: below and the bot will set yer badge. We'll ping ye for builds and queue ye for playtests in #playtest-queue.",
+        "If reactions fail, holler in #project-orchestration and a guildhand will assist."
+      ],
+      "cta": {
+        "label": "Become Prospector",
+        "action": "assign_role",
+        "payload": "prospector",
+        "optional_secondary": {
+          "label": "React :pick:",
+          "action": "react",
+          "payload": ":pick:"
+        }
+      },
+      "deliver_to": "channel",
+      "channel_token": "tavern",
+      "delay_sec": 0,
+      "conditions": {
+        "requires_roles": [],
+        "excludes_roles": [
+          "prospector"
+        ],
+        "once": true
+      },
+      "tracking": {
+        "event": "welcome.view.003",
+        "properties": {
+          "step": "003",
+          "surface": "channel",
+          "channel_token": "tavern",
+          "cta_action": "assign_role",
+          "cta_payload": "prospector"
+        }
+      }
+    },
+    {
+      "id": "welcome.step.004",
+      "title": "Sprint Focus: Mine L1 Slice",
+      "body": [
+        "We're carving Sprint 1: a vertical slice of Mine L1—enter, mine a vein, haul it home.",
+        "Peek progress in #build-in-public; we share dailies, wins, and stumbles.",
+        "Rituals: Mine Mood check and Hearthfire Roll Call at shift start."
+      ],
+      "cta": {
+        "label": "View sprint board",
+        "action": "open_link",
+        "payload": "https://thefarmine.example.com/sprint-1",
+        "optional_secondary": {
+          "label": "Shiny!",
+          "action": "react",
+          "payload": ":gem:"
+        }
+      },
+      "deliver_to": "dm",
+      "channel_token": null,
+      "delay_sec": 15,
+      "conditions": {
+        "requires_roles": [],
+        "excludes_roles": [],
+        "once": true
+      },
+      "tracking": {
+        "event": "welcome.view.004",
+        "properties": {
+          "step": "004",
+          "surface": "dm",
+          "cta_action": "open_link",
+          "cta_payload": "https://thefarmine.example.com/sprint-1"
+        }
+      }
+    },
+    {
+      "id": "welcome.step.005",
+      "title": "How to Give Rock‑Solid Feedback",
+      "body": [
+        "Post playtest notes in #playtest-queue. Use a thread per issue. Tag with [bug], [ux], [balance], or [praise]. We'll acknowledge within 4 hours during work cycles.",
+        "Template: Title; Steps to Repro; Expected; Actual; Build/Branch; Attachments.",
+        "No spoilers without tags; keep it kind and clear. Link related threads when ye can."
+      ],
+      "cta": {
+        "label": "Open feedback form",
+        "action": "open_link",
+        "payload": "https://thefarmine.example.com/forms/feedback",
+        "optional_secondary": {
+          "label": "Copy template",
+          "action": "ack",
+          "payload": ""
+        }
+      },
+      "deliver_to": "dm",
+      "channel_token": null,
+      "delay_sec": 15,
+      "conditions": {
+        "requires_roles": [],
+        "excludes_roles": [],
+        "once": true
+      },
+      "tracking": {
+        "event": "welcome.view.005",
+        "properties": {
+          "step": "005",
+          "surface": "dm",
+          "cta_action": "open_link",
+          "cta_payload": "https://thefarmine.example.com/forms/feedback"
+        }
+      }
+    }
+  ],
+  "links": {
+    "rules": "https://thefarmine.example.com/rules",
+    "sprint_board": "https://thefarmine.example.com/sprint-1",
+    "bug_form": "https://thefarmine.example.com/forms/feedback"
   },
   "channels": {
-    "announcements": "<TBD>",
-    "project_orchestration": "<TBD>",
-    "build_updates": "<TBD>",
-    "tavern_talk": "<TBD>",
-    "bug_reports": "<TBD>",
-    "ideas_workbench": "<TBD>",
-    "playtest_queue": "<TBD>"
+    "orchestration": "#project-orchestration",
+    "tavern": "#tavern-talk",
+    "playtest": "#playtest-queue",
+    "build": "#build-in-public",
+    "mod_lodge": "#mod-lodge"
   },
   "roles": {
-    "playtester": "<TBD>",
-    "moderators": "<TBD>",
-    "owners": "<TBD>"
-  },
-  "sequence": [
-    {
-      "id": "welcome.step1.hello.v1",
-      "kind": "dm",
-      "delay_hours": 0,
-      "locale": "en-US",
-      "text": "Ho there, traveler! I'm Brewmaster Alehart—mind the casks and find a stool. Glad you found The Far Mine.\nSay hello in #tavern-talk so we can clink mugs. Peek at #announcements for news and the pinned Code of Conduct summary.",
-      "reactions_suggested": [
-        "🍻",
-        "👋"
-      ],
-      "gates": {
-        "first_time_only": true
-      },
-      "tags": [
-        "welcome",
-        "tone",
-        "coc"
-      ]
-    },
-    {
-      "id": "welcome.step2.rules.v1",
-      "kind": "dm",
-      "delay_hours": 0.15,
-      "locale": "en-US",
-      "text": "House rules, short and stout: PG-13 tavern talk, be kind, keep threads tidy and on-topic.\nFull CoC is pinned in #announcements; mods guide first, owners step in if needed. Questions? Ask in #tavern-talk.",
-      "reactions_suggested": [
-        "✅",
-        "🧹"
-      ],
-      "gates": {
-        "first_time_only": true
-      },
-      "tags": [
-        "rules",
-        "safety"
-      ]
-    },
-    {
-      "id": "welcome.step3.sprint.v1",
-      "kind": "dm",
-      "delay_hours": 1,
-      "locale": "en-US",
-      "text": "Our current sprint: a vertical slice of the core loop—delve, gather, craft, light your way.\nCatch the latest in #build-updates. Want to help? Hop into the Playtest Queue or drop a gem in the Ideas Workbench.",
-      "buttons": [
-        {
-          "label": "Sprint Post",
-          "url": "https://thefarmine.game/sprint"
-        },
-        {
-          "label": "Playtest Queue",
-          "url": "https://thefarmine.game/playtest-queue"
-        },
-        {
-          "label": "Ideas Workbench",
-          "url": "https://thefarmine.game/ideas-workbench"
-        }
-      ],
-      "reactions_suggested": [
-        "⛏️",
-        "💡"
-      ],
-      "gates": {
-        "first_time_only": true
-      },
-      "tags": [
-        "sprint",
-        "how-to-help"
-      ]
-    },
-    {
-      "id": "welcome.step4.bugs-feedback.v1",
-      "kind": "dm",
-      "delay_hours": 24,
-      "locale": "en-US",
-      "text": "Bug to squash or a clever fix? In #bug-reports, use:\nTitle; Steps; Expected; Actual; Seed/Build; System.\nIdeas belong in #ideas-workbench, one idea per post - use reactions to vote. Owners aim to acknowledge within 48h.",
-      "reactions_suggested": [
-        "🐛",
-        "✅"
-      ],
-      "gates": {
-        "first_time_only": true
-      },
-      "tags": [
-        "bugs",
-        "feedback",
-        "templates"
-      ]
-    },
-    {
-      "id": "welcome.step5.roles-rituals.v1",
-      "kind": "dm",
-      "delay_hours": 72,
-      "locale": "en-US",
-      "text": "Want pings for test calls? Opt into the Playtester role.\nDaily rituals: Mine Mood and Hearthfire Roll Call at 10:00 PT; plans live in #project-orchestration.\nJoin our weekly live peek on Fridays at 12:30 PT. Grab the role when ready.",
-      "buttons": [
-        {
-          "label": "Get Playtester Role",
-          "url": "https://thefarmine.game/roles/playtester"
-        }
-      ],
-      "reactions_suggested": [
-        "🔥",
-        "🧪"
-      ],
-      "gates": {
-        "first_time_only": true
-      },
-      "tags": [
-        "roles",
-        "rituals",
-        "playtester"
-      ]
-    }
-  ]
+    "prospector": "@Prospector",
+    "guildhand": "@Guildhand"
+  }
 }
