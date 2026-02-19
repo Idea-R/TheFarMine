@@ -1,469 +1,512 @@
-# The Far Mine — Core ECS Architecture (Sprint 1)
+# The Far Mine — Core ECS Architecture (Sprint 1 v0.1)
 
 Author: Ironforge Stonebeard (Alpha)  
-Version: Draft v0.1 — 2026-02-18  
-Status: Draft v0.1
+Version/Date: v0.1 — 2026-02-19 (ISO-8601)  
+Status: Draft v0.1  
+Scope: L1 vertical slice; Bevy ECS core (>=0.13); fixed 60 Hz logic; integration with components/events/resources per P4 decision (Rust + Bevy).
 
-Scope: MVP vertical slice (Mine L1) focusing on Entities, Components, Systems, World/Registry, Event Bus, Queries, and Scheduling. Runtime target: Bevy (Rust) for the executable, with an engine-agnostic registry API mirrored in src/core/ecs-registry.js for tests and tools.
 
----
+## 1) Goals & Constraints
 
-## 2) Goals & Constraints
+- Goals
+  - Stable component/event contracts
+  - Clean API surfaces
+  - Predictable scheduling (deterministic 60 Hz core)
+  - Testability (unit-ish + integration)
+  - Baseline performance (≥60 Hz on dev laptop)
 
-- Performance:
-  - Instantiate 10,000 entities with 3 simple components.
-  - Run 3 trivial systems at >= 60 Hz on a dev laptop.
-- Determinism:
-  - Query iteration is eid-ascending.
-  - Per-event-type FIFO ordering within a tick.
-- Stability and naming:
-  - snake_case component names.
-  - Events end with Event; plugins end with Plugin.
-  - Tile size: 16 px; 1.0 world unit per tile.
-- Serialization:
-  - Plan to leverage serde + bevy_reflect for seeds/player state, mapping one-to-one with JS registry schemas for tools.
+- Constraints
+  - Bevy 0.13
+  - 2D side-view
+  - Tiles are 16 px; world units 1.0 per tile
+  - Fixed 60 Hz tick for core gameplay logic (FixedUpdate)
 
----
+- Non-goals (Sprint 1)
+  - Network sync/rollback
+  - Advanced reflection-driven UI
+  - Hot-reload beyond Bevy asset system
 
-## 3) Core Concepts & Data Model
 
-- Entities:
-  - 32-bit integer-like ids (eid: u32).
-  - Created/destroyed via registry; reuse ids via a freelist to avoid unbounded growth.
-- Components (MVP set, plain data, minimal validation):
-  - position, velocity, collider (AABB), tile, ore_vein, health, stamina, damageable, inventory, tool, faction, sprite_ref, light, sound_emitter, ui_state.
-  - Data-only; validation limited to light dev checks (range/type).
-- Resources (registry/world named singletons):
-  - game_time (secs, tick count), input_map (actions/axes), asset_index (lookup for sprites, sfx, colors), plus per-system scratch if needed.
-- Events (payload sketches, intended routing):
-  - MineHitEvent { pos: {x,y}, tool: {tool_id,tier}, power: f32, target_tile?: {tx,ty} }
-    - Routed to mining logic; bridged to audio for impacts.
-  - DamageEvent { source_eid?: u32, target_eid: u32, amount: i32, kind?: string }
-    - Routed to combat/damageable; may spawn VFX telegraph.
-  - FootstepEvent { eid: u32, pos: {x,y}, surface?: string }
-    - Routed to audio bridge for footstep SFX; optional surface inferred via tile.
-  - PlaySfxEvent { key: string, pos?: {x,y}, volume?: f32 }
-    - Routed directly to AudioEventBridge (asset_index resolves key).
-  - UiCommand { kind: string, payload?: any, target?: string }
-    - Routed to UI bridge (menus/HUD).
+## 2) ECS Model Overview
 
----
+- Entities
+  - Opaque Bevy Entity IDs.
+  - Naming conventions for bundles: Suffix “Bundle” (e.g., PlayerBundle), components are PascalCase structs.
 
-## 4) Storage Strategy (MVP)
+- Core types (aliases/tokens)
+  - type SpriteToken = String
+  - type SfxTag = String
+  - type MaterialTag = String
+  - type OreTag = String
+  - type FactionId = u16
+  - type AttackId = u32
+  - type Ms = u32
 
-- Per-component dense store:
-  - Arrays: ids[]: u32, data[]: T, and index: Map<u32, usize> (eid → dense index).
-  - Add: push eid + data; index[eid] = last_index.
-  - Remove: swap-remove from end; update moved eid’s index.
-  - Get/Has: O(1) via index.
-- Deterministic iteration:
-  - Each store maintains lazy sortedIds snapshot: Vec<u32>, invalidated on add/remove.
-  - On first query requiring this store per tick, rebuild snapshot (ids.clone() then sort ascending).
-  - Query iteration always uses the driver store’s sortedIds; multi-store filters preserve driver order.
-- Evolution notes:
-  - If/when component counts grow and cache misses dominate, consider archetype/SoA or sparse-set with chunked SoA per archetype. Keep API stable to swap storage under the hood post-alpha.
+- Components (Sprint 1 set)
+  - Transform (use bevy::prelude::Transform)
+    - Invariants: 2D usage: translation.z for z-order; translation.x/y in world units (1.0/tile), scale = Vec3::ONE.
+  - Velocity
+    - fields:
+      - lin: Vec2
+      - max_speed: f32 (>= 0.0)
+    - clamp: |lin| <= max_speed when integrating.
+  - Collider (AABB)
+    - fields:
+      - half_extents: Vec2 (x > 0.0, y > 0.0)
+      - offset: Vec2
+      - solid: bool
+      - layer: u32 (bitmask category)
+      - mask: u32 (bitmask collides-with)
+  - Tile
+    - fields:
+      - id: u32
+      - material: MaterialTag
+      - hardness: u8 (0..=255)
+      - solid: bool
+  - OreVein
+    - fields:
+      - ore_type: OreTag
+      - quantity: u16 (0..)
+      - hardness_bonus: u8 (0..=64)
+  - Health
+    - fields:
+      - current: f32 (0.0..=max)
+      - max: f32 (> 0.0)
+  - Stamina
+    - fields:
+      - current: f32 (0.0..=max)
+      - max: f32 (> 0.0)
+      - regen_per_s: f32 (>= 0.0)
+  - Inventory
+    - fields:
+      - slots: Vec<ItemStack>
+      - capacity: u8 (>= slots.len(), clamp to 255)
+    - ItemStack { item_id: u32, qty: u16 (1..), max_stack: u16 (>= qty) }
+  - Tool
+    - fields:
+      - tier: u8 (0..=10)
+      - power: f32 (>= 0.0)
+      - uses_left: i32 (>= -1; -1 = infinite)
+  - Damageable
+    - fields:
+      - invulnerable: bool
+      - poise_current: f32 (0.0..=poise_max)
+      - poise_max: f32 (> 0.0)
+      - poise_regen_per_s: f32 (>= 0.0)
+  - Faction
+    - fields:
+      - id: FactionId
+  - SpriteRef
+    - fields:
+      - token: SpriteToken
+      - z_layer: i16 (z-order hint; translated to Transform.z)
+  - Light
+    - fields:
+      - intensity: f32 (>= 0.0)
+      - radius: f32 (>= 0.0)
+      - color: bevy::prelude::Color
+  - SoundEmitter
+    - fields:
+      - sfx_tag: SfxTag
+      - cool_ms: Ms
+      - last_played_ms: Ms
+  - UIState
+    - fields:
+      - visible: bool
+      - mode: u8 (opaque mode id for Sprint 1)
 
----
+- Resources
+  - GameTime { start_instant: std::time::Instant, fixed_frame: u64, last_fixed_dt: f32 }
+  - InputMap { bindings: Vec<(KeyCode, Intent)> } — Intent is enum of player intents for Sprint 1
+  - AssetIndex { sprites: HashMap<SpriteToken, Handle<Image>>, sfx: HashMap<SfxTag, Handle<AudioSource>> }
+  - DepthScalar (audio) { value: f32 (0.0..=1.0) }
+  - WorldGenRng { seed: u64, rng: rand::rngs::SmallRng }
 
-## 5) Public API Surface (Registry)
+- Events
+  - MineHitEvent { pos: Vec2, tool_tier: u8, power: f32 }
+  - DamageEvent { source: Option<Entity>, target: Entity, amount: f32, dmg_type: DamageType }
+  - FootstepEvent { entity: Entity, material: MaterialTag }
+  - PlaySfxEvent { tag: SfxTag, pos: Option<Vec2> }
+  - UiCommand { action: UiAction, payload: serde_json::Value }
+  - TelegraphStartEvent { entity: Entity, attack_id: AttackId, flash_at_ms: Vec<Ms>, total_windup_ms: Ms, vfx_token: String, sfx_tag: SfxTag }
+  - PoiseBreakEvent { entity: Entity, duration_ms: Ms }
 
-Engine-agnostic JS-like API mirrored by src/core/ecs-registry.js for tests/tools. Bevy runtime provides equivalent semantics (Appendix A).
+  - DamageType: enum { Blunt, Sharp, Heat, Chill, True }
 
-- Entity lifecycle:
-  - createEntity(): u32
-  - destroyEntity(eid: u32): boolean
-  - isAlive(eid: u32): boolean
-- Components:
-  - add(eid: u32, compName: string, data: object): void
-  - remove(eid: u32, compName: string): boolean
-  - get(eid: u32, compName: string): object | null
-  - has(eid: u32, compName: string): boolean
-- Queries:
-  - view(include: string[], exclude?: string[]): Iterable<[eid: u32, ...components]>
-    - Driver selection: choose smallest include store (min length) for performance.
-    - Iterate driver.sortedIds (eid-ascending); for each eid, ensure presence of remaining include comps and absence of exclude comps.
-    - Yield [eid, components...] where components are in the same order as include list.
-- Systems and scheduling:
-  - register(stage: StageName, systemFn: (reg, dt) => void, opts?: { name?: string, after?: string[], before?: string[] }): void
-  - tick(dtSec: number): void
-    - dt clamped to [0.0, 0.1] seconds.
-    - Executes stages in fixed order (see Scheduling).
-- Schemas and debug:
-  - setSchemas(map: Record<string, Schema>): void
-  - getDebugStore(name: string): { count: number, ids: u32[], dirty: boolean } | null
-- Resources:
-  - setResource<T>(name: string, value: T): void
-  - getResource<T>(name: string): T | null
-  - hasResource(name: string): boolean
-- Event bus:
-  - bus.emit<T>(type: string, payload: T): void
-  - bus.drain<T>(type: string): T[]   // FIFO snapshot and clear
-  - bus.clear(type?: string): void
-- Counters (for tests/benchmarks):
-  - getCounters(): Record<string, number>
-  - resetCounters(): void
-  - incCounter(name: string, by?: number): void
-- Dev vs prod:
-  - Dev mode: light schema/type checks and console warnings; registry never throws on component ops (returns false/null on failure).
-  - Prod mode: minimal checks; same no-throw contract.
-
-StageName is one of: "Input", "PrePhysics", "Gameplay", "Events", "RenderPrep".
-
----
-
-## 6) Scheduling & Stages
-
-Stage order (global, stable):
-
-1) Input
-   - Gather/normalize inputs; update input_map resource; emit UiCommand as needed.
-2) PrePhysics
-   - Movement integration, simple collision pre-pass, constraints.
-3) Gameplay
-   - Combat, mining, AI, stamina/regen.
-4) Events
-   - Deterministic drain/bridge of events to subsystems (audio, UI, VFX bridges).
-5) RenderPrep
-   - Sprite selection, lighting buffer prep, render-layer sorting.
-
-Ordering guarantees:
-- Stages execute strictly in the above order per tick.
-- Within a stage, systems can express local ordering via opts.after/opts.before (acyclic). Absent constraints, insertion order is used.
-- Systems should avoid cross-stage side effects; emit events or set resources instead. E.g., PrePhysics should not mutate sprite_ref; instead write data or events consumed in RenderPrep.
-
----
-
-## 7) Reference Systems & Hooks (MVP)
-
-- MovementSystem (PrePhysics):
-  - Query: [position, velocity]
-  - position += velocity * dt.
-  - If velocity.max_speed is present, clamp speed to <= max_speed (Euclidean).
-  - Guard against NaN/Inf: if detected, zero velocity and skip movement; dev log.
-  - FootstepEvent emission:
-    - Maintain per-entity cooldown (e.g., 0.35s walking cadence) via an ephemeral cache Map<eid, t_next>. Store in registry resource "footstep_cooldowns".
-    - Emit FootstepEvent { eid, pos, surface? } when current time >= t_next and |velocity| > epsilon.
-- Mining hook sketch:
-  - Any system detecting a mining action emits MineHitEvent { pos, tool, power, target_tile } during Gameplay.
-  - OreVein/Tile interaction:
-    - Tile hardness/tool_tier gate for breaking; OreVein hardness reduces effective power.
-    - On break: emit PlaySfxEvent with key from asset_index; spawn inventory loot via InventorySystem (deferred).
-- Combat hooks sketch:
-  - Input/AI triggers emit DamageEvent { source_eid, target_eid, amount, kind } in Gameplay.
-  - Damage processing system:
-    - Reads damageable, health; applies defense; reduces health.current; may emit UiCommand on death/low HP, and telegraph events for VFX.
-  - Stamina/poise:
-    - Integration points only; defer deeper logic to Gamma’s combat spec (consume stamina on heavy actions; regenerate in Gameplay; emit telegraph tokens).
-
----
-
-## 8) Component Schemas (MVP fields)
-
-Validation: Dev-only range/type checks; Prod: trust data. Cross-team contracts noted.
-
-- position { x: f32, y: f32 }
-  - x,y in world units. No validation beyond finite numbers.
-- velocity { vx: f32, vy: f32, max_speed?: f32 }
-  - Optional max_speed >= 0.0 if present.
-- collider { half_w: f32, half_h: f32, solid: bool }
-  - half_w/half_h > 0; AABB centered on position; solid toggles collision.
-- tile { code: i32, hardness: f32, tool_tier: "t0|t1|t1_5|t2" }
-  - code from tile atlas; hardness >= 0; tool_tier aligns with data/mining/tools.json.
-- ore_vein { kind: "copper|iron|quartz", hardness: f32 }
-  - kind matches data/mining/ore.json; hardness >= 0.
-- health { current: i32, max: i32 }
-  - 0 <= current <= max; on current <= 0, entity considered dead for combat systems.
-- stamina { current: f32, max: f32, regen_per_sec: f32 }
-  - Clamp current to [0,max]; regen_per_sec >= 0.
-- damageable { defense: i32, faction_mask?: u32 }
-  - defense >= 0; faction_mask bitfield compatible with faction routing.
-- inventory { capacity: u8, slots?: [item_id|null] }
-  - capacity <= small MVP cap (e.g., 16); if slots provided, length <= capacity; item_id per data/items/index.json.
-- tool { tool_id: string, tier: u8, mining_power?: f32 }
-  - tool_id matches data/tools/index.json; tier consistent with tile.tool_tier; mining_power >= 0 if present.
-- faction { id: string }
-  - id aligns with data/combat/factions.json; used with damageable.faction_mask.
-- sprite_ref { sprite_id: string, tint_token?: string }
-  - sprite_id resolves via asset_index.sprites; tint_token from data/visual/color-palette.json.
-- light { radius: f32, intensity: f32, color_token: string }
-  - radius >= 0; intensity in [0,1.5]; color_token per color-palette.json.
-- sound_emitter { radius: f32, spatial: bool }
-  - radius >= 0; spatial true for positional attenuation.
-- ui_state { state: string }
-  - state keys agreed with UI team (Eta), e.g., "hud", "menu_pause", etc.
-
----
-
-## 9) Event Bus & Bridges
-
-- Event bus:
-  - Per-type FIFO queues; emit enqueues, drain returns a snapshot array in FIFO order and clears the queue.
-  - Deterministic within a tick; no persistence across ticks unless a system re-emits/retains by copying to a resource.
-- Bridges (Events stage):
-  - AudioEventBridge:
-    - FootstepEvent → resolve surface → PlaySfxEvent triggerKeys via asset_index.sfx. 
-    - PlaySfxEvent → runtime audio engine (pos/volume optional).
-  - Combat/Telegraph VFX bridge:
-    - DamageEvent (pre-hit/post-hit) → telegraph.arc tokens for VFX system.
-  - UI bridge:
-    - UiCommand → route to UI layer (Eta), targets like "hud", "menu", "notif".
-- Mapping tables:
-  - Placeholders referencing Zeta’s audio map (data/audio/map.json) and Eta’s UI command spec (docs/ui/commands.md). Clamp unknown keys in dev with warnings; noop in prod.
-
----
-
-## 10) Testing & Benchmark Plan (MVP)
-
-- Unit tests (JS registry):
-  - Entities: create/destroy/isAlive; reuse ids via freelist.
-  - Components: add/remove/get/has; remove on destroyEntity; get returns null for missing.
-  - Queries: view(include/exclude) determinism; ascending eid order; include order respected in payload.
-  - Systems: MovementSystem integration updates position; NaN guards; max_speed clamp.
-  - Events: emit/drain FIFO counts; per-type isolation; clear behavior.
-- Benchmark harness:
-  - Spawn 10,000 entities with position+velocity+health.
-  - Register MovementSystem + 2 trivial systems (no-ops reading components).
-  - Run for 3 seconds wall time; record average Hz (ticks/sec) and per-system invocation counters.
-  - Acceptance: >= 60 Hz on dev laptop; log counters to console; assert determinism (stable first/last eids).
-
----
-
-## 11) Risks & Assumptions
-
-- Inventory shape may be too prescriptive; keep capacity-only semantics now; slots optional and not required by systems in Sprint 1.
-- Event payload strings (materials, tokens) must align with data files; add dev-time clamps and logs for unknown keys.
-- JSON tooling/import quirks vary; keep schemas flat and loader-friendly; avoid nested enums beyond strings for MVP.
-
----
-
-## 12) Appendix A — Bevy Mapping (Rust)
-
-- Schedule mapping:
-  - Input → PreUpdate
-  - PrePhysics → FixedUpdate (or a custom Schedule "PrePhysics" inserted before Update if FixedUpdate cadence mismatches)
-  - Gameplay → Update
-  - Events → PostUpdate
-  - RenderPrep → Last (or a custom "RenderPrep" before Render)
-- Components:
-  - Rust structs mirroring schemas with derives:
-    - #[derive(Component, Reflect, Serialize, Deserialize, Default, Clone)]
-    - Register types with app.register_type::<T>() for reflect.
-- Events:
-  - Bevy Event<T> types: MineHitEvent, DamageEvent, FootstepEvent, PlaySfxEvent, UiCommand.
-  - Add via app.add_event::<T>() and systems consuming EventReader<T>, producing via EventWriter<T>.
-- Resources:
-  - game_time: Resource with elapsed_seconds, tick_count.
-  - input_map, asset_index as Resources with reflective serialization as needed.
-- Plugin:
-  - CoreEcsPlugin:
-    - Adds resources, registers components for reflect, adds events.
-    - Adds systems to appropriate schedules in the specified order using bevy’s system ordering (in_base_set, before/after labels).
-- Save/Load:
-  - Use bevy_reflect + serde (bevy_reflect::serde) for seeds/player state snapshots.
-  - Maintain schema parity with JS registry for tools; JS remains for tests/tools; Rust/Bevy is authoritative runtime.
-
----
-
-## 13) Appendix B — Usage Snippets
-
-Pseudocode (JS registry usage):
-```
-const reg = createRegistry();
-reg.setSchemas({
-  position: { x: 'f32', y: 'f32' },
-  velocity: { vx: 'f32', vy: 'f32', max_speed: '?f32' },
-  health:   { current: 'i32', max: 'i32' },
-  // ...
-});
-
-// MovementSystem
-function movementSystem(reg, dt) {
-  const now = (reg.getResource('game_time')?.secs) ?? 0;
-  const cooldowns = reg.getResource('footstep_cooldowns') ?? new Map();
-  if (!reg.hasResource('footstep_cooldowns')) reg.setResource('footstep_cooldowns', cooldowns);
-
-  for (const [eid, pos, vel] of reg.view(['position', 'velocity'])) {
-    let vx = vel.vx, vy = vel.vy;
-    if (!Number.isFinite(vx) || !Number.isFinite(vy)) { vel.vx = 0; vel.vy = 0; continue; }
-
-    const speed = Math.hypot(vx, vy);
-    if (vel.max_speed != null && speed > vel.max_speed && speed > 0) {
-      const s = vel.max_speed / speed;
-      vx *= s; vy *= s;
-      vel.vx = vx; vel.vy = vy;
+- Bundles
+  - PlayerBundle {
+      Transform, Velocity, Collider, Health, Stamina, Damageable, Inventory, Tool, Faction, SpriteRef, Light, SoundEmitter, UIState
+    }
+  - EnemyBundle (L1) {
+      Transform, Velocity, Collider, Health, Damageable, Faction, SpriteRef
+    }
+  - TileBundle {
+      Transform, Tile, Collider, SpriteRef
+    }
+  - OreVeinBundle {
+      Transform, Tile, OreVein, SpriteRef
     }
 
-    pos.x += vx * dt;
-    pos.y += vy * dt;
 
-    if (Math.hypot(vx, vy) > 0.2) {
-      const next = cooldowns.get(eid) ?? 0;
-      if (now >= next) {
-        reg.bus.emit('FootstepEvent', { eid, pos: { x: pos.x, y: pos.y } });
-        cooldowns.set(eid, now + 0.35);
-      }
-    }
-  }
-}
+## 3) Scheduling & Systems
 
-reg.register('PrePhysics', movementSystem);
+- Dual-schedule approach
+  - FixedUpdate (60 Hz): deterministic gameplay logic; authoritative state changes and event emission.
+  - Update (variable): visuals/audio/UI; reads the latest fixed state; bridges SFX events.
 
-// Spawn a mover
-const e = reg.createEntity();
-reg.add(e, 'position', { x: 0, y: 0 });
-reg.add(e, 'velocity', { vx: 1, vy: 0, max_speed: 4 });
+- Fixed 60 Hz configuration (Bevy 0.13)
+  - Insert Time::<Fixed>::from_hz(60.0) to drive FixedUpdate.
+  - Store dt in GameTime.last_fixed_dt for systems requiring numeric delta.
 
-reg.setResource('game_time', { secs: 0, ticks: 0 });
-for (let i = 0; i < 5; i++) {
-  const t = reg.getResource('game_time');
-  t.secs += 0.016; t.ticks++;
-  reg.tick(0.016);
-}
+- FixedUpdate system sets (ordered, chained)
+  1) InputCollectSet — input_collect (InputMap → intents/components)
+  2) RegenSet — stamina_regen, poise_regen (Damageable.poise)
+  3) StateMachineSet — player/enemy state machines, emits TelegraphStartEvent
+  4) MovementSet — movement_integrate (Transform += Velocity * dt; clamp speed)
+  5) CollisionSet — collision_and_hits (AABB queries; attack arcs)
+  6) DamageSet — damage_resolve → emits DamageEvent, PoiseBreakEvent, PlaySfxEvent (hits)
+  7) MiningSet — mining_resolve (MineHitEvent → Tile/OreVein changes; PlaySfxEvent)
+  8) PickupSet — inventory_pickup
+  9) CleanupSet — cleanup & despawn (remove dead, clear temp flags)
 
-// Drain footsteps (Events stage bridge would normally do this)
-const steps = reg.bus.drain('FootstepEvent'); // FIFO
-console.log('footsteps', steps.length);
-```
+- Update system sets (ordered)
+  - SpriteAnimSet — sprite_anim (advance frames based on state)
+  - LightSet — light_update
+  - AudioBridgeSet — audio_event_bridge (PlaySfxEvent → Audio)
+  - UiSyncSet — ui_sync (UIState, UiCommand)
 
-Example Bevy Rust snippets:
-
-Components:
+- Set definitions and ordering (example)
 ```rust
-use bevy::prelude::*;
-use bevy::reflect::Reflect;
-use serde::{Serialize, Deserialize};
-
-#[derive(Component, Reflect, Serialize, Deserialize, Default, Clone)]
-#[reflect(Component)]
-pub struct Position { pub x: f32, pub y: f32 }
-
-#[derive(Component, Reflect, Serialize, Deserialize, Default, Clone)]
-#[reflect(Component)]
-pub struct Velocity { pub vx: f32, pub vy: f32, pub max_speed: Option<f32> }
-
-#[derive(Event, Default, Clone)]
-pub struct FootstepEvent { pub eid: u32, pub x: f32, pub y: f32 }
-```
-
-Movement system and registration:
-```rust
-fn movement_system(
-  time: Res<Time>,
-  mut q: Query<(&mut Position, &mut Velocity)>,
-  mut steps: EventWriter<FootstepEvent>,
-) {
-  let dt = time.delta_seconds().clamp(0.0, 0.1);
-  for (mut pos, mut vel) in q.iter_mut() {
-    let mut vx = vel.vx; let mut vy = vel.vy;
-    if !vx.is_finite() || !vy.is_finite() { vel.vx = 0.0; vel.vy = 0.0; continue; }
-
-    let speed = (vx * vx + vy * vy).sqrt();
-    if let Some(max_s) = vel.max_speed {
-      if speed > max_s && speed > 0.0 {
-        let s = max_s / speed; vx *= s; vy *= s; vel.vx = vx; vel.vy = vy;
-      }
-    }
-
-    pos.x += vx * dt; pos.y += vy * dt;
-
-    if (vx*vx + vy*vy) > 0.04 {
-      // EID retrieval depends on how you map entity ids; placeholder 0 for snippet
-      steps.send(FootstepEvent { eid: 0, x: pos.x, y: pos.y });
-    }
-  }
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub enum FixedSet {
+  InputCollect,
+  Regen,
+  StateMachines,
+  Movement,
+  CollisionAndHits,
+  DamageResolve,
+  MiningResolve,
+  InventoryPickup,
+  Cleanup,
 }
 
-pub struct CoreEcsPlugin;
-impl Plugin for CoreEcsPlugin {
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub enum UpdateSet {
+  SpriteAnim,
+  Light,
+  AudioBridge,
+  UiSync,
+}
+
+pub struct CorePlugin;
+
+impl Plugin for CorePlugin {
   fn build(&self, app: &mut App) {
-    app
-      .register_type::<Position>()
-      .register_type::<Velocity>()
+    use bevy::prelude::*;
+    use bevy::time::common_conditions::on_timer;
+
+    // 60 Hz fixed step
+    app.insert_resource(Time::<Fixed>::from_hz(60.0));
+
+    // Resources
+    app.init_resource::<GameTime>()
+      .init_resource::<InputMap>()
+      .init_resource::<AssetIndex>()
+      .insert_resource(DepthScalar { value: 1.0 })
+      .insert_resource(WorldGenRng::from_seed(0xFARM1NE));
+
+    // Events
+    app.add_event::<MineHitEvent>()
+      .add_event::<DamageEvent>()
       .add_event::<FootstepEvent>()
-      .add_systems(PreUpdate, () /* input systems */)
-      .add_systems(FixedUpdate, movement_system) // PrePhysics
-      .add_systems(Update, () /* gameplay systems */)
-      .add_systems(PostUpdate, () /* event bridges */)
-      .add_systems(Last, () /* render prep */);
+      .add_event::<PlaySfxEvent>()
+      .add_event::<UiCommand>()
+      .add_event::<TelegraphStartEvent>()
+      .add_event::<PoiseBreakEvent>();
+
+    // FixedUpdate ordering
+    app.configure_sets(
+      FixedUpdate,
+      (
+        FixedSet::InputCollect,
+        FixedSet::Regen,
+        FixedSet::StateMachines,
+        FixedSet::Movement,
+        FixedSet::CollisionAndHits,
+        FixedSet::DamageResolve,
+        FixedSet::MiningResolve,
+        FixedSet::InventoryPickup,
+        FixedSet::Cleanup,
+      ).chain()
+    );
+
+    app.add_systems(FixedUpdate, input_collect.in_set(FixedSet::InputCollect))
+       .add_systems(FixedUpdate, (stamina_regen, poise_regen).in_set(FixedSet::Regen))
+       .add_systems(FixedUpdate, state_machines.in_set(FixedSet::StateMachines))
+       .add_systems(FixedUpdate, movement_integrate.in_set(FixedSet::Movement))
+       .add_systems(FixedUpdate, collision_and_hits.in_set(FixedSet::CollisionAndHits).after(FixedSet::Movement))
+       .add_systems(FixedUpdate, damage_resolve.in_set(FixedSet::DamageResolve).after(FixedSet::CollisionAndHits))
+       .add_systems(FixedUpdate, mining_resolve.in_set(FixedSet::MiningResolve))
+       .add_systems(FixedUpdate, inventory_pickup.in_set(FixedSet::InventoryPickup))
+       .add_systems(FixedUpdate, cleanup_and_despawn.in_set(FixedSet::Cleanup));
+
+    // Update ordering
+    app.configure_sets(
+      Update,
+      (
+        UpdateSet::SpriteAnim,
+        UpdateSet::Light,
+        UpdateSet::AudioBridge,
+        UpdateSet::UiSync,
+      ).chain()
+    );
+
+    app.add_systems(Update, sprite_anim.in_set(UpdateSet::SpriteAnim))
+       .add_systems(Update, light_update.in_set(UpdateSet::Light))
+       .add_systems(Update, audio_event_bridge.in_set(UpdateSet::AudioBridge))
+       .add_systems(Update, ui_sync.in_set(UpdateSet::UiSync));
   }
 }
 ```
 
----
+- Notes
+  - Systems that emit audio/visual events in FixedUpdate should do so via PlaySfxEvent and token-based VFX/SFX tags.
+  - Update reads event queues and components; it must not mutate authoritative gameplay state (except visual state like SpriteRef.z_layer).
 
-## 1) Title & Metadata
 
-- Title: The Far Mine — Core ECS Architecture (Sprint 1)
-- Author: Ironforge Stonebeard (Alpha), Version/Date: Draft v0.1 — 2026-02-18, Status: Draft v0.1
-- Scope: MVP vertical slice (Mine L1) with focus on Entities, Components, Systems, World/Registry, Event Bus, Queries, Scheduling. Targets Bevy (Rust) as runtime, but presents an engine-agnostic registry API (mirrors src/core/ecs-registry.js) for tests and tools.
+## 4) Queries & Storage Strategy
 
----
+- Storage/perf guidance
+  - Rely on Bevy archetype storage; minimize component churn during hot loops.
+  - Prefer With/Without/Or filters to narrow queries early.
+  - Avoid heavy change detection in tight loops; batch by frame if needed.
+  - Hot paths:
+    - Movement: dense Query<(&mut Transform, &Velocity)>
+    - Combat arcs: Query<(&Transform, &Collider, Option<&Faction>, Option<&Damageable>)>
+    - Mining near player: spatially filter by distance or tile grid index (Sprint 1: distance check)
 
-## 4.5) Storage Pseudocode (JS registry internals, reference)
+- Snapshot/delta
+  - Use Time::<Fixed>::delta_seconds() to compute dt in FixedUpdate.
+  - Avoid simultaneous mutable borrows by partitioning queries by component sets and using .split_for_each if needed.
 
-```
-class DenseStore {
-  constructor() { this.ids = []; this.data = []; this.index = new Map(); this.sorted = []; this.dirty = false; }
-  add(eid, comp) {
-    if (this.index.has(eid)) return false;
-    const i = this.ids.length;
-    this.ids.push(eid); this.data.push(comp); this.index.set(eid, i);
-    this.dirty = true; return true;
+- Example query snippets (pseudocode)
+```rust
+// Movement (dense)
+for (mut tf, vel) in &mut q_moves {
+  let v = vel.lin.clamp_length_max(vel.max_speed);
+  tf.translation.x += v.x as f32 * dt;
+  tf.translation.y += v.y as f32 * dt;
+}
+
+// Collision broad phase (simple AABB vs AABB)
+for (e_a, tf_a, col_a) in &q_colliders {
+  let aabb_a = aabb_world(tf_a, col_a);
+  for (e_b, tf_b, col_b) in &q_colliders_others {
+    if e_a == e_b { continue; }
+    if (col_a.layer & col_b.mask) == 0 { continue; }
+    if aabb_a.overlaps(aabb_world(tf_b, col_b)) {
+      // resolve or flag hit
+    }
   }
-  remove(eid) {
-    const i = this.index.get(eid); if (i === undefined) return false;
-    const last = this.ids.length - 1;
-    const movedEid = this.ids[last];
-    // swap-remove
-    [this.ids[i], this.ids[last]] = [this.ids[last], this.ids[i]];
-    [this.data[i], this.data[last]] = [this.data[last], this.data[i]];
-    this.ids.pop(); this.data.pop();
-    this.index.delete(eid);
-    if (i < last) this.index.set(movedEid, i);
-    this.dirty = true; return true;
-  }
-  get(eid) { const i = this.index.get(eid); return i === undefined ? null : this.data[i]; }
-  has(eid) { return this.index.has(eid); }
-  sortedIds() {
-    if (this.dirty) { this.sorted = Array.from(this.ids).sort((a,b)=>a-b); this.dirty = false; }
-    return this.sorted;
+}
+
+// Mining (player-centric)
+let player_pos = tf_player.translation.truncate();
+for (tile_e, tile, mut ore, tf) in q_tiles_near(player_pos, radius_tiles) {
+  if (player_pos - tf.translation.truncate()).length() < radius_world {
+    // process MineHitEvent matches
   }
 }
 ```
 
----
 
-## 9.5) Event Bus Pseudocode
+## 5) API Surface & Examples (Bevy-focused)
 
+- Entity lifecycle
+```rust
+// Spawn with bundle
+let player_e = commands.spawn(PlayerBundle {
+  Transform: Transform::from_xyz(0.0, 0.0, 0.0),
+  Velocity: Velocity { lin: Vec2::ZERO, max_speed: 8.0 },
+  Collider: Collider { half_extents: Vec2::new(0.4, 0.9), offset: Vec2::ZERO, solid: true, layer: 0b0001, mask: 0b1110 },
+  Health: Health { current: 100.0, max: 100.0 },
+  Stamina: Stamina { current: 50.0, max: 50.0, regen_per_s: 10.0 },
+  Damageable: Damageable { invulnerable: false, poise_current: 50.0, poise_max: 50.0, poise_regen_per_s: 5.0 },
+  Inventory: Inventory { slots: vec![], capacity: 16 },
+  Tool: Tool { tier: 1, power: 10.0, uses_left: -1 },
+  Faction: Faction { id: 1 },
+  SpriteRef: SpriteRef { token: "eta/player_base".into(), z_layer: 0 },
+  Light: Light { intensity: 0.0, radius: 0.0, color: Color::WHITE },
+  SoundEmitter: SoundEmitter { sfx_tag: "none".into(), cool_ms: 0, last_played_ms: 0 },
+  UIState: UIState { visible: true, mode: 0 },
+}).id();
+
+// Add/remove component
+commands.entity(player_e).insert(Velocity { lin: Vec2::ZERO, max_speed: 10.0 });
+commands.entity(player_e).remove::<Tool>();
+
+// Despawn (recursive for hierarchies)
+commands.entity(player_e).despawn_recursive();
 ```
-class EventBus {
-  constructor() { this.q = new Map(); }
-  emit(type, payload) {
-    if (!this.q.has(type)) this.q.set(type, []);
-    this.q.get(type).push(payload);
+
+- Events (emit/consume)
+```rust
+// Emit
+play_sfx_writer.send(PlaySfxEvent { tag: "zeta/swing_01".into(), pos: Some(pos) });
+
+// Consume in system
+fn sfx_bridge(mut reader: EventReader<PlaySfxEvent>, assets: Res<AssetIndex>, audio: Res<Audio>) {
+  for ev in reader.read() {
+    if let Some(handle) = assets.sfx.get(&ev.tag) {
+      audio.play(handle.clone());
+    }
   }
-  drain(type) {
-    const arr = this.q.get(type) ?? [];
-    this.q.set(type, []); // clear
-    return arr; // FIFO snapshot
-  }
-  clear(type) { if (type) this.q.set(type, []); else this.q.clear(); }
 }
 ```
 
----
+- Plugin layout (monorepo crates)
+  - crates/core: components, events, bundles, CorePlugin (this doc)
+  - crates/combat: combat systems, damage resolution, telegraphs
+  - crates/worldgen: rng/seed, tile/ore setup
+  - crates/tech: tools/inventory interactions
+  - crates/audio: audio bridge, emitters
+  - crates/visuals: sprites/lighting, z-order mapping
+  - crates/ui: UI state and command handling
+  - crates/game: app entry, scenario setup, CorePlugin wiring
 
-## 6.5) Tick Loop Sketch
 
+## 6) Data & Serialization
+
+- Use serde + bevy_reflect
+  - #[derive(Serialize, Deserialize, Reflect)] on data-bearing components/resources used for save/load (e.g., WorldGenRng.seed, minimal player state).
+  - Keep runtime-only handles out of serialized state; use AssetIndex token lookups on load.
+
+- Stable tokens
+  - SpriteRef.token and SfxTag strings are stable cross-team IDs.
+  - AssetIndex composes during startup by resolving tokens → handles.
+
+- Data mapping
+  - JSON item/tool definitions → runtime components:
+    - Tool { tier, power, uses_left }
+    - Inventory initial slots from scenario JSON
+  - Tile/Ore data from CaveGen feed Tile.hardness and OreVein.{ore_type, quantity}.
+
+
+## 7) Integration Contracts (Cross-Team)
+
+- Combat (Gamma)
+  - Relies on Stamina, Damageable (poise fields), Health.
+  - Events: TelegraphStartEvent (windup), DamageEvent, PoiseBreakEvent.
+  - Ordering guarantees: Telegraph emitted in StateMachineSet; Damage/PoiseBreak in DamageSet after CollisionSet.
+
+- CaveGen (Beta)
+  - Provides Tile and OreVein placement from WorldGenRng.seed.
+  - Exposes hardness bands via Tile.hardness and OreVein.hardness_bonus.
+  - MiningSet updates tiles/veins; emits PlaySfxEvent for strikes/breaks.
+
+- Tech/Crafting (Delta)
+  - Inventory and Tool are authoritative.
+  - UiCommand used for craft requests; handled in UiSyncSet (route to Tech).
+
+- Audio (Zeta)
+  - PlaySfxEvent is the contract; optional SoundEmitter helps diegetic SFX placement.
+  - DepthScalar resource modulates mix based on cave depth (0.0 surface → 1.0 deep).
+
+- Visuals/UI (Eta)
+  - SpriteRef.token + z_layer maps to sprite/atlas and Transform.z.
+  - Light drives simple lighting prototype.
+  - UIState toggles panels/modes; UiCommand for button actions.
+
+
+## 8) Minimal Algorithms & Pseudocode
+
+- Fixed tick driver (accumulator model; Bevy handles schedule, shown conceptually)
+```text
+accum += real_dt
+while accum >= 1/60 {
+  run(FixedUpdate) // authoritative logic
+  accum -= 1/60
+}
+run(Update) // visuals/audio/UI
 ```
-function tick(reg, dt) {
-  const clamped = Math.max(0, Math.min(0.1, dt));
-  const order = ['Input', 'PrePhysics', 'Gameplay', 'Events', 'RenderPrep'];
-  for (const stage of order) reg._runStage(stage, clamped);
-  // Post-tick: no implicit event persistence
+
+- Movement system (2D)
+```rust
+fn movement_integrate(mut q: Query<(&mut Transform, &Velocity)>, time: Res<Time<Fixed>>, mut gt: ResMut<GameTime>) {
+  let dt = time.delta_seconds();
+  gt.last_fixed_dt = dt;
+  for (mut tf, vel) in &mut q {
+    let v = vel.lin.clamp_length_max(vel.max_speed);
+    tf.translation.x += v.x * dt;
+    tf.translation.y += v.y * dt;
+  }
 }
 ```
 
----
+- Damage resolution ordering (per tick)
+```text
+1) Collect hit candidates from CollisionSet (attack arcs vs targets)
+2) For each target:
+   a) If invulnerable: skip
+   b) Apply poise damage first; if poise_current <= 0 → emit PoiseBreakEvent
+   c) Apply health damage (clamp to 0)
+   d) If damage > 0 → emit DamageEvent, PlaySfxEvent("hit")
+3) Mark dead entities for CleanupSet
+```
 
-Aye, that’s the bedrock for Sprint 1. Solid enough to build upon, light enough to move fast.
+- Mining check (tool tier/power vs hardness)
+```rust
+fn mining_resolve(mut tiles: Query<(&mut Tile, Option<&mut OreVein>)>, mut mine_hits: EventReader<MineHitEvent>) {
+  for ev in mine_hits.read() {
+    for (mut tile, ore) in tiles.iter_mut().filter(|(_, _)| /* within radius of ev.pos */ true) {
+      let eff_hard = tile.hardness as f32 + ore.as_ref().map(|o| o.hardness_bonus as f32).unwrap_or(0.0);
+      if ev.tool_tier as f32 * ev.power >= eff_hard {
+        // break tile / reduce ore
+      }
+    }
+  }
+}
+```
+
+
+## 9) Test & Benchmark Plan (Sprint 1)
+
+- Unit-ish
+  - Spawn/despawn entity succeeds.
+  - Add/remove component changes archetype without panic.
+  - Event roundtrip: writer.send → reader receives once.
+  - System ordering assertions: Movement runs before CollisionSet; CollisionSet before DamageSet.
+
+- Integration microtest
+  - Given entity with Velocity and Transform, after one FixedUpdate at 60 Hz, Transform advances by v*dt.
+
+- Benchmark (release)
+  - Scenario: 10k entities with Transform, Velocity, Collider; run 3 trivial systems (movement, noop collide, noop anim) at ≥60 Hz.
+  - Capture:
+    - Frame/step time via bevy_diagnostic frame time plugin.
+    - Archetype churn: count insert/remove of Velocity/Collider.
+  - How to run:
+    - cargo run --release
+    - Enable log level info; print average fixed step over 5 seconds.
+    - Optionally enable bevy’s trace feature to export microprofiler JSON.
+
+
+## 10) Risks & Mitigations
+
+- Risk: Over-prescriptive component fields limit iteration.
+  - Mitigation: Keep MVP minimal; document invariants; add extension fields behind Option<>.
+
+- Risk: Schedule contention and borrow conflicts.
+  - Mitigation: Partition queries; explicit SystemSet ordering; avoid overlapping &mut in same set.
+
+- Risk: Token drift across teams (sprite/sfx IDs).
+  - Mitigation: Shared token registry (AssetIndex) and review gates on token changes.
+
+
+## 11) Acceptance Checklist
+
+- Components/events/resources defined with fields and clamps.
+- Scheduling and system ordering documented; fixed vs render update separated.
+- API examples included (spawn, add/remove, register systems, emit/consume events).
+- Test and benchmark plan specified with ≥10k entity target.
+- Cross-team integration points mapped with ordering guarantees.
