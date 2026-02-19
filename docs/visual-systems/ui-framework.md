@@ -1,325 +1,282 @@
-# The Far Mine — UI Framework & HUD v0.1 (Sprint 1)
-
-Owner: Brightforge Crystalsmith (Eta)  
-Version: v0.1 • Date: 2026-02-18
-
-Scope: MVP HUD (health, stamina, tool, minimap/compass, hotbar), menu/inventory placement, typography, spacing, tokens, and Bevy integration hooks. This doc is implementation-ready for wiring the Bevy UI, HUD layout, and color/font assets.
-
-
-## 1) Baseline & Grid
-
-- Resolution target: 1920x1080 (1080p reference).
-- Tile size: 16 px; scale factor: 3x–4x (test both; default 3x for MVP build).
-- Layout grid: 8 px base unit (aligned to tile multiples: 8, 16, 24, 32).
-- Safe margins: 24 px inset from all edges.
-- Z-layers:
-  - gameplay: 0
-  - HUD: 100
-  - overlays/tooltips: 200
-  - debug: 900
-
-
-## 2) Typography (shortlist + usage)
-
-- Primary UI: Atkinson Hyperlegible (Regular/Bold)
-  - Usage: labels, HUD numerals, notifications.
-  - Sizes (3x default): primary 18 px; secondary 16 px. Numerals can be optically nudged +1 px tracking when needed.
-- Alternate fallback: Inter (Medium/Bold)
-  - Usage: automatic fallback with similar metrics.
-- Pixel accent (numbers-only option): VT323 (Regular)
-  - Usage: counters/timers only; avoid for paragraph labels due to readability.
-- Guidance:
-  - Avoid faux-outline. Use subtle shadow:
-    - Preferred: soft shadow using effects.smoke.steam at 30% alpha, 1–2 px offset.
-    - Alternate: 1 px drop using terrain.rock.shadow.
-- Licensing: Open-source (SIL/OFL).
-- Font asset paths:
-  - assets/fonts/AtkinsonHyperlegible/AtkinsonHyperlegible-Regular.ttf
-  - assets/fonts/AtkinsonHyperlegible/AtkinsonHyperlegible-Bold.ttf
-  - assets/fonts/Inter/Inter-Medium.ttf
-  - assets/fonts/Inter/Inter-Bold.ttf
-  - assets/fonts/VT323/VT323-Regular.ttf
-
-
-## 3) Color Tokens & Accessibility
-
-- Palette source: data/visual/color-palette.json (version 1, author eta).
-- Core UI tokens (exact ids):
-  - ui.panel.bg, ui.panel.bg_inverted
-  - ui.panel.frame.brass, ui.panel.frame.rivet
-  - ui.accent.brass, ui.accent.crystal
-  - ui.text.primary, ui.text.secondary, ui.text.inverted
-  - ui.health.bar, ui.health.bar_shadow
-  - ui.stamina.bar, ui.stamina.bar_shadow
-  - ui.icon.slot.bg, ui.icon.slot.border
-  - ui.cursor.highlight
-- Minimap tokens (mapping.*):
-  - mapping.minimap.bg
-  - mapping.minimap.rock, mapping.minimap.floor
-  - mapping.minimap.ore.copper, mapping.minimap.ore.iron
-  - mapping.minimap.player, mapping.minimap.enemy, mapping.minimap.exit
-- Contrast targets:
-  - Primary text ≥ 4.5:1 on ui.panel.bg
-  - Secondary text ≥ 3.0:1 on ui.panel.bg
-  - Inverted text ≥ 4.5:1 on ui.panel.bg_inverted
-- Accessibility audit: Pending. Verify in-engine at 3x and 4x scale; adjust ui.text.* or panel bg tokens if sub-threshold.
-
-
-## 4) HUD Layout (positions/sizes/tokens)
-
-Top-left cluster (Health/Stamina) — anchor at (24, 24):
-- Health bar
-  - id: hud.health_bar
-  - pos: x=24, y=24; size: w=280, h=18
-  - fill: ui.health.bar; track: ui.health.bar_shadow
-  - frame: ui.panel.frame.brass (2 px stroke)
-  - text: Atkinson Bold 18 px, color ui.text.primary, content "current/max"
-- Stamina bar
-  - id: hud.stamina_bar
-  - pos: x=24, y=48; size: w=220, h=12 (6 px gap below health)
-  - fill: ui.stamina.bar; track: ui.stamina.bar_shadow
-  - frame: ui.panel.frame.brass (1–2 px)
-  - text: optional percent label right-aligned in bar, ui.text.secondary 16 px
-
-Tool readout (below stamina):
-- Icon slot
-  - id: hud.tool.icon_slot
-  - pos: x=24, y=68; size: w=40, h=40
-  - bg: ui.icon.slot.bg; border: ui.icon.slot.border (2 px)
-  - icon render: up to 32x32 artwork; scale-to-fit in a 28x28 content box centered (leave 6 px inner padding)
-- Tool label
-  - id: hud.tool.label
-  - pos: x=24+40+8=72, y=68; size: w=320, h=20
-  - font: Atkinson 16 px; color: ui.text.secondary
-  - content: current tool name (“Copper Pick”)
-- Durability strip
-  - id: hud.tool.durability
-  - pos: x=28, y=108; size: w=32, h=2
-  - style: ui.panel.frame.rivet ticks (segment the 32 px width into pips; fill proportionally)
-
-Top-right minimap/compass — anchor at (screen_right - 24, 24):
-- Minimap panel
-  - id: hud.minimap.panel
-  - outer frame box: w=200, h=136; top-left at x=1696, y=24
-  - viewport (content): w=192, h=128; inset by 4 px each side
-  - bg: mapping.minimap.bg
-  - frame: ui.panel.frame.brass (2 px); corner rivets: ui.panel.frame.rivet
-  - color mapping: mapping.minimap.rock/floor/ore.copper/ore.iron/player/enemy/exit
-- Compass ring (overlay)
-  - id: hud.minimap.compass
-  - thin ring drawn over panel viewport; stroke: ui.accent.brass (1–2 px)
-  - cardinal ticks at N/E/S/W; optional “N” rune in ui.text.secondary 14 px
-
-Bottom-center hotbar:
-- Bar container
-  - id: hud.hotbar
-  - row of 5 slots; each slot w=40, h=40; gutter=8
-  - total width=232; anchor center-bottom
-  - first slot top-left: x=844, y=1016
-- Slots
-  - ids: hud.hotbar.slot_1 .. slot_5
-  - slot bg/border: ui.icon.slot.bg / ui.icon.slot.border
-  - selected highlight: ui.cursor.highlight (2 px outer stroke anim)
-  - quick key labels: “1–5” at slot top-left, inset 3 px, ui.text.secondary 14–16 px
-  - icon content box per slot: 28x28 centered; scale icons to fit
-
-Notifications (top-center):
-- Toast panel
-  - id: hud.toast
-  - auto-width; max 640 px; min 240 px; height auto (single line)
-  - anchor top-center at y=24; bg=ui.panel.bg_inverted; text=ui.text.inverted; frame=ui.panel.frame.brass
-  - used for “Recipe learned”, “Craft complete” (paired SFX: ui.craft.complete)
-
-Tooltip (hover/inspect):
-- id: hud.tooltip
-- small inverted panel near cursor (offset: +12 x, +12 y)
-- tokens: ui.panel.bg_inverted + ui.text.inverted
-- z: 200
-
-
-## 5) ASCII Wireframe (1080p reference)
-
-+--------------------------------------------------------------1920px--------------------------------------------------------------+
-| HLTH[██████████████████████████████████████      ]  STAM[██████████████      ]                                                 MM |
-| Tool: [◼] Copper Pick  Dur||||                                                                                                  |
-|                                                                                                                             +----|
-|                                                                                                                             |MAP |
-|                                                                                                                             |    |
-|                                                                                                                             |    |
-|                                                                                                                             +----|
-|                                                                                                                                |
-|                                                                                                                                |
-|                                                          GAMEPLAY AREA                                                         |
-|                                                                                                                                |
-|                                                                                                                                |
-|                                                                                                                                |
-|                                                     [1][2][3][4][5]                                                            |
-+-------------------------------------------------------------------------------------------------------------------------------+
-
-Legend: HLTH uses ui.health.*, STAM uses ui.stamina.*, Tool slot uses ui.icon.slot.*, map uses mapping.minimap.*.
-
-
-## 6) Interaction & States
-
-- Damage flash: pulse health bar fill to effects.hit.flash for 50–80 ms on DamageEvent; do not recolor text to avoid flicker.
-- Low stamina: when <20%, overlay ui.stamina.bar_shadow at 40% alpha pulsing at 600 ms; limit to ≤2 Hz.
-- Selection focus: hotbar selected slot border animates with ui.cursor.highlight (2 px outer stroke, subtle 800 ms glow loop).
-- Disabled slot: dim slot bg to 60% alpha overlay of terrain.rock.shadow; keep border visible at 100% to retain affordance.
-- Tooltip show/hide: fade 80 ms in/out; clamp inside screen bounds with 12 px padding.
-
-
-## 7) Bevy Integration Notes
-
-Components/Resources:
-- Resource: UIState { hud_visible: bool, focus_slot: Option<u8> }
-- Components: Health { current, max }, Stamina { current, max }, Inventory, Tool { id, name, icon_index, durability, durability_max }
-- Resource: ColorLUT(HashMap<String, Color>) loaded from data/visual/color-palette.json
-- Resource: MinimapBuffer { width, height, tiles: Vec<TileKind> }
-
-Events:
-- UiCommand { action: UiAction, payload: Option<String> } 
-  - actions: ui.navigate, ui.confirm, ui.error, ui.craft.complete
-- PlaySfxEvent { id: SfxId } for sounds (e.g., SfxId::UiCraftComplete)
-
-Systems/Plugins:
-- HudLayoutPlugin
-  - On startup: spawn root nodes with absolute anchors; read window size; compute scale = max(1.0, min(w/1920.0, h/1080.0)); apply to HUD via Transform scale or Style with percent/px mix; letterbox-safe (do not exceed reference layout bounds).
-  - Spawn node ids as described (see Appendix B).
-- HudUpdateSystem
-  - Subscribe to Health/Stamina changes; set bar widths to w * (current/max)
-  - Query Tool; set icon atlas index, label text, durability pips (floor(dur/max * 32))
-  - Manage hotbar selection highlight from UIState.focus_slot
-- MinimapSystem (stub)
-  - Draw 1 px cells (at HUD scale) into a texture; color map via mapping.minimap.* tokens
-  - Update player/enemy markers each frame; clamp to viewport
-- ToastSystem
-  - Listen for UiCommand::ui.craft.complete → show hud.toast, fire PlaySfxEvent(SfxId::UiCraftComplete), auto-hide after 2.5 s
-
-Assets:
-- Fonts: assets/fonts/… (see Typography)
-- Frames/rivets (nine-slice): assets/ui/frames/brass_frame_9s.png, assets/ui/frames/rivet.png (MVP placeholders OK)
-- Icon atlas: assets/ui/icons.png (includes tools/resources)
-- Minimap render target: assets/runtime/minimap.png (generated at runtime)
-
-Token → Color mapping:
-- At init, read data/visual/color-palette.json; build ColorLUT keyed by token id string; UI nodes read from ColorLUT once and cache handles. Provide dev command to reload palette at runtime (debug layer 900).
-
-
-## 8) Sizing & Spacing Scale
-
-- Spacing scale: 4 / 8 / 12 / 16 px; default gutter: 8 px; outer margin: 24 px.
-- Bars: heights: 6 / 12 / 18 px; rounded ends optional (radius 4 px; masked by brass frame).
-- Icons: artwork 32x32; render within 28x28 content box inside 40x40 slot to preserve frame/labels.
-- Frames: brass frame stroke 2 px where possible; 1 px for small controls (stamina bar).
-
-
-## 9) Iconography Rules
-
-- Style: brass-and-crystal silhouettes; strong 1–2 px inner line; highlights in ui.accent.brass.
-- Tool icons: tint by material tokens (material.metal.copper/iron, material.crystal.cyan for glows).
-- Avoid oversaturation; stay within defined palette tokens. Keep silhouettes readable at 28 px.
-
-
-## 10) Accessibility & QA Checklist
-
-- Text contrast meets targets on ui.panel.bg and ui.panel.bg_inverted at 3x and 4x scale.
-- Minimap 1 px cell legibility: ore vs rock distinct with mapping.minimap.*.
-- Controller/keyboard: focus ring visible on hotbar and menu list via ui.cursor.highlight.
-- Motion comfort: pulse ≤ 2 Hz; damage flash ≤ 80 ms; no continuous flashing.
-- Font rendering: verify numeral clarity (Atkinson, VT323) with MSDF/SDF settings; adjust hinting if needed.
-
-
-## 11) Risks & Assumptions
-
-- Token ids remain stable; any rename requires ColorLUT updates and retest.
-- Minimap performance tied to tile buffer size; if slow, switch to chunked redraw (dirty rects).
-- Bevy text rendering may need hinting adjustments; numerals must remain crisp on bars and counters.
-- Hotbar/icon scaling: final pixel-fit pass required to avoid sampling blur at 3x and 4x.
-
-
-## 12) Menu/Inventory Placement (Sprint 1 stubs)
-
-- Pause/Menu panel (overlay)
-  - id: menu.pause
-  - center-screen modal; w=720, h=480; bg=ui.panel.bg; frame=ui.panel.frame.brass; z=200
-- Inventory panel
-  - id: menu.inventory
-  - left-center anchor; top-left x=24, y=180; w=480, h=720
-  - grid slots: 6x8 cells at 40x40, gutter 8; same ui.icon.slot.* tokens; selection uses ui.cursor.highlight
-
-
-## Appendix A) Token Reference (concise)
-
-UI Panels/Frames:
-- ui.panel.bg — default panel background
-- ui.panel.bg_inverted — inverted panel background
-- ui.panel.frame.brass — brass frame stroke
-- ui.panel.frame.rivet — rivet corners/ticks
-
-Accents/Text:
-- ui.accent.brass — compass ring/ticks, highlights
-- ui.accent.crystal — special highlights/glows
-- ui.text.primary — key labels/numerals
-- ui.text.secondary — secondary labels/hints
-- ui.text.inverted — text on inverted panels
-- ui.cursor.highlight — selection/focus border
-
-Bars:
-- ui.health.bar — health fill
-- ui.health.bar_shadow — health track/shadow
-- ui.stamina.bar — stamina fill
-- ui.stamina.bar_shadow — stamina track/shadow
-
-Slots:
-- ui.icon.slot.bg — slot background
-- ui.icon.slot.border — slot border
-
-Minimap:
-- mapping.minimap.bg — panel background fill
-- mapping.minimap.rock — walls/rock
-- mapping.minimap.floor — floor
-- mapping.minimap.ore.copper — copper ore
-- mapping.minimap.ore.iron — iron ore
-- mapping.minimap.player — player marker
-- mapping.minimap.enemy — enemy marker
-- mapping.minimap.exit — exit/ladder
-
-
-## Appendix B) Wireframe Metrics (1920x1080 reference, top-left origin)
-
-- Safe margin: 24 px inset on all edges.
-
-Top-left cluster:
-- hud.health_bar: x=24, y=24, w=280, h=18
-- hud.stamina_bar: x=24, y=48, w=220, h=12
-- hud.tool.icon_slot: x=24, y=68, w=40, h=40
-- hud.tool.label: x=72, y=68, w=320, h=20
-- hud.tool.durability: x=28, y=108, w=32, h=2
-
-Top-right minimap/compass:
-- hud.minimap.panel (outer): x=1696, y=24, w=200, h=136
-- hud.minimap.viewport (content): x=1704, y=32, w=192, h=128
-- hud.minimap.compass: overlays viewport bounds; ring stroke width 1–2 px
-
-Top-center notifications:
-- hud.toast: anchor center-x=960, top y=24; min w=240, max w=640, auto h
-
-Bottom-center hotbar:
-- hud.hotbar.slot_1: x=844, y=1016, w=40, h=40
-- hud.hotbar.slot_2: x=892, y=1016, w=40, h=40
-- hud.hotbar.slot_3: x=940, y=1016, w=40, h=40
-- hud.hotbar.slot_4: x=988, y=1016, w=40, h=40
-- hud.hotbar.slot_5: x=1036, y=1016, w=40, h=40
-- quick key label inset: +3 x, +3 y inside each slot
-
-Tooltip:
-- hud.tooltip: near cursor; default offset +12 x, +12 y; clamp to screen minus 12 px padding on all sides
-
-Menu/Inventory (stubs):
-- menu.pause: center modal, x=600, y=300, w=720, h=480
-- menu.inventory: x=24, y=180, w=480, h=720
-
-Z-order confirmation:
-- gameplay: 0; hud.*: 100; menu.*, hud.tooltip, hud.toast: 200; debug: 900
-
-End of v0.1. Implement as specified; deviations require updating Appendix B anchors and token references.
+# The Far Mine — UI Framework (Sprint 1)
+
+Author: Brightforge Crystalsmith (Eta)  
+Version/Date: Draft v0.1 — 2026-02-19  
+Status: Draft v0.1
+
+Scope
+- HUD and core menus for Mine L1 vertical slice at 1080p baseline.
+- Engine-agnostic; includes Bevy integration notes.
+- Aligns to data/visual/color-palette.json tokens and ECS Events/Components.
+- Screen-space UI only (no 3D diegetic UIs in Sprint 1).
+
+
+## 2) Visual Theme & Materials
+
+Style notes (brass-and-crystal)
+- Materials: warm brass frames with subtle bevel hints; crystal inlays for accents and selection states.
+- Highlights: inner highlights along top/left edges (1 px inner line) and faint specular notches at corners. Avoid plastic shine.
+- Shadows: restrained drop-shadows (1–2 px radius/offset at 1080p), scaled with UI scale factor. No heavy glow except for focus/emphasis.
+- Runes: reserved for emphasis (selection, key focus, rare items) and should be sparse and readable.
+
+Token mapping reference (color-palette.json)
+- ui.panel.* — panel background/border/accent/fill.
+- ui.bar.* — progress bars (health, stamina): back/fill/border.
+- ui.hotbar.* — slot background/border/selection/focus.
+- ui.icon.* — default/active/disabled tints.
+- ui.text.* — primary/secondary/inverse/warn/error/info/success.
+- ui.cursor — base cursor color(s)/outline.
+- fx.ui_focus — pulse ring color/emissive.
+- minimap.* — bg/ring/ticks/player/ally/poi.
+
+
+## 3) Typography & Scale
+
+Font shortlist (licenses; roles)
+- Headers: Cinzel (OFL) or Caudex (OFL). Fallback: "Times New Roman", serif.
+- Body: Inter (OFL) or Source Sans 3 (OFL). Fallback: Arial, Helvetica, sans-serif.
+- Mono/Numeric: JetBrains Mono (OFL) or Roboto Mono (Apache 2.0). Fallback: "Courier New", monospace.
+- Numeric readouts prefer tabular-nums (OpenType feature) where supported.
+
+Type scale (1080p logical)
+- Sizes (px): 12 (caption/meta), 14 (body min), 16 (body default), 20 (subhead), 24 (title).
+- Pixel rounding: snap font size and baseline to integer pixels; align text containers to whole pixels; avoid subpixel scaling of glyphs.
+- Line heights: 1.25–1.35 for body; 1.1–1.2 for UI labels.
+- Accessibility: body text ≥14 px logical at 1.0 scale; ensure contrast pairs per accessibility.contrast_pairs (see palette). Minimum hit targets ≥32x32 px logical.
+
+
+## 4) Layout Grid & Safe Areas
+
+Grid (1920x1080)
+- Safe margins: 24 px on all sides.
+- 12-column grid inside safe area; gutter 16 px.
+- Content width inside safe: 1920 − 48 = 1872 px. Gutters total: 11 × 16 = 176 px. Column width: (1872 − 176) / 12 ≈ 141.33 px.
+- Placement guidance: use column multiples; round widths to even pixels to maintain crisp edges.
+
+Scale policy
+- Baseline scale = 1.0 at 1080p.
+- Clamp overall UI scale between 0.85× and 1.25× (e.g., 720p → 0.85×; 1440p → 1.25×).
+- Bars, icons, and borders snap to even pixel edges at final scale.
+
+Z-order and layering
+- HUD > tooltips > diegetic markers (world-space). Keep modals above all HUD.
+- Reserved torso band: center-bottom 25% width × 15% height to avoid covering player torso.
+  - At 1920×1080: 480×162 px, anchored bottom center, y = 1080 − 24 − 162 = 894, x = (1920 − 480)/2 = 720.
+
+
+## 5) HUD Wireframe (Text Spec + ASCII Diagram)
+
+Elements and positions (1080p, scale 1.0)
+- Health/Stamina Bars (bottom-left, stacked)
+  - Size each: 360×20 px. Spacing: 8 px vertical.
+  - Stamina (lower): x=24, y=1080−24−20=1036.
+  - Health (upper): x=24, y=1008.
+  - Tokens: ui.bar.health.*, ui.bar.stamina.*. Numeric value right-aligned inside bar; reserve 60 px at right for numbers (tabular-nums).
+
+- Tool/Hotbar (bottom-center, 5–7 slots)
+  - Slot: 64×64 px; gap 8 px. 7 slots width: 7×64 + 6×8 = 496 px.
+  - Origin: x=(1920−496)/2=712, y=1080−24−64=992.
+  - Tokens: ui.hotbar.slot_bg, ui.hotbar.border, ui.hotbar.selection, ui.text.secondary for keybinds.
+
+- Minimap (top-right)
+  - Size: 240×240 px; mask circular or rounded-square (r=16 px).
+  - x=1920−24−240=1656, y=48 (with compass above).
+  - Tokens: minimap.bg, minimap.ring, minimap.tick_major (N/E/S/W), minimap.tick_minor, minimap.player, minimap.poi.
+
+- Compass ribbon (optional MVP)
+  - Size: 240×16 px. x=1656, y=24. Heading tick centered; faint degree ticks.
+
+- Interaction Prompt (above hotbar center)
+  - Size: 640×32 px; center-aligned text with inline icon (24 px).
+  - x=(1920−640)/2=640, y=944.
+  - Tokens: ui.tooltip.bg/border, ui.text.primary, ui.icon.active.
+
+- Ore Pickup Toasts (right of center-top)
+  - Card: 360×56 px; queue downward; slide-in from +24 px x over 120 ms.
+  - First toast: x=1160, y=24. Vertical spacing: 8 px.
+  - Tokens: ui.info or ui.success variants; ui.text.inverse for text on colored bg.
+
+Spacing, radii, shadows
+- Inter-module spacing: 8–16 px. Internal padding for panels/cards: 12–16 px.
+- Border radii: small (4 px) for bars/slots; medium (8–12 px) for panels/cards; minimap mask r=16 px if rounded-square.
+- Drop-shadows: 1–2 px offset and radius, low opacity; scale with UI scale.
+
+ASCII keylines (1080p overview, not to scale)
+```
+(0,0) +-----------------------------------------------------------------------------------+ (1920,0)
+      |                                                                     [Compass]    |
+      |                                                                 (1656,24 240x16)|
+      |                                                           [Minimap 240x240]      |
+      |                                                          (1656,48 to 1896,288)   |
+      |                                                                                   |
+      |                                   [Ore Toasts 360x56]                             |
+      |                                   (1160,24)  stack ↓ (8 px)                       |
+      |                                                                                   |
+      |                                                                                   |
+      |                                                                                   |
+      |                                         [Interaction Prompt 640x32]               |
+      |                                         (640,944)                                 |
+      |                                                                                   |
+      |         [Health 360x20] (24,1008)                                                 |
+      |         [Stamina 360x20] (24,1036)                                                |
+      |                                                                 [Hotbar 496x64]   |
+      |                                                                 (712,992)         |
+(0,1080)+---------------------------------------------------------------------------------+(1920,1080)
+```
+Reserved torso band (no HUD overlap): (720,894) → (1200,1056)
+
+
+## 6) Inventory & Panel Wireframes (MVP)
+
+Inventory panel
+- Placement: center-left; panel body inside grid bounds.
+- Grid: 8×4 slots; slot 48×48 px; gap 8 px. Grid size: width 8×48 + 7×8 = 440 px; height 4×48 + 3×8 = 216 px.
+- Panel container: ~520×360 px (includes header, padding 16 px).
+- Scroll: vertical if more than 32 items; wheel scroll 48 px per notch; scrollbar 6 px track, 12 px thumb min height.
+- Hover tooltip: name (ui.text.primary), rarity tint strip (2–3 px at top, optional), short description (ui.text.secondary). Appears with 80 ms delay, offset (12,12).
+- Drag: LMB hold 120 ms → drag icon; drag ghost at 80% scale; valid target highlights with ui.hotbar.selection; invalid target uses ui.cursor.invalid and red ring.
+- Right-side detail panel: ~520×360 px to the right (gap 24 px). Shows large icon (96 px), name, stats, actions (Equip/Use/Drop).
+
+Crafting panel stub
+- Two columns in one panel:
+  - Left: recipe list (filters as tabs above; tab min width 96 px). List row 48 px height with icon + name + rarity pip.
+  - Right: recipe detail showing inputs (slots with counts), outputs (preview), Craft button.
+- Disabled states: 60% opacity; desaturate icons by shifting to ui.icon.disabled; bar/button outlines remain visible with ui.panel.border.
+- Progress bar: 240×12 px; tokens ui.bar.craft.back/fill; text overlay % (tabular-nums). Animate fill over craft duration; ease linear.
+
+Panel tokens
+- ui.panel.bg, ui.panel.border, ui.panel.accent
+- ui.text.primary, ui.text.secondary
+- ui.icon.default, ui.icon.active, ui.icon.disabled
+
+
+## 7) States & Interactions
+
+Buttons/slots
+- Rest: panel/slot bg with border; icon tinted ui.icon.default.
+- Hover: raise brightness +4–6%; add 1 px inner highlight; cursor = ui.cursor.default.
+- Focus (keyboard/gamepad): fx.ui_focus ring (2 px) pulsing 1.2× scale of ring over 900 ms.
+- Active/Pressed: depress 1 px; darker fill −6–8%; play sfx tag ui.click.
+- Selection (hotbar/item): ui.hotbar.selection overlay (crystal glow) + rune accent at top edge.
+
+Feedback colors and motion
+- Error: ui.text.error or bg error with inverse text; shake 2 px for 80 ms (max 2 iterations).
+- Warn: gentle pulse (opacity 90%→100%) 120 ms x3.
+- Info/Success: slide-in 120 ms; fade-out 180 ms.
+
+Cursor styles
+- Default pointer (ui.cursor.default).
+- Drag (ui.cursor.drag) with carried icon.
+- Invalid (ui.cursor.invalid) with small red cross overlay.
+
+
+## 8) Data & Token Contracts
+
+Consumed tokens (color-palette.json)
+- ui.panel.bg, ui.panel.border, ui.panel.accent
+- ui.bar.health.back, ui.bar.health.fill, ui.bar.health.border
+- ui.bar.stamina.back, ui.bar.stamina.fill, ui.bar.stamina.border
+- ui.bar.craft.back, ui.bar.craft.fill
+- ui.hotbar.slot_bg, ui.hotbar.border, ui.hotbar.selection
+- ui.tooltip.bg, ui.tooltip.border
+- ui.text.primary, ui.text.secondary, ui.text.inverse, ui.text.warn, ui.text.error, ui.text.info, ui.text.success
+- ui.icon.default, ui.icon.active, ui.icon.disabled
+- ui.cursor.default, ui.cursor.drag, ui.cursor.invalid
+- fx.ui_focus.ring, fx.ui_focus.fill
+- minimap.bg, minimap.ring, minimap.tick_major, minimap.tick_minor, minimap.player, minimap.ally, minimap.poi
+- accessibility.contrast_pairs (pairs by key, e.g., text_primary_on_panel_bg)
+
+Compact mapping table
+| Element | Token(s) | Notes |
+|---|---|---|
+| Panels (bg/border) | ui.panel.bg, ui.panel.border | Nine-slice frame (3–4 px). |
+| Panel accents | ui.panel.accent | Headers, separators. |
+| Health bar | ui.bar.health.back/fill/border | Numeric uses ui.text.inverse within fill. |
+| Stamina bar | ui.bar.stamina.back/fill/border | Same layout as health. |
+| Craft progress | ui.bar.craft.back/fill | Linear fill L→R. |
+| Hotbar slot | ui.hotbar.slot_bg, ui.hotbar.border | Keybind text = ui.text.secondary. |
+| Hotbar selection | ui.hotbar.selection | Crystal glow overlay; add fx.ui_focus ring when focused. |
+| Tooltips | ui.tooltip.bg, ui.tooltip.border, ui.text.primary | Shadow 1 px; arrow optional. |
+| Minimap | minimap.* | Masked circle or r=16 square. |
+| Text default | ui.text.primary, ui.text.secondary | Contrast vs. bg per accessibility pairs. |
+| Status text | ui.text.warn/error/info/success | Toasts/prompts. |
+| Icons | ui.icon.default/active/disabled | 1–2 bit tinting only. |
+| Cursor | ui.cursor.default/drag/invalid | Swap on drag/invalid targets. |
+| Focus ring | fx.ui_focus.ring/fill | 2 px ring, pulse. |
+
+Iconography rules
+- Icons authored on a 16 px minimum grid; export at 1x (vector or crisp bitmap); align to even pixels when scaled.
+- 1-bit/2-bit tinting only; no baked gradients; rely on ui.icon.* tints.
+- Stroke weights: 1–1.5 px at 16 px base; scale proportionally.
+
+
+## 9) Integration Notes (Bevy/ECS)
+
+Components/Events
+- Resource: UIState { inventory_open: bool, crafting_open: bool, hotbar_selection: u8, scale: f32 }
+- Event: UiCommand { kind: Click/Open/Close, target: UiTargetId }
+- Event: PlaySfxEvent { tag: "ui.click" | "ui.open" | "ui.close" | "ui.error" } (per audio doc)
+- Systems: route input → UiCommand; open/close transitions with 80–120 ms tween.
+
+Asset pipeline
+- Icons: atlas "ui/icons@1x.png" with JSON/ron map; names: tool_<id>, res_<id>, sys_<name>.
+- Panels: nine-slice frames; frame thickness 3–4 px (outer border included).
+- Fonts: load as assets with feature flags for tabular-nums where available.
+
+Scaling in Bevy UI
+- Use logical units and apply a UI scale factor resource (targeting 1.0 at 1080p).
+- Derive: ui_scale = clamp(screen_height / 1080.0, 0.85, 1.25).
+- Set ImagePlugin to nearest for pixel-perfect sprites; round node sizes/positions to integers post-scale.
+- Snap transform rounding: round translation.xy after layout.
+
+
+## 10) Acceptance & Test Plan
+
+Checklist
+- HUD positions match coordinates at 1080p baseline.
+- Contrast meets accessibility.contrast_pairs for all text vs. bg.
+- Wireframes render with placeholder assets (solid fills, 1–2 px borders).
+- Hotbar selection visibly distinct (glow + ring).
+- Minimap legible at 240×240 px; N/E/S/W ticks readable.
+- All body text ≥14 px logical; hit targets ≥32×32 px.
+
+Manual test matrix
+- 1920×1080 fullscreen (scale=1.0): verify pixel-snapped edges; no overlap with torso band.
+- 2560×1440 fullscreen (scale→1.25 clamp): verify scaled shadows/borders; hotspots still ≥32 px.
+- 1280×720 windowed (scale→0.85 clamp): verify text legibility; minimap still ≥204×204 px after scale; hotbar centered and unobstructed.
+
+
+## Appendices
+
+A) HUD ASCII diagram with labeled coordinates/sizes
+```
+Top-right:
+  Compass: (1656,24) 240x16
+  Minimap: (1656,48) 240x240, circular/rounded mask
+
+Top-center-right:
+  Ore Toasts: first at (1160,24) 360x56, next y+=64 (56+8)
+
+Bottom-center:
+  Hotbar: origin (712,992), 7 slots 64x64, gap 8; total 496x64
+
+Bottom-left:
+  Health:  (24,1008) 360x20 (health on top)
+  Stamina: (24,1036) 360x20
+
+Center-bottom reserved torso band:
+  (720,894) → (1200,1056) no HUD overlap
+```
+
+B) Token swatch mini-map (hex from palette)
+- Note: Use actual hex from data/visual/color-palette.json during implementation; examples below must be replaced by palette values.
+- ui.panel.bg — [hex from palette]
+- ui.panel.border — [hex from palette]
+- ui.bar.health.fill — [hex from palette]
+- ui.bar.stamina.fill — [hex from palette]
+- ui.hotbar.selection — [hex from palette]
+- ui.text.primary — [hex from palette]
+- ui.text.inverse — [hex from palette]
+- ui.icon.active — [hex from palette]
+- fx.ui_focus.ring — [hex from palette]
+- minimap.ring — [hex from palette]
