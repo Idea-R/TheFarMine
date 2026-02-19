@@ -1,108 +1,103 @@
-{
-  "version": 1,
-  "meta": {
-    "author": "beta",
-    "updated": "2026-02-18T00:00:00Z",
-    "notes": [
-      "Sprint-1 L1 room templates for Mine stamping.",
-      "Grid legend per docs/world-generation/cave-gen-algorithm.md.",
-      "Three-wide door bands on cardinal edges; rotate-safe."
-    ]
+[
+  {
+    "id": "room.tunnel.straight.3w",
+    "kind": "tunnel",
+    "w": 9,
+    "h": 5,
+    "grid": [
+      "#########",
+      ".........",
+      ".........",
+      ".........",
+      "#########"
+    ],
+    "anchor_points": [
+      { "x": 2, "y": 2, "tag": "lamp" },
+      { "x": 7, "y": 2, "tag": "lamp" }
+    ],
+    "stamp_rules": {
+      "overlap": false,
+      "margin": 1,
+      "mirror_x": true,
+      "mirror_y": false,
+      "rotate": false
+    },
+    "entrance_offsets": [
+      { "x": 0, "y": 2 }
+    ],
+    "exit_offsets": [
+      { "x": 8, "y": 2 }
+    ],
+    "notes": "schema:v1; glyphs: {'.','#',' ','O'}; '.'=carve, '#'=keep solid/reinforce, ' '=indifferent, 'O'=carve+ore_seed. Overlap:false means '.' may not overlap prior '.'. Margin:1 keeps one tile of buffer at placement-time. Mirrors apply to anchors and entrances/exits."
   },
-  "templates": [
-    {
-      "id": "room.tunnel.3w.segmentA",
-      "name": "Straight Tunnel Segment A",
-      "kind": "tunnel",
-      "allowRotate": true,
-      "size": { "w": 13, "h": 9 },
-      "door_bands": [
-        { "side": "W", "center": { "x": 0, "y": 4 }, "span": 3 },
-        { "side": "E", "center": { "x": 12, "y": 4 }, "span": 3 }
-      ],
-      "approachDepth": 3,
-      "weight": 5,
-      "tags": ["l1", "corridor", "straight", "safe_carve"],
-      "grid": [
-        "#############",
-        "#############",
-        "#####...#####",
-        "D...........D",
-        "D...........D",
-        "D...........D",
-        "#####...#####",
-        "#############",
-        "#############"
-      ],
-      "notes": [
-        "Three-wide horizontal corridor with centered W/E mouths.",
-        "Approach depth 3 behind both door bands.",
-        "Short shoulder bulges encoded at rows 2 and 6."
-      ]
+  {
+    "id": "room.cavern.hub.small",
+    "kind": "cavern",
+    "w": 17,
+    "h": 11,
+    "grid": [
+      "                 ",
+      "      #...#      ",
+      "     #.....#     ",
+      "    #.......#    ",
+      "   #.........#   ",
+      " #.............# ",
+      "   #.........#   ",
+      "    #.......#    ",
+      "     #.....#     ",
+      "      #...#      ",
+      "                 "
+    ],
+    "anchor_points": [
+      { "x": 8, "y": 5, "tag": "lamp" },
+      { "x": 4, "y": 4, "tag": "deco.crystal" },
+      { "x": 12, "y": 6, "tag": "deco.crystal" }
+    ],
+    "stamp_rules": {
+      "overlap": false,
+      "margin": 2,
+      "mirror_x": true,
+      "mirror_y": false,
+      "rotate": false
     },
-    {
-      "id": "room.cavern.ovalA",
-      "name": "Oval Cavern A",
-      "kind": "cavern",
-      "allowRotate": true,
-      "size": { "w": 19, "h": 13 },
-      "door_bands": [
-        { "side": "N", "center": { "x": 9, "y": 0 }, "span": 3 },
-        { "side": "S", "center": { "x": 9, "y": 12 }, "span": 3 }
-      ],
-      "approachDepth": 4,
-      "weight": 3,
-      "tags": ["l1", "cavern", "smooth_rim", "pillars", "wide"],
-      "grid": [
-        "########DDD########",
-        "##O#...........####",
-        "###.............###",
-        "##...............##",
-        "##...............##",
-        "#.................#",
-        "#....#.......#....#",
-        "#.................#",
-        "##...............##",
-        "##...............##",
-        "###.............###",
-        "####...........#O##",
-        "########DDD########"
-      ],
-      "notes": [
-        "Medium oval cavern with smooth interior and rock rim.",
-        "Two interior pillars at (x≈5,y≈6) and (x≈13,y≈6); ≥2 tiles from approach lanes.",
-        "Ore preference seeds placed on interior rim rock, away from approach lanes.",
-        "N/S mouths are three-wide; ≥4 tiles of clear approach behind each."
-      ]
+    "entrance_offsets": [
+      { "x": 8, "y": 1 },
+      { "x": 2, "y": 5 }
+    ],
+    "exit_offsets": [
+      { "x": 14, "y": 5 },
+      { "x": 8, "y": 9 }
+    ],
+    "notes": "Small hub cavern with reinforced '#' ring and open '.' interior (≥5x5 belly). No '.' on outermost border. 2–3 necks hinted near edges for corridor grafts. Default behaviors: see glyphs in tunnel notes; margin:2 recommended for caverns to preserve silhouette."
+  },
+  {
+    "id": "room.niche.ore.alcove",
+    "kind": "ore_vein",
+    "w": 9,
+    "h": 7,
+    "grid": [
+      "         ",
+      "   ###   ",
+      ".......O ",
+      ".......O ",
+      ".......O ",
+      "   ###   ",
+      "         "
+    ],
+    "anchor_points": [
+      { "x": 7, "y": 3, "tag": "ore_seed.copper" }
+    ],
+    "stamp_rules": {
+      "overlap": false,
+      "margin": 1,
+      "mirror_x": true,
+      "mirror_y": false,
+      "rotate": false
     },
-    {
-      "id": "room.ore_pocket.nicheA",
-      "name": "Ore Pocket Niche A",
-      "kind": "ore_pocket",
-      "allowRotate": true,
-      "size": { "w": 11, "h": 9 },
-      "door_bands": [
-        { "side": "W", "center": { "x": 0, "y": 4 }, "span": 3 }
-      ],
-      "approachDepth": 3,
-      "weight": 2,
-      "tags": ["l1", "ore_bias", "niche", "copper_hint"],
-      "grid": [
-        "###########",
-        "##.......##",
-        "#........##",
-        "D........##",
-        "D........O#",
-        "D........O#",
-        "#........##",
-        "##.......##",
-        "###########"
-      ],
-      "notes": [
-        "Small bulb niche with a single W mouth and ≥3 tiles of clear approach.",
-        "Clustered 'O' seeds on the east-side rim rock opposite the door to bias ore.",
-        "Designed as a side chamber; rotates to tuck off main corridors."
-      ]
-    }
-  ]
-}
+    "entrance_offsets": [
+      { "x": 0, "y": 3 }
+    ],
+    "exit_offsets": [],
+    "notes": "Recessed alcove with a 2+ tile approach from the left; vertical 'O' wall at x=7 biases ore seeding (other 'O' cells infer tag 'ore_seed'); local ribs marked with '#'. Entrances must be '.'; anchors mirrored with template transforms."
+  }
+]
