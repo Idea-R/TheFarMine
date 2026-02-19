@@ -1,289 +1,386 @@
-# The Far Mine — Mining Tools & Crafting MVP v0.1 (Sprint 1)
+# The Far Mine — Tools & Crafting (Sprint 1 v0.1)
 
-Owner: Gearwright Steamforge (Delta)  
-Version: 0.1 • Date: 2026-02-18
+Author: Gearwright Steamforge (Delta)
+Version: v0.1
+Date: 2026-02-19
+Status: Draft v0.1
 
-## 1) Title & Scope
-- Scope: MVP vertical slice for Mine Level 1 covering:
-  - Pickaxe progression T0 → T2
-  - Basic workbench/forge steps
-  - Three starter recipes
-- Approach: Data-first implementation with ECS hooks and load-time validation. Designers author JSON; engine binds via item-schema and recipe contracts.
+Scope: MVP vertical slice (Mine L1), 2D side-view, Tier 0–2 tools, 3 starter recipes, basic workbench rules. Aligns to P4 contracts and data/components.
 
-## 2) Design Goals & Constraints
-- Clear, paced unlocks via mining_power vs tile.hardness bands:
-  - rock=3, ore.copper=4, ore.iron=5, ore.quartz=7
-- Session pacing (60–90 min): reach T2 Reinforced by session end with optional sidetrack
-- No repair loop (repairable=false in MVP)
-- Acyclic crafting dependencies
-- All item ids dot-delimited and conform to data/items/item-schema.json (version=1)
 
-## 3) Core Data Contracts (with links)
-- Reference schema: data/items/item-schema.json (version=1)
-  - Kinds: "material", "component", "tool" (others reserved)
-  - Tool fields (min set for MVP): id, kind, name, tool_type, tier, mining_power, mining_speed, durability_max, stamina_per_swing, repairable
-  - Invariants and clamps (enforced at load):
-    - id: ^[a-z][a-z0-9]*(\.[a-z0-9]+)+$ (dot-delimited)
-    - name: 1–48 chars
-    - kind: enum
-    - tool_type: enum("pick","drill")
-    - tier: int [0..9]
-    - mining_power: int [0..10]
-    - mining_speed: number (float) (0.1..5.0]
-    - durability_max: int [1..9999]
-    - stamina_per_swing: int [0..100]
-    - repairable: boolean (MVP: false)
-    - Tools are non-stackable (stack_max=1 if applicable in schema)
-- Runtime files to be provided:
-  - data/items/tools.json — tool definitions
-  - data/crafting/recipes.json — crafting recipes
-  - Both must be strict JSON and validate under item-schema (tools) and recipe shape (below).
-- Recipe JSON shape (for data/crafting/recipes.json) — exact field order:
-  - version:int=1
-  - meta:{ author:string, updated:ISO8601, notes:array<string> }
-  - recipes: array<Recipe> where each Recipe has, in order:
-    1) id:string (e.g., "recipe.tool.pick.t1.copper")
-    2) name:string (UI ≤ 48 chars)
-    3) workstation:string enum("workbench","forge","steam_workshop")
-    4) requiresTier:int (workstation tier; MVP uses 1)
-    5) inputs: array<{ id:string, qty:int≥1 }>
-    6) outputs: array<{ id:string, qty:int≥1 }>
-    7) time_sec:number (craft duration; MVP can be 0 for instant)
-    8) notes:array<string>
-- Tools JSON shape (for data/items/tools.json):
-  - version:int=1
-  - meta:{ author:string, updated:ISO8601, notes:array<string> }
-  - items: array<Item> following item-schema with kind:"tool" (fields emitted in schema order)
+## 1) Title & Metadata
 
-Example (illustrative; ensure schema order if different):
+- Title: The Far Mine — Tools & Crafting (Sprint 1 v0.1)
+- Author: Gearwright Steamforge (Delta)
+- Version/Date: v0.1 / 2026-02-19
+- Status: Draft v0.1
+- Scope:
+  - MVP vertical slice (Mine L1) in 2D side-view.
+  - Tool tiers covered: T0–T2 (pick class only).
+  - Three starter recipes and basic workbench station.
+  - Align to P4 contracts and data/components; loader-safe JSON contracts.
+  - Unblocks data entry for items and recipes; integrates with Bevy ECS events.
 
-Code:
-{
-  "version": 1,
-  "meta": { "author": "Delta", "updated": "2026-02-18T00:00:00Z", "notes": ["MVP Sprint 1 tools"] },
-  "items": [
-    {
-      "id": "tool.pick.t0.starter",
-      "kind": "tool",
-      "name": "Starter Pickaxe",
-      "tool_type": "pick",
-      "tier": 0,
-      "mining_power": 3,
-      "mining_speed": 1.0,
-      "durability_max": 100,
-      "stamina_per_swing": 8,
-      "repairable": false
-    },
-    {
-      "id": "tool.pick.t1.copper",
-      "kind": "tool",
-      "name": "Copper Pickaxe",
-      "tool_type": "pick",
-      "tier": 1,
-      "mining_power": 4,
-      "mining_speed": 1.1,
-      "durability_max": 120,
-      "stamina_per_swing": 8,
-      "repairable": false
-    },
-    {
-      "id": "tool.pick.t2.reinforced",
-      "kind": "tool",
-      "name": "Reinforced Pickaxe",
-      "tool_type": "pick",
-      "tier": 2,
-      "mining_power": 5,
-      "mining_speed": 1.2,
-      "durability_max": 180,
-      "stamina_per_swing": 9,
-      "repairable": false
-    }
-  ]
-}
 
-Example recipe file (field order exact):
+## 2) Assumptions & Contracts
 
-Code:
-{
-  "version": 1,
-  "meta": { "author": "Delta", "updated": "2026-02-18T00:00:00Z", "notes": ["MVP Sprint 1 recipes"] },
-  "recipes": [
-    {
-      "id": "recipe.binding.copper",
-      "name": "Copper Binding",
-      "workstation": "workbench",
-      "requiresTier": 1,
-      "inputs": [ { "id": "mat.scrap.metal", "qty": 2 }, { "id": "mat.ore.copper", "qty": 1 } ],
-      "outputs": [ { "id": "mat.binding.copper", "qty": 1 } ],
-      "time_sec": 2.0,
-      "notes": ["Simple metal strap with copper rivets."]
-    },
-    {
-      "id": "recipe.tool.pick.t1.copper",
-      "name": "Copper Pickaxe",
-      "workstation": "forge",
-      "requiresTier": 1,
-      "inputs": [ { "id": "mat.ore.copper", "qty": 8 }, { "id": "mat.binding.copper", "qty": 1 }, { "id": "mat.shaft.wood", "qty": 1 } ],
-      "outputs": [ { "id": "tool.pick.t1.copper", "qty": 1 } ],
-      "time_sec": 5.0,
-      "notes": ["First meaningful upgrade; unlocks copper."]
-    },
-    {
-      "id": "recipe.tool.pick.t2.reinforced",
-      "name": "Reinforced Pickaxe",
-      "workstation": "forge",
-      "requiresTier": 1,
-      "inputs": [ { "id": "tool.pick.t1.copper", "qty": 1 }, { "id": "mat.ore.iron", "qty": 6 }, { "id": "mat.binding.copper", "qty": 1 } ],
-      "outputs": [ { "id": "tool.pick.t2.reinforced", "qty": 1 } ],
-      "time_sec": 6.0,
-      "notes": ["Consumes prior tool; avoids inventory bloat; unlocks iron."]
-    }
-  ]
-}
+- Engine: Bevy + ECS per P4.
+- World scale: Tile size = 16 px; 1 tile = 1.0 world unit.
+- Core components (see data/core/component-schemas.json):
+  - inventory
+  - tool
+  - ore_vein
+  - tile
+  - stamina
+- Events (event-bus messaging, fire-and-forget):
+  - UiCommand { action: "craft", payload: { recipe_id: string, times: int >= 1 } }
+  - MineHitEvent { pos: Vec2, tool: Entity|nil, power: number }
+  - PlaySfxEvent { tag: string, pos: Vec2|nil }
+- Tick: 60 Hz fixed step.
+- Persistence: JSON save/load; items/recipes defined under data/.
+- Audio/visual tokens use cross-file string tokens; no hard-coded asset paths in systems.
 
-## 4) Tool Tiers and Stats
-- Tier 0 — Starter Pickaxe (id: tool.pick.t0.starter)
-  - tool_type:"pick", tier:0, mining_power:3, mining_speed:1.0, durability_max:100, stamina_per_swing:8, repairable:false
-  - Allowed tiles: rock, floor (no ores) — gated by mining_power vs hardness
-  - Intent: lets player open corridors and reach copper veins; slow on rock.
-- Tier 1 — Copper Pickaxe (id: tool.pick.t1.copper)
-  - tool_type:"pick", tier:1, mining_power:4, mining_speed:1.1, durability_max:120, stamina_per_swing:8, repairable:false
-  - Unlocks copper ore nodes (hardness 4). Slightly faster.
-- Tier 2 — Reinforced Pickaxe (id: tool.pick.t2.reinforced)
-  - tool_type:"pick", tier:2, mining_power:5, mining_speed:1.2, durability_max:180, stamina_per_swing:9, repairable:false
-  - Unlocks iron ore nodes (hardness 5). Noticeably sturdier.
-- (Forward hook, non-MVP) Tier 3 — Steam Drill (id: tool.drill.t3.steam)
-  - tool_type:"drill", tier:3, mining_power:6–7 (TBD), mining_speed:1.6, durability_max:240, stamina_per_swing:10
-  - Requires steam_workshop; included for roadmap only, not craftable in MVP.
 
-Compact table:
+## 3) Item JSON Schema (Data Contract)
 
-| Tier | ID                         | Power | Speed | Durability | Stamina/Swing | Unlocks           |
-|-----:|----------------------------|------:|------:|-----------:|--------------:|-------------------|
-| 0    | tool.pick.t0.starter       | 3     | 1.0   | 100        | 8             | Rock (h=3)        |
-| 1    | tool.pick.t1.copper        | 4     | 1.1   | 120        | 8             | Copper (h=4)      |
-| 2    | tool.pick.t2.reinforced    | 5     | 1.2   | 180        | 9             | Iron (h=5)        |
-| 3*   | tool.drill.t3.steam (hook) | 6–7   | 1.6   | 240        | 10            | Quartz (h=7, TBD) |
+File location: data/items/*.json
+- Each file may contain one or many item records (array). Tools, materials, and parts share a base shape.
 
-## 5) Resource Nodes & Drops (MVP L1)
-- node.ore.copper.vein
-  - drops: mat.ore.copper (qty 1–2, mean ~1.4), rare mat.crystal.shard at p≈0.05
-- node.ore.iron.seam (low frequency)
-  - drops: mat.ore.iron (qty 1; rare 2 at p≈0.2)
-- node.quartz.cluster (rare deco/resource)
-  - drops: mat.gem.quartz (qty 1), needs tier≥3 (tease-only in MVP)
-- Placement: align with cave-gen resource pass (see docs/world-generation/cave-gen-algorithm.md §10)
-- Hardness bands: rock=3, ore.copper=4, ore.iron=5, ore.quartz=7
+Base fields (all):
+- id: token (unique, required). Example: "tool.pick.t0.rough"
+- type: "tool" | "material" | "part"
+- name: string (human-readable)
+- tier: int >= 0, nullable for materials/parts (use null if N/A)
+- stackable: bool
+- max_stack: int >= 1 (ignored if stackable=false; still validate)
+- weight: number >= 0 (carry weight units; data-only, balancing later)
+- tags: array<string> (classification, e.g., ["pick","metal"])
+- icon_token: token (atlas or sprite key; e.g., "icon.tool.pick.t0.rough")
+- value: int >= 0 (sell price hint; economy placeholder)
 
-## 6) Starter Materials and Components (ids)
-- Materials:
-  - mat.ore.copper (common)
-  - mat.ore.iron (uncommon)
-  - mat.scrap.wood (common)
-  - mat.scrap.metal (uncommon)
-- Components:
-  - mat.binding.copper (component; craftable at workbench)
-  - mat.shaft.wood (component; gathered or starter grant)
+Tool-only fields (present when type="tool"):
+- tool_class: "pick" | "drill"
+- mining_power: number >= 0 (effective vs Tile.hardness)
+- mining_speed: number > 0 (tiles/sec target vs hardness 1.0; used as timing hint)
+- durability_max: int >= 1
+- attack_power: number >= 0 (melee placeholder)
+- repairable: bool
+- repair_costs: array<{ id: token, qty: int >= 1 }> (optional if repairable=false)
 
-## 7) MVP Recipes (3 concrete, acceptance-path)
-- recipe.binding.copper
-  - workstation:"workbench", requiresTier:1
-  - inputs: mat.scrap.metal x2, mat.ore.copper x1
-  - outputs: mat.binding.copper x1
-  - time_sec: 2.0
-  - Notes: simple metal strap with copper rivets.
+Material/part fields (present when type="material" or "part"):
+- rarity: "common" | "uncommon" | "rare" | "epic" | "legendary"
+- refine_yield: int >= 1 (optional; for future furnace loop)
+
+Validation hints:
+- id_pattern: ^[a-z0-9]+(\.[a-z0-9]+)*$ (lowercase, dot-delimited namespaces)
+- name length: 1..64
+- tags length: 0..16; tag token pattern matches id_pattern
+- numeric clamps:
+  - tier >= 0 or null
+  - max_stack 1..999
+  - weight 0..100
+  - mining_power 0..10
+  - mining_speed 0.1..10
+  - durability_max 1..9999
+  - attack_power 0..100
+  - value 0..1_000_000
+- Cross-file alignment:
+  - icon_token must exist in UI atlas registry.
+  - Audio tag references (via systems) use tokens like "sfx.pickup.ore" and "ui.click".
+  - tool_class must match system routing logic (mining uses "pick" in Sprint 1).
+
+Example items (illustrative only; real data in data/items/tools.json and data/items/materials.json):
+```json
+[
+  {
+    "id": "tool.pick.t0.rough",
+    "type": "tool",
+    "name": "Starter Pickaxe",
+    "tier": 0,
+    "stackable": false,
+    "max_stack": 1,
+    "weight": 2.5,
+    "tags": ["pick", "starter"],
+    "icon_token": "icon.tool.pick.t0.rough",
+    "value": 10,
+    "tool_class": "pick",
+    "mining_power": 1.0,
+    "mining_speed": 0.9,
+    "durability_max": 60,
+    "attack_power": 4,
+    "repairable": false,
+    "repair_costs": []
+  },
+  {
+    "id": "material.ore.copper",
+    "type": "material",
+    "name": "Copper Ore",
+    "tier": null,
+    "stackable": true,
+    "max_stack": 99,
+    "weight": 0.2,
+    "tags": ["ore", "copper"],
+    "icon_token": "icon.material.ore.copper",
+    "value": 2,
+    "rarity": "common",
+    "refine_yield": 1
+  }
+]
+```
+
+
+## 4) Tool Tiers & Stats (MVP)
+
+Intended feel (vs Tile.hardness rock:1.0..1.4; ore_copper:1.2..1.6):
+- T0: tool.pick.t0.rough (Starter Pickaxe) — mining_power ≈ 1.0, mining_speed ≈ 0.9, durability_max ≈ 60, attack_power ≈ 4.
+- T1: tool.pick.t1.copper (Copper Pickaxe) — mining_power ≈ 1.6, mining_speed ≈ 1.1, durability_max ≈ 120, attack_power ≈ 5.
+- T2: tool.pick.t2.bronze (Bronze Pickaxe) — mining_power ≈ 2.1, mining_speed ≈ 1.25, durability_max ≈ 180, attack_power ≈ 6.
+
+ASCII table:
+```
+id                         | tier | mining_power | mining_speed | durability_max | tool_class | notes
+---------------------------|------|--------------|--------------|----------------|------------|-------------------------------
+tool.pick.t0.rough         | 0    | 1.0          | 0.9          | 60             | pick       | Starter kit; barely nicks ore
+tool.pick.t1.copper        | 1    | 1.6          | 1.1          | 120            | pick       | Smooths early copper veins
+tool.pick.t2.bronze        | 2    | 2.1          | 1.25         | 180            | pick       | Prototype; pacing gate optional
+```
+
+Balance notes:
+- Verify against Deepdelver’s finalized hardness bands; adjust mining_power ±0.1–0.2 as needed.
+- mining_speed is a timing hint; effective break time should decrease monotonically per tier for same tile.
+
+
+## 5) Resource Nodes & Drops
+
+MVP tokens and nodes:
+- mat.ore.copper (tile palette token: tile.rock.ore.copper)
+  - Drops: item "material.ore.copper", qty 1–3 per break, scaled by ore_vein.richness.
+- material.part.handle.wood (crafted/looted)
+- material.binding.twine (crafted/looted; not used in Sprint 1 recipes)
+- material.ingot.copper (future refine; for MVP, ore used directly where stated)
+
+Drop rules:
+- On MineHitEvent that reduces a vein tile’s HP to break threshold, if tool tier/power sufficient:
+  - Emit inventory pickups: N x "material.ore.copper".
+  - Emit PlaySfxEvent { tag: "sfx.pickup.ore", pos: tile_center }.
+  - Decrement ore_vein.richness by 1 per tile break; remove vein entity when richness <= 0.
+- Tool sufficiency:
+  - Require tool_class == "pick".
+  - Effective_break_power = tool.mining_power - tile.hardness; must be >= 0 (non-negative) to permit progress.
+  - Progress per swing/time derived from mining_speed and Effective_break_power (see Algorithms).
+
+
+## 6) Crafting System (Workbench Mechanics)
+
+Stations:
+- workbench.t0 (field bench): enables basic recipes listed below. Higher stations (forge/workshop) deferred.
+
+Craft action contract:
+- UiCommand {
+    action: "craft",
+    payload: { recipe_id: string, times: int >= 1 }
+  }
+- CraftSystem flow:
+  - Validate station availability: player is within interaction of required station tier.
+  - Validate blueprint flags if specified (MVP: all 3 recipes are unlocked at workbench.t0).
+  - Check inventory for inputs x times.
+  - Consume inputs, enqueue/produce outputs.
+  - Emit PlaySfxEvent "ui.click" on accept; optionally "sfx.mining.hit.rock.light" as placeholder craft-foley.
+
+Gating:
+- Each recipe declares required station: "workbench.t0".
+- No skill checks in Sprint 1. Blueprints optional flag not used (default unlocked).
+
+
+## 7) Starter Recipes (3) — data/crafting/recipes.json mapping
+
+Data contract (array of records):
+- id: token (e.g., "recipe.tool.handle.wood")
+- station: token ("workbench.t0")
+- time_sec: number >= 0
+- inputs: array<{ id: token, qty: int >= 1 }>
+- outputs: array<{ id: token, qty: int >= 1 }>
+- flags: optional object (e.g., { unlocked: true })
+
+Starter set:
+- recipe.tool.handle.wood
+  - inputs: [{ material.wood.stick: 2 }]
+  - outputs: [{ material.part.handle.wood: 1 }]
+  - station: workbench.t0
+  - time_sec: 2
+- recipe.tool.pick.t0.rough
+  - inputs: [{ material.part.handle.wood: 1 }, { material.wood.stick: 1 }]
+  - outputs: [{ tool.pick.t0.rough: 1 }]
+  - station: workbench.t0
+  - time_sec: 4
 - recipe.tool.pick.t1.copper
-  - workstation:"forge", requiresTier:1
-  - inputs: mat.ore.copper x8, mat.binding.copper x1, mat.shaft.wood x1
-  - outputs: tool.pick.t1.copper x1
-  - time_sec: 5.0
-  - Notes: first meaningful upgrade; unlocks copper.
-- recipe.tool.pick.t2.reinforced
-  - workstation:"forge", requiresTier:1
-  - inputs: tool.pick.t1.copper x1, mat.ore.iron x6, mat.binding.copper x1
-  - outputs: tool.pick.t2.reinforced x1
-  - time_sec: 6.0
-  - Notes: consumes prior tool; avoids inventory bloat; unlocks iron.
+  - inputs: [{ tool.pick.t0.rough: 1 }, { material.ore.copper: 6 }]
+  - outputs: [{ tool.pick.t1.copper: 1 }]
+  - station: workbench.t0
+  - time_sec: 6
+  - Notes: No smelting loop in MVP; treat ore as direct input.
 
-## 8) Progression & Pacing Notes
-- Expected path (first 60–90 min):
-  - Starter grants tool.pick.t0.starter. Mine rock to reach copper veins; craft binding.copper; forge tool.pick.t1.copper within 15–25 min.
-  - With copper pick, access more copper and occasional iron seam; upgrade to tool.pick.t2.reinforced by 45–75 min depending on luck and routing.
-- Ore needs (nominal):
-  - Copper Pick: ~8 copper + 1 binding (binding consumes 1 copper + 2 scrap.metal) → total ~9 copper, ~2 scrap.metal, 1 wood shaft.
-  - Reinforced: 6 iron + 1 binding + prior pick.
+Example JSON snippet (illustrative; file: data/crafting/recipes.json):
+```json
+[
+  {
+    "id": "recipe.tool.handle.wood",
+    "station": "workbench.t0",
+    "time_sec": 2,
+    "inputs": [{ "id": "material.wood.stick", "qty": 2 }],
+    "outputs": [{ "id": "material.part.handle.wood", "qty": 1 }],
+    "flags": { "unlocked": true }
+  },
+  {
+    "id": "recipe.tool.pick.t0.rough",
+    "station": "workbench.t0",
+    "time_sec": 4,
+    "inputs": [
+      { "id": "material.part.handle.wood", "qty": 1 },
+      { "id": "material.wood.stick", "qty": 1 }
+    ],
+    "outputs": [{ "id": "tool.pick.t0.rough", "qty": 1 }],
+    "flags": { "unlocked": true }
+  },
+  {
+    "id": "recipe.tool.pick.t1.copper",
+    "station": "workbench.t0",
+    "time_sec": 6,
+    "inputs": [
+      { "id": "tool.pick.t0.rough", "qty": 1 },
+      { "id": "material.ore.copper", "qty": 6 }
+    ],
+    "outputs": [{ "id": "tool.pick.t1.copper", "qty": 1 }],
+    "flags": { "unlocked": true }
+  }
+]
+```
+
+ASCII dependency graph:
+```
+material.wood.stick ──> material.part.handle.wood ──> tool.pick.t0.rough ──> tool.pick.t1.copper
+          (x2)                     (x1)                     (+ stick x1)            (+ ore.copper x6)
+```
+
+
+## 8) Progression & Pacing (60–90 min MVP)
+
+- First 10–15 min: gather sticks, craft handle, craft rough pick.
+- 20–35 min: mine copper ore with rough pick, craft copper pick.
+- 45–60 min: optional bronze path prototype (stub recipe; not required for M3).
+- Target copper upgrade loop: ~8–12 copper ore tiles, depending on vein richness and rough pick durability.
+  - With rough pick durability 60, account for 1 durability per successful mining tick (see Algorithms).
+
+
+## 9) ECS Integration & Algorithms
+
+Relevant component fields (subset used here):
+- tool { id, tool_class, tier, mining_power, mining_speed, durability: int, durability_max: int, attack_power }
+- stamina { current: number, max: number, regen_per_sec: number, cost_per_swing: number }
+- tile { token: string, hardness: number, hp: number, break_threshold: number }
+- ore_vein { richness: int, drop_id: token, drop_min: int, drop_max: int }
+- inventory { stacks: [{ id: token, qty: int, max_stack: int }] }
+
+Mining check pseudocode:
+```
+on MineHitEvent(pos, tool, power):
+  tile = lookup_tile_at(pos)
+  if tool is nil or tool.tool_class != "pick":
+    return  // no mining
+
+  if tool.durability <= 0:
+    emit PlaySfxEvent("ui.click", pos)  // dull thunk
+    return
+
+  if stamina.current < stamina.cost_per_swing:
+    return  // too tired
+
+  eff = tool.mining_power - tile.hardness
+  if eff < 0:
+    return  // tool too weak for this tile
+
+  // Time/progress model: progress per tick scales with mining_speed and eff
+  // Normalize eff floor to small epsilon to avoid zero division
+  eff_norm = max(eff, 0.05)
+  progress_per_tick = tool.mining_speed * eff_norm / 60.0  // tiles per tick vs hardness 1
+  tile.hp -= progress_per_tick
+
+  stamina.current -= stamina.cost_per_swing
+  if tile.hp <= tile.break_threshold:
+    break_tile(tile)
+    tool.durability -= 1
+    if tile.token == "tile.rock.ore.copper":
+      drops = roll_qty(ore_vein.drop_min, ore_vein.drop_max, ore_vein.richness)
+      add_to_inventory("material.ore.copper", drops)
+      emit PlaySfxEvent("sfx.pickup.ore", pos)
+      ore_vein.richness -= 1
+      if ore_vein.richness <= 0:
+        despawn(ore_vein.entity)
+  else:
+    // partial hit still costs stamina; only decrement durability on successful break
+    pass
+```
+
+Craft validation pseudocode:
+```
+on UiCommand(action="craft", payload):
+  recipe = recipes[payload.recipe_id]
+  if not recipe:
+    return
+  if not is_station_available(recipe.station):
+    return
+  times = max(1, payload.times)
+  if not inventory_has_all(recipe.inputs, times):
+    return
+  consume_inputs(recipe.inputs, times)
+  produce_outputs(recipe.outputs, times)
+  emit PlaySfxEvent("ui.click", player_pos)
+  // Optional craft foley placeholder:
+  emit PlaySfxEvent("sfx.mining.hit.rock.light", player_pos)
+```
+
+Notes:
+- Durability decremented on successful tile break only (not on every swing) for MVP clarity.
+- Stamina regenerates outside of this spec; ensure cost_per_swing is small (e.g., 1–3) for pacing.
+
+
+## 10) Test Plan (MVP)
+
+Data validation:
+- Validate item JSON against schema (id_pattern, clamps).
+- Ensure unique ids across all data/items/*.json.
+- Ensure icon_token and tags conform to token rules.
+
+Unit-ish checks:
+- Recipe path existence: from material.wood.stick to tool.pick.t1.copper via defined recipes.
+- Simulate mining 10 rock tiles then 10 copper ore tiles with T0, T1, T2:
+  - Measured average time-to-break must decrease monotonically with tier.
 - Durability:
-  - T0≈100, T1≈120, T2≈180. No repairs in MVP; durability at 0 disables mining (equip allowed but ineffective).
+  - Confirm durability decrements by 1 per tile broken; never below 0.
 
-## 9) System Diagram & ECS Hooks
-Components:
-- Tool { tool_id, mining_power, stamina_per_swing, durability, durability_max }
-- Inventory
-- Stamina
-- Tile { kind, hardness }
-- OreVein { ore_id, richness }
+Integration checks:
+- MineHitEvent on break emits PlaySfxEvent "sfx.pickup.ore".
+- UiCommand "craft" routes to CraftSystem; outputs appear in inventory; "ui.click" SFX plays.
+- JSON save/load preserves tool durability and inventory stacks.
 
-Events:
-- MineHitEvent { pos, tool, power, material_tag }
-- PlaySfxEvent { tag, pos }
 
-ASCII flow:
+## 11) Risks & Mitigations
 
-[Input: Mine Tile]
-   │
-   ▼
-[MiningSystem]
-   │  checks: stamina >= cost AND durability > 0
-   │
-   ├─ if mining_power >= tile.hardness → success
-   │     ├─ mutate Tile (rock→floor; ore.*→floor)
-   │     ├─ spawn drops to Inventory (per OreVein.richness/drop table)
-   │     ├─ Tool.durability -= 1
-   │     ├─ Stamina -= stamina_per_swing
-   │     └─ emit MineHitEvent(material_tag), PlaySfxEvent(sfx.mine.hit.[material])
-   │
-   └─ else → fail
-         └─ emit PlaySfxEvent(sfx.mine.clink), optional UI hint
+- Risk: World-gen hardness not final.
+  - Mitigation: Expose mining_power and mining_speed purely as data; test against hardness bands and adjust.
+- Risk: Smelting loop absent may confuse.
+  - Mitigation: Direct ore usage in MVP recipes; clearly marked; add furnace in Sprint 2 with ingot conversion.
+- Risk: Timing feels off due to eff_norm floor.
+  - Mitigation: Tune epsilon and mining_speed to maintain responsiveness without stalling.
 
-MiningSystem (stub contract):
-- Input: player action targets a tile; check stamina ≥ cost and tool.durability > 0.
-- Compute effective power = tool.mining_power; if power ≥ tile.hardness → apply damage/clear logic: rock→floor; ore.* emits pickup to Inventory.
-- On success: decrement durability by 1; spend stamina = tool.stamina_per_swing; emit MineHitEvent with material tag for Audio.
-- On fail (insufficient power or stamina): emit clink SFX and optional UI hint (out-of-scope for MVP).
 
-Audio mapping per docs/audio-systems/audio-design.md:
-- MineHitEvent routes to sfx.mine.hit.[material].v* (e.g., stone, metal, crystal).
+## 12) Acceptance Checklist
 
-## 10) Validation & Tests (DoD)
-Data loads:
-- item files conform to item-schema.json; recipe ids reference valid item ids.
-- Recipe field order exact; workstation enum valid; requiresTier=1.
+- Crafting dependencies are acyclic and form a valid upgrade path.
+- Tool tiers T0–T2 defined with ids, stats, and notes.
+- Example upgrade path computable: sticks → handle → rough pick → copper pick.
+- JSON-ready schemas and sample items/recipes provided with validation hints.
+- ECS hooks and events specified; pseudocode provided for mining and crafting.
+- Basic test plan present for data, unit-ish behavior, and integration SFX routing.
 
-Unit checks (JS prototype/Rust harness):
-- mining_power gating:
-  - tool.pick.t0.starter cannot damage ore.copper (h=4); tool.pick.t1.copper can.
-  - tool.pick.t1.copper cannot damage ore.iron (h=5); tool.pick.t2.reinforced can.
-- stamina spend: action blocked if stamina < cost; stamina regen (combat spec) unaffected by mining tick.
-- durability: decrements per successful mine; mining disabled at 0.
-- recipe path computable: starter → binding.copper → tool.pick.t1.copper → tool.pick.t2.reinforced.
-- drop tables: copper vein yields 1–2 copper; quartz requires tier≥3 and yields none if underpowered (tease visual remains).
-
-## 11) Risks & Assumptions
-- Hardness numbers locked to cave-gen spec (rock=3, copper=4, iron=5, quartz=7). If these change, update mining_power values.
-- No smelting loop in MVP; ores craft directly into tools to reduce surface area and UI complexity.
-- Steam Drill reserved for post-MVP to avoid UI/system sprawl and steam_workshop scope creep.
-- Tools are non-repairable in MVP; ensure UI suppresses repair affordances.
-
-## 12) Next Deliverables (by Delta)
-- data/items/tools.json — includes:
-  - tool.pick.t0.starter, tool.pick.t1.copper, tool.pick.t2.reinforced with stats listed here.
-- data/crafting/recipes.json — includes the 3 recipes above with schema described.
-- Optional: data/items/materials.json for referenced materials/components if owners prefer separation.
-
-Appendix: Hardness vs Power quick ref
-- rock: hardness 3 → requires mining_power ≥ 3
-- ore.copper: hardness 4 → requires mining_power ≥ 4
-- ore.iron: hardness 5 → requires mining_power ≥ 5
-- ore.quartz: hardness 7 → requires mining_power ≥ 7
-
-Forge hot and schema strict—Gearwright out.
+Strike the iron, drive the rivets—data may proceed.
