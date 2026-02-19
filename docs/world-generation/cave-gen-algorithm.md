@@ -1,453 +1,355 @@
 # The Far Mine — Cave Generation L1 (Sprint 1)
 
 Author: Deepdelver Caveborn (Beta)  
-Version/Date: v0.1 / 2026-02-18  
+Version/Date: 0.1 / 2026-02-19  
 Status: Draft v0.1
 
-Scope: Level 1 slice world generation for ~256×128 target (default 128×128 during Sprint 1), 16 px tiles, deterministic seed → tilemap. Techniques: CA smoothing + three-wide tunneling + connectivity guarantees, ore/feature placement, metadata suitable for ECS ingestion.
+Scope
+- Level: 1 only (Crystal Caverns L1), 2D side-view tile map.
+- Bounds: target 256x128; acceptance also at 128x128 and 64x64.
+- Engine-agnostic, with Bevy/ECS integration notes.
 
 ---
 
-## 2) Goals & Constraints
+## 1) Play Constraints & Guarantees
 
-- Determinism: Identical output for same 64-bit seed and params. Substreams for phase stability.
-- Connectivity:
-  - ≥90% of floor tiles in main connected component.
-  - Always-solvable main path from Spawn (top-left band) to Exit (bottom-right band) with clearance width ≥3.
-  - Corridor minimum width three for primary arteries (spine and guaranteed connectors).
-- Bounds:
-  - Room sizes and counts constrained (see Parameters).
-  - Corridor density bounded by connectors_max and room counts.
-- Performance:
-  - <200 ms @128×128, default params, on dev laptop (JS/TS, single thread).
-  - Memory: Use typed arrays (Uint8Array/Int16Array/Uint32Array) and reuse buffers.
-- Robustness: Edges clamped to solid; validation + limited retries.
+Bounds
+- Map sizes supported: min 64x64, max 256x128. Width and height must be even.
+- Playable area margins: maintain solid rock borders of at least 2 tiles on all sides; spawn/exit must be ≥6 tiles from map edges and ≥3 tiles from any void/out-of-bounds.
 
----
+Main Path
+- Guarantee a solvable, walkable path from spawn to exit within the main connected component (MCC).
+- Main corridor minimum clear width: 3 tiles (horizontal and vertical Manhattan width).
+- Door/neck sizes:
+  - Main-path doors/necks: ≥3 tiles.
+  - Side-room doors: ≥2 tiles (never affects main-path width).
+  - Optional secret squeezes: 1-tile passes allowed only if flagged secret and not on any critical path; mark as non-critical in metadata.
 
-## 3) Tile & Output Contract (Data Model)
+Connectivity
+- Walkable connectivity: ≥90% of all walkable tiles must be in the MCC.
+- Loops: target 0.8–1.6 loops per 1000 total tiles (not just walkable); loops created post main-path routing.
+- Cul-de-sacs budget: ≤6% of walkable tiles terminate within 3 steps (dead ends), excluding room interiors.
 
-- Coordinate system: 0 ≤ x < w (left→right), 0 ≤ y < h (top→bottom). Row-major index i = y*w + x.
-- Output:
-  - tiles: Int16Array or Uint16Array (terrain codes).
-  - masks:
-    - floor: Uint8Array (0/1)
-    - wall: Uint8Array (0/1) derived skirt around floor
-    - ore: Uint8Array (0: none, 10: copper, 11: quartz, 12: iron)
-  - features layer (anchors/props) emitted as marker lists rather than per-tile raster, except lamp anchors optionally stamped as tile code 20 in tiles for convenience.
-- Layers (conceptual):
-  - terrain: 0=void(outside), 1=solid_rock, 2=floor, 3=wall
-  - ore: 0 none, 10 copper, 11 quartz, 12 iron (placed on solid or wall, never on floor)
-  - features: 20 lamp_anchor, 21 rubble, 11 crystal.quartz visual anchor (mirrors ore 11) where applicable
-  - markers: 30 spawn, 31 exit, plus generic anchors [{x,y,kind}]
-  - biome tags (string[] at map level; optional per-cell byte tag)
-  - difficulty depth: per-row scalar (e.g., y/h)
-- JSON schema sketch:
-  - {
-      version: "l1.0",
-      seed: "0x…",
-      w, h,
-      tiles: int[],               // row-major
-      masks: {
-        floor: uint8[],
-        wall: uint8[],
-        ore: uint8[]
-      },
-      markers: {
-        spawn: [x,y],
-        exit: [x,y],
-        anchors: [{x,y,kind}]     // kind ∈ ["lamp","checkpoint","crystal_glow"]
-      },
-      biome: "mine.l1",
-      metrics: {
-        connectivity: 0.0..1.0,
-        loop_count: int,
-        floor_ratio: 0.0..1.0,
-        path_len: int
-      },
-      params: { … }               // echo resolved parameters
-    }
-- ECS Integration:
-  - Tile component: { code, hardness, tool_tier, materialTag }
-    - code from tiles[]; hardness/tier per mapping (see Tile Codes).
-  - OreVein entity for each contiguous ore region with {kind, bbox, cells[]} or per-anchor point to support runtime vein growth.
-  - LightAnchor entities from markers.anchors where kind="lamp".
-  - Audio hooks: materialTag e.g., "rock.t0", "ore.copper", "crystal.quartz".
+Room Sizes and Density
+- Tunnels: 3-wide lanes; straight or gently curving; lengths variable.
+- Caverns: radius-equivalent 12–28 tiles (eqv radius r where area ≈ πr², allowing amorphous shapes).
+- Ore chambers: radius-equivalent 5–9 tiles.
+- Density per 10k tiles:
+  - Tunnels: 4–10 per 10k.
+  - Caverns: 1.2–2.8 per 10k.
+  - Ore chambers: 0.8–2.0 per 10k.
+
+Chokepoints
+- Target 2–4 soft chokepoints in the MCC (width 2–3).
+- Never narrower than 2 tiles unless flagged secret (and excluded from MCC calculations).
 
 ---
 
-## 4) Algorithm Overview
+## 2) Algorithm Overview (Pipeline)
 
-Pipeline phases:
+High-level pipeline (deterministic per seed):
+1) Seeded RNG setup with substreams.
+2) Initial noise blob via cellular automata (CA) from random fill.
+3) Flood-select largest connected component (MCC) and clear outside to solid rock.
+4) Stamp room templates (weighted, separated) onto MCC boundary/nearby rock.
+5) Carve connector tunnels between rooms/MCC using A* over a cost field (rock vs air).
+6) Enforce corridor minimum widths by morphological opening (widen_corridor).
+7) Add loops by evaluating connector candidates and applying a disjoint-set (cycle) check.
+8) Decorate edges (ledges, rubble) based on curvature/convexity heuristics.
+9) Ore vein seeding influenced by biome rules and hardness masks.
+10) Lamp/light anchor placement along main path and near intersections.
+11) Metadata bake: spawn/exit determination, stats, anchors, palette IDs.
 
-a) RNG init  
-- Initialize master 64-bit seed. Derive substreams: structure, tunneling/path, rooms, ores, deco. Use SplitMix64 → XorShift128+ or PCG64. All sampling draws must use designated substream.
-
-b) Primordial Noise  
-- Seed occupancy as floor with probability p0 (initial_fill_p). Clamp a 1-tile border to solid.
-
-c) Cellular Automata smoothing  
-- 4–5 steps using floor-centric rule akin to B5+/S4+:
-  - Let n = count of 8-neighbors that are floor.
-  - If cell is floor: stays floor if n ≥ survive_thresh (default 4); else becomes solid.
-  - If cell is solid: becomes floor if n ≥ birth_thresh (default 5).
-- After CA, enforce border solid.
-
-d) Extract components  
-- Flood-fill 4-neighbors on floor cells, label region ids. Keep largest as main. Others recorded as candidates for connectors/rooms.
-
-e) Connector Carving  
-- Choose spawn in top-left band (x ∈ [2..w*0.2], y ∈ [2..h*0.2]) on nearest floor to corner; same for exit in bottom-right band (x ∈ [w*0.8..w-3], y ∈ [h*0.8..h-3]).
-- A* from spawn→exit on grid nodes with width-3 feasibility. Cost:
-  - base = 1 for floor, 1 + wall_carve_cost (default 3) for solid.
-  - bias: -0.25 if current or neighbor already floor to prefer open cells.
-  - curvature penalty: +0.5 when turning too frequently (limit max bend rate).
-- Carve three-wide spine along path. Stamp doorways min width 3.
-- Connect side regions to spine using region adjacency graph:
-  - Build edges where a minimal Manhattan connector exists (scan frontier cells). Weight by length + carve penalty.
-  - Run Prim’s MST until connectivity ≥0.90 floor coverage or connectors_max reached.
-  - Add 1±1 extra edges to form 0–2 loops, preferring short connectors.
-
-f) Room Stamping  
-- Attempt 2–4 tunnel rooms, 1–2 caverns, 2–3 ore-pocket rooms using templates and rejection sampling:
-  - Respect no-overlap (or soft overlap with existing floor by re-carving walls).
-  - Connect rooms with ≥3-wide doors to nearest spine or corridor.
-  - Reconcile walls after carving.
-
-g) Validation  
-- Recompute floor/wall masks. Run width-3 A* from spawn to exit. If no path, retry connector step up to K=3 with perturbed tie-breakers. Verify main CC ≥ 0.90.
-
-h) Resource Seeding  
-- Copper: 0.6–1.2% of tiles as ore cells; prefer wall/solid within 3 tiles of spine/corridors.
-- Quartz: 0.3–0.6%, cluster in caverns and open rooms.
-- Iron: 0.1–0.2%, y > h*0.6 band; sparse pockets.
-- Place ores only on solid/wall, never overwriting floor or mandatory doorways.
-
-i) Feature/Lighting  
-- Lamp anchors every 12–18 tiles along spine and at T-junctions. Cap 40 @128×128.
-- Rubble: sparse decorative on floor edges, non-blocking.
-- Crystal glow anchors near quartz clusters.
-
-j) Finalize  
-- Compute metrics (connectivity, loop_count, floor_ratio, path_len). Assemble JSON payload and optional 1-bit PNG artifact.
+Justification for Sprint 1
+- CA yields organic mass cheaply and stably.
+- Template stamping ensures recognizable spaces (rooms) and repeatable authoring.
+- Deterministic tunnel routing (A*) ensures connectivity and width enforcement with predictable costs.
 
 ---
 
-## 5) Parameters & Bounds
+## 3) Seed Management & Determinism
 
-- Grid: default w=128, h=128 (target 256×128 Sprint 2).
-- CA:
-  - initial_fill_p: 0.42–0.48 (default 0.45)
-  - steps: 4–5 (default 5)
-  - birth_thresh: 5
-  - survive_thresh: 4
-- Spine/tunnels:
-  - width: 3
-  - A* heuristic weight: 1.0 (Manhattan)
-  - wall_carve_cost: 3
-  - max bend rate: disallow 3 consecutive turns; add 0.5 per turn
-  - door width min: 3
-- Rooms:
-  - counts: tunnel 2–4, cavern 1–2, ore-vein 2–3
-  - sizes (w×h):
-    - tunnel: 7×13..9×21 (elongated rectangles)
-    - cavern: 12×12..20×18 (oval/irregular)
-    - ore pocket: 5×7..9×11 (dense ore mask within solid)
-- Connectivity:
-  - min_main_cc: 0.90
-  - loops_target: 1±1
-  - connectors_max: 12
-- Resources:
-  - copper: 0.6–1.2% tiles, bias dist≤3 to spine/corridors
-  - quartz: 0.3–0.6% in caverns
-  - iron: 0.1–0.2% with y>0.6h
-- Lamps: spacing 12–18 along spine; at T-junctions; max 40 @128×128.
+Seed and Substreams
+- Single 64-bit root seed expands into named substreams:
+  - layout, rooms, connectors, ore, decor, lights
+- Derivation: sub_seed = SplitMix64(root ^ hash64("namespace") ^ hash64(w,h,params.version))
+  - hash64("namespace"): FNV-1a 64 or xxHash64 over ASCII of the name.
+  - hash64(w,h,params.version): pack into bytes and hash; future-proof via params.version.
+- Each substream uses PCG32 (XSH-RR) with the derived 64-bit state and 64-bit stream/seq = sub_seed>>1.
+
+Consumption Rules
+- RNG consumption is confined to its substream per task:
+  - layout: CA fill, CA steps.
+  - rooms: template selection, placement jitter, rotations.
+  - connectors: A* tie-breaks, candidate ordering.
+  - ore: vein attempts, branching.
+  - decor: rubble/edges, crystal clusters.
+  - lights: jitter, intersection proximity choices.
+- Order of consumption per stage is stable: iterate grid row-major; iterate rooms by sorted template-id then by seeded index; iterate connectors by ascending room-id pairs. No early-returns that skip draws; where bailouts occur, consume dummy draws equal to worst-case to preserve determinism.
+
+Hashing Rule
+- Effective run signature: H = hash64(root_seed || w || h || params.version || stable_param_pack).
+- Output is stable across runs with identical H.
 
 ---
 
-## 6) Tile Codes, Hardness, Tool Tier
+## 4) Parameters Table (defaults & safe ranges)
 
-- 0 = void (outside map), hardness 0, n/a
-- 1 = solid_rock.t0, hardness ≈ 1.0, tool_tier t0, materialTag "rock.t0"
-- 2 = floor (walkable), hardness 0, n/a
-- 3 = wall (face adjacent to floor; solid), hardness ≈ 1.0, tool_tier t0, materialTag "rock.t0"
-- 10 = ore.copper (ore layer; base terrain remains 1 or 3), hardness ≈ 1.4, tool_tier t1, materialTag "ore.copper"
-- 11 = crystal.quartz.t1 (ore/feature; usually on 1 or 3), hardness ≈ 1.6, tool_tier t1, materialTag "crystal.quartz"
-- 12 = ore.iron.t1_5, hardness ≈ 1.8, tool_tier t1_5, materialTag "ore.iron"
-- 20 = lamp_anchor (feature; also emitted as anchor entity)
-- 21 = rubble (decor, non-blocking; place on floor)
-- 30 = marker.spawn
-- 31 = marker.exit
+Grid
+- width: default 128; height: default 128.
 
-Mapping: ECS Tile component reads tiles[]; OreVein/Crystal from masks.ore and anchors; LightAnchor from markers.anchors and/or tiles==20.
+Cellular Automata (CA)
+- fill_prob: 0.51 (safe 0.43..0.58).
+- steps: 4 (safe 3..6).
+- birth_limit: 5 (safe 5..6).
+- death_limit: 3 (safe 3..4).
+
+Rooms (Poisson means; enforce separation ≥6 tiles center-to-center projected to AABBs with margin=2)
+- tunnel: mean 8 (range 6–10).
+- cavern: mean 3 (range 2–4).
+- ore_chamber: mean 2 (range 2–3).
+
+Corridors
+- min_width: 3.
+- max_turn_rate_deg: 45.
+- junction_rate: 0.15 (probability to branch when carving near intersections).
+- loop_try: 12 candidates after main connectors.
+- loop_accept_bias: 0.6 (favor shorter loops and MCC coverage).
+
+Ore
+- vein_attempts per 10k tiles: 18.
+- vein_len: default 7 (safe 4..11).
+- branch_prob: 0.25.
+- richness_range: 6..18 (local density cap per vein).
+
+Lights
+- lamp_every_N_tiles_along_main: 22 with ±4 jitter.
+- near_intersections: true (priority bonus at junction nodes).
+
+Performance Caps
+- max_nodes_a_star: 50k per connector.
+- max_vein_cells: ≤3% of walkable tiles.
 
 ---
 
-## 7) Seed Management & RNG Discipline
+## 5) Output Data Contract (Tilemap JSON + Metadata)
 
-- Master 64-bit seed S. Expand via SplitMix64 to produce five 128-bit states:
-  - structure, path, rooms, ores, deco
-- Each phase exclusively uses its substream to avoid drift.
-- Stable iteration:
-  - Iterate in fixed scanlines or sorted lists (by index) for all loops.
-  - Explicit tie-breakers: when costs equal, prefer smaller (y, then x).
-  - Avoid for..of on object keys; pre-sort arrays deterministically.
-- Any added sampling must consume from correct substream and be placed where order is guaranteed (append-only, not inside unordered maps).
-
----
-
-## 8) Pseudocode: generate_map(seed, w, h)
-
-```pseudo
-type U8 = Uint8Array
-type U16 = Uint16Array
-type I16 = Int16Array
-
-function generate_map(seed64: u64, w: int, h: int, inParams?: Params): GenResult {
-  const p = resolveParams(inParams) // clamp to bounds
-  const rng = makeRNGs(seed64) // {structure, path, rooms, ores, deco}
-
-  // Buffers
-  const floor = new U8(w*h)     // 0/1
-  const wall  = new U8(w*h)     // 0/1
-  const ore   = new U8(w*h)     // 0,10,11,12
-  const tiles = new U16(w*h)    // terrain codes
-
-  // a) Primordial Noise (structure RNG)
-  for y in 0..h-1:
-    for x in 0..w-1:
-      i = y*w + x
-      if x==0 || y==0 || x==w-1 || y==h-1:
-        floor[i] = 0
-      else:
-        floor[i] = rng.structure.nextFloat() < p.initial_fill_p ? 1 : 0
-
-  // b) CA smoothing
-  for step in 1..p.ca_steps:
-    tmp = new U8(w*h)
-    for y in 1..h-2:
-      for x in 1..w-2:
-        i = y*w + x
-        n = count8NeighborsFloor(floor, w, h, x, y)
-        if floor[i]==1:
-          tmp[i] = (n >= p.survive_thresh) ? 1 : 0
-        else:
-          tmp[i] = (n >= p.birth_thresh) ? 1 : 0
-    // clamp border
-    for x in 0..w-1: tmp[x]=0; tmp[(h-1)*w + x]=0
-    for y in 0..h-1: tmp[y*w]=0; tmp[y*w + (w-1)]=0
-    floor.set(tmp)
-  end
-
-  // c) Region labeling
-  const regionId = new I16(w*h).fill(-1)
-  let regions = [] // {id, size, anyCell}
-  let rid = 0
-  for i in 0..w*h-1:
-    if floor[i]==1 && regionId[i]==-1:
-      size = flood_fill_label_floor(floor, regionId, w, h, i, rid)
-      regions.push({id: rid, size})
-      rid += 1
-  sort regions by size desc
-  const mainRegion = regions.length>0 ? regions[0].id : -1
-
-  // d) Spawn/Exit selection on existing floor or nearest carve
-  const spawn = pickMarkerInBand(floor, w, h, bandTL(), rng.path)
-  const exit  = pickMarkerInBand(floor, w, h, bandBR(), rng.path)
-  stampMarker(tiles, w, h, spawn, 30)
-  stampMarker(tiles, w, h, exit, 31)
-
-  // e) Spine pathfinding (A* with width-3 clearance)
-  const clearance = computeClearanceSolid(floor, w, h) // distance-to-solid in tiles
-  const path = aStar_width3(spawn, exit, floor, clearance, w, h, p, rng.path)
-  carve_three_wide(floor, w, h, path)
-
-  // Walls from floor (initial)
-  recompute_walls(floor, wall, w, h)
-
-  // f) Region graph + connectors (ensure ≥90% floor coverage)
-  let ccCoverage = main_cc_ratio(floor, w, h)
-  if ccCoverage < p.min_main_cc:
-    const graph = buildRegionAdjacency(floor, regionId, w, h)
-    const mstEdges = prim_connectors(graph, rng.path, p.connectors_max)
-    for e in mstEdges:
-      const connPath = carve_connector_path(e, floor, w, h, p, rng.path) // three-wide
-      carve_three_wide(floor, w, h, connPath)
-    recompute_walls(floor, wall, w, h)
-
-  // g) Rooms
-  place_rooms(floor, wall, w, h, p, rng.rooms)
-
-  // h) Validation with retries
-  let ok=false
-  for attempt in 1..3:
-    recompute_walls(floor, wall, w, h)
-    if path_exists_width3(spawn, exit, floor, w, h, p):
-      ok=true; break
-    // retry connectors with perturbed weights
-    tweak_path_bias(rng.path, attempt)
-    add_short_connector(floor, w, h, rng.path, p)
-  if !ok: force_direct_spine(spawn, exit, floor, w, h, p) // guaranteed carve
-
-  // i) Resources (ores only on solid/wall)
-  seed_ore("copper", ore, floor, wall, w, h, p, rng.ores, biasToSpine=true)
-  seed_ore("quartz", ore, floor, wall, w, h, p, rng.ores, cavernsOnly=true)
-  seed_ore("iron",   ore, floor, wall, w, h, p, rng.ores, deeperBand=true)
-
-  // j) Features / Lamps
-  const anchors = []
-  place_lamps_along_path(anchors, floor, wall, w, h, p, rng.deco)
-  sprinkle_rubble(tiles, floor, wall, w, h, p, rng.deco)
-  add_crystal_glow_anchors(anchors, ore, w, h, rng.deco)
-
-  // Assemble terrain tiles
-  for i in 0..w*h-1:
-    if floor[i]==1:
-      tiles[i] = 2
-    else if wall[i]==1:
-      tiles[i] = 3
-    else:
-      tiles[i] = 1
-  // keep explicit markers & lamps if desired
-  for each a in anchors where a.kind=="lamp":
-    tiles[a.y*w + a.x] = 20
-
-  const metrics = compute_metrics(floor, w, h, spawn, exit)
-
-  return {
-    version: "l1.0",
-    seed: fmtHex(seed64),
-    w, h,
-    tiles: toJSArray(tiles),
-    masks: { floor: toJSArray(floor), wall: toJSArray(wall), ore: toJSArray(ore) },
-    markers: { spawn: [spawn.x,spawn.y], exit: [exit.x,exit.y], anchors },
-    biome: "mine.l1",
-    metrics,
-    params: p
+Artifact shape (engine-agnostic; row-major tiles; uint64 as string for broad JSON compatibility):
+```
+{
+  "version": 1,
+  "meta": { "seed": "1234567890123456789", "w": 128, "h": 128, "params_version": 1, "gen_time_ms": 137.6 },
+  "tiles": [ /* length = w*h; "0","1","2","3","4" or small ints; row-major top->bottom */ ],
+  "palette": {
+    "0": "tile.air.empty",
+    "1": "tile.rock.solid",
+    "2": "tile.rock.ore.copper",
+    "3": "tile.rock.rubble",
+    "4": "tile.lamp.stand"
+  },
+  "spawn": { "x": 8, "y": 12 },
+  "exit": { "x": 119, "y": 110 },
+  "anchors": {
+    "rooms": [ { "type":"room.tunnel", "aabb":[x,y,w,h], "seed": 392188221 } ],
+    "enemies": [],
+    "lights": [ { "x": 42, "y": 29, "color":"light.crystal.amber", "radius": 7.5 } ]
+  },
+  "stats": {
+    "walkable_pct": 0.38,
+    "main_cc_pct": 0.95,
+    "rooms": { "tunnel":7, "cavern":3, "ore":2 },
+    "loops": 12
   }
 }
-
-// Helpers (signatures)
-function flood_fill_label_floor(floor: U8, regionId: I16, w,h,i0,rid): int
-function count8NeighborsFloor(floor: U8, w,h,x,y): int
-function computeClearanceSolid(floor: U8, w,h): U8 // min distance to any solid; treat floor=1 as free
-function aStar_width3(start, goal, floor, clearance, w,h,p,rng): Point[]
-function carve_three_wide(floor: U8, w,h, path: Point[]): void
-function recompute_walls(floor: U8, wall: U8, w,h): void // wall=1 where solid adjacent (8-neigh) to floor
-function buildRegionAdjacency(floor: U8, regionId: I16, w,h): Graph
-function prim_connectors(graph, rng, maxEdges): Edge[]
-function carve_connector_path(edge, floor, w,h,p,rng): Point[]
-function place_rooms(floor, wall, w, h, p, rng): void
-function path_exists_width3(spawn, exit, floor, w, h, p): bool
-function seed_ore(kind, ore: U8, floor: U8, wall: U8, w,h,p,rng, flags): void
-function place_lamps_along_path(anchors[], floor, wall, w, h, p, rng): void
-function sprinkle_rubble(tiles: U16, floor: U8, wall: U8, w,h,p,rng): void
-function add_crystal_glow_anchors(anchors[], ore: U8, w,h,rng): void
-function compute_metrics(floor, w,h,spawn,exit): {connectivity, loop_count, floor_ratio, path_len}
 ```
-
-Key details:
-- Width-3 feasibility: require clearance[y*w+x] ≥ 1 for center cell, and carve three-wide as a 3×3 diamond or 4-connected radius 1 cross; consistent for both checks and carve.
-- Ore BFS: start from seed wall/solid, expand 4-neigh until target count; avoid placing adjacent to spawn/exit tiles; never overwrite floor.
+Notes for ECS/Bevy mapping
+- Tiles:
+  - Tile { tile_id: u16, material: from palette+biome, hardness: biome.hardness_scalar * token_base }
+  - Collider: static AABB for solid tiles; empty for air/lamps/rubble.
+- Lights: anchors.lights -> Light component (color preset from biome, radius scalar).
+- SoundEmitter anchors (none yet in L1) to map from biome ambient SFX.
 
 ---
 
-## 9) Example Layout (ASCII)
+## 6) Biome Hooks (Crystal Caverns L1)
 
-Seed: 0x0000_0000_DEEP_D1G  
-Params: w=64, h=32, initial_fill_p=0.45, ca_steps=5, wall_carve_cost=3, lamp_spacing=14
-
-Legend:
-- . floor, # solid rock, = main spine, + junction, [ ] room walls implied, C copper, Q quartz, I iron, L lamp, S spawn, E exit
-
-```
-################################################################
-##S====L============+============L============+============E###
-##......###########..............###########.............#####.
-##......###########....[cavern]..###########....[room]..#####.
-##......######C####....[QQQQQQ]..######C####............#####.
-###.....######C####....[QQQQQQ]..######C####.....C......#####.
-###.....######C####..............######C####............#####.
-###.....######C####====L====+====######C####====L====+==#####.
-###..................#######..................#######.........
-#####IIII##########..#######..##########IIII..#######..######.
-#####IIII##########..#######..##########IIII..#######..######.
-#####....##########..#######..##########....I.#######..######.
-#####....##########..#######..##########....I.#######..######.
-#####....====L=======#######==+====L======....#######..######.
-#####................#######...............L.#######..######.
-###################..#######..#####################..########
-###################..#######..#####################..########
-###################..#######..#####################..########
-################################################################
-```
-
-Notes: Spine marked by =; lamps at regular spacing; T-junctions '+'; copper C near corridors; quartz Q clustered in cavern; iron I deeper rows.
+- External data: data/world/biome-crystal-caverns.json (to be produced).
+- Defines:
+  - palette tokens, materials, hardness scalars (e.g., rock=1.0, ore=1.2).
+  - ambient light tint: subtle blue-amber blend.
+  - decoration: crystal clusters on convex rock edges with 12% chance per eligible edge, decor density clamps per chunk.
+  - lamp style tokens: "tile.lamp.stand" visual variant, color "light.crystal.amber".
+  - ambient SFX spots: drip nodes near stalactites, low-rumble near large caverns.
 
 ---
 
-## 10) Performance Notes
+## 7) Room Templates Usage
 
-- CA smoothing: O(steps * w*h). Single pass neighbor counts; reuse buffer.
-- Flood-fill labeling: O(w*h). Queue-based BFS with preallocated ring buffer.
-- A*: Nodes ≤ w*h; heuristic-consistent. Use binary heap; cost evaluation constant-time. Width-3 clearance precomputed by one pass distance transform (manhattan or chamfer) O(w*h).
-- Region graph build: scan edges; amortized O(w*h).
-- Connectors/Rooms: small fixed counts; path carving linear in connector lengths.
-- Ore seeding: sample anchors (O(K)); BFS-limited to small pockets.
-- Memory: ~ (w*h) * (floor:1 + wall:1 + ore:1 + tiles:2 + regionId:2 + clearance:1) ≈ 8 bytes/cell + overhead. 128×128 ≈ 128 KB core.
-- Optimizations:
-  - Reuse arrays; avoid allocations in hot loops.
-  - Early exit if connectivity ≥ target before full connector build.
-  - Clamp attempts to ≤3 retries.
+Source
+- data/world/room-templates.json (to be produced), includes 3 base templates:
+  - tunnel, cavern, ore-vein (ore chamber).
+
+Template fields
+- id: "room.tunnel" | "room.cavern" | "room.ore".
+- size: { w:int, h:int } nominal bounding box.
+- grid: rows of chars; mapping chars→tokens via palette (e.g., '.'=air, '#'=rock, 'o'=ore seed).
+- doorways: [{ x:int, y:int, facing:"N|S|E|W" }], local coords in template space.
+- flags: rotation:true/false, reflection:true/false.
+- stamp_rules:
+  - no-overlap margin: 2 tiles to any existing room AABB.
+  - align_to: MCC boundary or interior with bias per type.
+  - priority: tie-break ordering for overlapping candidates.
+
+Placement algorithm
+- Generate candidate positions via blue-noise (Poisson disk) over the grid domain respecting separation ≥6.
+- For each template type (weighted by Poisson-sampled count), try rotations/reflections allowed by flags; validate no-overlap and doorway exposure to rock or MCC edge.
+- Build a doorway graph; ensure at least one doorway per room is connectable to MCC via planned connectors; discard isolated rooms.
 
 ---
 
-## 11) Testing & Acceptance
+## 8) Pseudocode (generate_map)
 
-- Determinism:
-  - For fixed seed and params, SHA-1(tiles) and SHA-1(masks.ore) stable across runs/hosts.
-- Connectivity:
-  - width-3 A* finds path spawn→exit.
-  - main CC ratio ≥ 0.90; loop_count within 0–2.
-- Resource bounds:
-  - Tile counts within configured % ranges (±0.05% tolerance).
-  - No ore on floor or blocking 3-wide doors.
-- Lamps:
-  - Count ≤ cap; spacing within [12..18] along spine; lamps at all T-junctions.
-- Artifacts:
-  - Emit JSON grid and 1-bit PNG (floor vs solid) for sanity; optional debug PNG for ore overlay.
-- Regression suite:
-  - Golden seeds set (e.g., 10 seeds) checked for hashes and metrics envelopes.
+```
+function generate_map(seed:u64, w:int, h:int, params:Params) -> Artifact:
+  assert 64 <= w <= 256 and 64 <= h <= 128 and w%2==0 and h%2==0
+  rng = init_rng(seed, w, h, params.version)
+  // Substreams
+  R = {
+    layout: rng.sub("layout"),
+    rooms: rng.sub("rooms"),
+    connectors: rng.sub("connectors"),
+    ore: rng.sub("ore"),
+    decor: rng.sub("decor"),
+    lights: rng.sub("lights")
+  }
+
+  grid = ca_init_grid(w,h, params.CA.fill_prob, R.layout)
+  for i in 1..params.CA.steps:
+    grid = ca_iterate(grid, params.CA.birth_limit, params.CA.death_limit)
+
+  mcc_mask = floodfill_largest(grid) // returns boolean mask of largest air component
+  grid = apply_mcc_mask(grid, mcc_mask) // non-MCC cells become solid rock
+
+  templates = load_room_templates() // from data/world/room-templates.json
+  rooms = stamp_rooms(grid, templates, params.Rooms, R.rooms)
+
+  cost_field = build_cost_field(grid) // rock: high cost, air: low, rubble: mid
+  connectors = plan_connectors(rooms, mcc_mask, R.connectors)
+  paths = carve_connectors_a_star(connectors, cost_field, R.connectors, params.max_nodes_a_star)
+  grid = apply_paths(grid, paths)
+
+  grid = enforce_min_width(grid, params.Corridors.min_width) // morphological open+fill
+  loop_candidates = pick_loop_candidates(grid, connectors, R.connectors, params.Corridors.loop_try)
+  loops = select_loops(loop_candidates, R.connectors, params.Corridors.loop_accept_bias, disjoint_set_from(grid))
+  grid = apply_paths(grid, loops)
+
+  decorate_edges(grid, R.decor) // rubble, ledges per curvature
+  mcc_mask = floodfill_largest(grid) // recompute after carving
+
+  main_skel = extract_main_skeleton(grid, mcc_mask)
+  spawn, exit = place_spawn_exit(main_skel, R.layout) // maximize geodesic separation
+  lights = place_lights_along_main(main_skel, spawn, exit, params.Lights, R.lights)
+
+  vein_seeds = seed_ore_veins(grid, mcc_mask, params.Ore, biome_rules(), R.ore, params.max_vein_cells)
+  grid = apply_ore(grid, vein_seeds)
+
+  anchors = bake_anchors(rooms, lights)
+  stats = compute_stats(grid, mcc_mask, rooms, loops)
+
+  palette = default_palette_for_biome("crystal_caverns_L1")
+  tiles = bake_tiles(grid, palette)
+
+  meta = { seed: to_string(seed), w, h, params_version: params.version, gen_time_ms: timing() }
+  return build_artifact(version=1, meta, tiles, palette, spawn, exit, anchors, stats)
+```
+
+Helper signatures
+- floodfill_largest(grid) -> BoolMask
+- a_star(start, goal, cost_field, max_nodes, rng) -> Path
+- disjoint_set_from(grid) -> DSU
+- widen_corridor(grid, min_width) -> grid
+- pick_loop_candidates(grid, connectors, rng, k:int) -> [Connector]
+- compute_geodesic_dists(grid, source_mask) -> DistField
+- plan_connectors(rooms, mcc_mask, rng) -> [Connector]
+- carve_connectors_a_star(connectors, cost_field, rng, cap) -> [Path]
+- place_spawn_exit(main_skel, rng) -> (Point, Point)
+
+Notes
+- Cost field: air=1, rubble=2, rock=6, out-of-bounds=∞; turning adds angle cost proportional to degrees/max_turn_rate.
+- enforce_min_width: dilate air by r then erode to guarantee 3-wide corridors; patch single-tile pinches.
+
+---
+
+## 9) Basic Connectivity Test & PNG Export Notes
+
+Test (seed=12345, w=h=64, defaults)
+- Assert stats.main_cc_pct ≥ 0.9.
+- Assert path_exists(spawn, exit) == true (BFS on air cells).
+- Assert min corridor width along the main path ≥ 3.
+- Assert rooms_count in observed stats within configured [min,max] per type.
+
+PNG Export (deterministic colors)
+- rock: #2b2b2b
+- air: #0f0f1a
+- ore: #5fa7c8
+- lamps: #f6c067
+- Render row-major; optional grid overlay for debugging.
+
+---
+
+## 10) Performance Targets & Complexity
+
+Targets
+- <200 ms at 128x128 on a typical dev laptop (2024-2026 era CPU).
+- Memory: <16 MB transient; use typed arrays.
+
+Hotspots and strategies
+- A* for connectors: early-exit when heuristic < ε and near-goal; cap nodes; reuse open/closed buffers; 4/8-neighbor precomputed indices; tie-break with straightness bias.
+- CA loops: use bitmasks and two buffers; branchless neighbor counts where possible.
+- Floodfills: queue-based BFS using ring buffer; reuse buffers across passes.
+
+Big-O (approx.)
+- CA: O(w*h*steps)
+- Floodfills: O(w*h)
+- A*: O(E log V) with caps; practical ~O(k * w*h^0.5)
+- Decorations/Ore: linear in grid size plus vein lengths.
+
+---
+
+## 11) Integration Notes (Bevy/ECS)
+
+- Worldgen seed stored as resource (serde persisted). UiCommand(Regenerate{ seed, w, h, params_version }).
+- Loader reads artifact JSON → spawns Tiles in deterministic order: row-major tiles, then anchors.rooms sorted by type then aabb, then anchors.lights in input order.
+- Components:
+  - Tile { id:u16, material:Handle<Material>, hardness:f32, collider: Option<Collider> }.
+  - Light from anchors.lights; SoundEmitter later via biome hooks.
+- Transforms: static; tile size assumed 16 px; Z-order: air < rubble < lamp; colliders for solid rock only.
 
 ---
 
 ## 12) Risks & Assumptions
 
-- A* cost tuning at 256×128 may exceed 200 ms without heap micro-optimizations; consider Jump Point Search if needed.
-- Tool tiers and hardness may shift in Gamma/Delta; keep code->tier mapping data-driven (tools.json).
-- Room templates must validate against schema (size bounds, door placements); malformed templates can break connectivity.
-- CA parameters may need biome-dependent tuning; current defaults target L1.
-- Rendering expects walls around floors; ensure recompute_walls after every carve.
+Risks
+- RNG substream drift if consumption order changes; mitigated by dummy draws and documented iteration orders.
+- A* cost tuning can create too-straight or too-wiggly connectors; needs playtesting.
+- Biome token changes by content owners can break palette mapping.
+
+Assumptions
+- Tile size = 16 px.
+- Hardness → tool tier mapping provided later by Delta.
+- Enemy anchor IDs stable in future sprints; empty in L1.
 
 ---
 
-## 13) References & Integration
+## 13) Acceptance Checklist
 
-- ECS components:
-  - Tile, OreVein, LightAnchor, Marker. Events: OnTileMined(materialTag) → audio.
-- Data:
-  - configs/tools.json (tiers t0, t1, t1_5)
-  - palettes/lights.json (lamp/crystal colors)
-  - audio/material_map.json (rock/ore/crystal hits)
-- Templates:
-  - assets/worldgen/rooms/l1/tunnel_*.json
-  - assets/worldgen/rooms/l1/cavern_*.json
-  - assets/worldgen/rooms/l1/ore_pocket_*.json
-- Module paths:
-  - src/worldgen/cave/gen_l1.ts
-  - src/worldgen/util/rng.ts (SplitMix64, XorShift128+)
-  - src/worldgen/util/astar.ts
-  - src/worldgen/util/floodfill.ts
-  - src/worldgen/export/json.ts, src/worldgen/export/png.ts
+- [ ] Deterministic by seed (+w,h,params.version).
+- [ ] Solvable path from spawn to exit with main corridor width ≥ 3.
+- [ ] Room sizes and counts within defined bounds; separation respected.
+- [ ] Connectivity: ≥90% of walkable tiles in MCC; loop density within range.
+- [ ] Resource placement rules (ore, lights, decor) applied per biome and caps.
+- [ ] Performance target: <200 ms at 128x128 met in profiling.
+- [ ] Output matches JSON contract; Bevy mapping validated.
+- [ ] Tests (64x64, seed=12345) pass assertions.
 
 ---
